@@ -10,8 +10,18 @@ class ProductoImagen extends Model
     protected $table = "producto_imagenes";
     protected $fillable = [
         'url_imagen',
-        'texto_alt_SEO'
+        'texto_alt_SEO',
+        'tipo',
+        'producto_id'
     ];
+
+    /**
+     * Scope para filtrar imágenes por tipo
+     */
+    public function scopeTipo($query, $tipo)
+    {
+        return $query->where('tipo', $tipo);
+    }
     public $timestamps = true;
     public function producto(): BelongsTo
     {

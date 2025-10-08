@@ -34,6 +34,11 @@ class Producto extends Model
         return $this->hasMany(ProductoImagen::class, 'producto_id');
     }
 
+    public function imagenPopup()
+    {
+        return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'popup');
+    }
+
     public function productosRelacionados()
     {
         return $this->belongsToMany(Producto::class, 'producto_relacionados', 'id_producto', 'id_relacionado');

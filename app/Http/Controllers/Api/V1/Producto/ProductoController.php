@@ -255,7 +255,8 @@ class ProductoController extends Controller
             $url = $this->guardarImagen($img);
             $imagenesProcesadas[] = [
                 "url_imagen" => $url,
-                "texto_alt_SEO" => $textos[$i] ?? null
+                "texto_alt_SEO" => $textos[$i] ?? null,
+                "tipo" => "galeria" // Especificar que son imágenes de galería
             ];
         }
 
@@ -284,7 +285,17 @@ class ProductoController extends Controller
         }
 
         $producto->productosRelacionados()->sync($datosValidados['relacionados'] ?? []);
+
         $producto->imagenes()->createMany($imagenesProcesadas);
+
+        if ($request->hasFile('imagen_popup')) {
+            $urlPopup = $this->guardarImagen($request->file('imagen_popup'));
+            $producto->imagenes()->create([
+                'url_imagen' => $urlPopup,
+                'texto_alt_SEO' => $request->input('texto_alt_popup', ''), // si tienes campo para alt
+                'tipo' => 'popup'
+            ]);
+        }
 
         // Aquí solo este bloque basta
         $especificaciones = json_decode($datosValidados['especificaciones'] ?? null, true);
@@ -478,7 +489,7 @@ class ProductoController extends Controller
     public function showByLink($link)
     {
         try {
-            $producto = Producto::with(['imagenes', 'productosRelacionados.imagenes', 'etiqueta', 'dimensiones'])
+            $producto = Producto::with(['imagenes', 'productoImagenes', 'productosRelacionados.imagenes', 'etiqueta', 'dimensiones'])
                 ->where('link', $link)
                 ->first();
 
@@ -590,10 +601,28 @@ class ProductoController extends Controller
         Log::info('PATCH Producto Request received:', ['request_all' => $request->all(), 'id' => $id]);
         $datosValidados = $request->validated();
         Log::info('Validated data:', ['datos_validados' => $datosValidados]);
-
+        
         DB::beginTransaction();
         try {
             $producto = Producto::findOrFail($id);
+
+            // Actualizar imagen popup si se envía una nueva
+            if ($request->hasFile('imagen_popup')) {
+                // Eliminar imagen popup anterior si existe
+                $imagenPopup = $producto->imagenes()->where('tipo', 'popup')->first();
+                if ($imagenPopup) {
+                    $rutaAnterior = str_replace('/storage/', '', $imagenPopup->url_imagen);
+                    \Storage::disk('public')->delete($rutaAnterior);
+                    $imagenPopup->delete();
+                }
+                // Guardar nueva imagen popup
+                $urlPopup = $this->guardarImagen($request->file('imagen_popup'));
+                $producto->imagenes()->create([
+                    'url_imagen' => $urlPopup,
+                    'texto_alt_SEO' => $request->input('texto_alt_popup', ''),
+                    'tipo' => 'popup'
+                ]);
+            }
 
             // Construir solo los campos que se van a actualizar
             $camposActualizar = [];
@@ -650,14 +679,16 @@ class ProductoController extends Controller
                 );
             }
 
-            // Eliminar imágenes antiguas si se envían nuevas
+            // Eliminar imágenes antiguas si se envían nuevas (excepto la imagen popup)
             if (isset($datosValidados['imagenes'])) {
                 $rutasImagenesAntiguas = [];
-                foreach ($producto->imagenes as $imagen) {
+                // Solo eliminar imágenes de galería, no las de tipo popup
+                foreach ($producto->imagenes()->where('tipo', '!=', 'popup')->orWhereNull('tipo')->get() as $imagen) {
                     array_push($rutasImagenesAntiguas, str_replace('/storage/', '', $imagen['url_imagen']));
                 }
                 Storage::disk('public')->delete($rutasImagenesAntiguas);
-                $producto->imagenes()->delete();
+                // Solo eliminar imágenes de galería, no las de tipo popup
+                $producto->imagenes()->where('tipo', '!=', 'popup')->orWhereNull('tipo')->delete();
 
                 $imagenes = $request->file("imagenes", []);
                 $altTexts = $datosValidados["textos_alt"] ?? [];
@@ -666,7 +697,8 @@ class ProductoController extends Controller
                     $ruta = $this->guardarImagen($imagen);
                     $producto->imagenes()->create([
                         "url_imagen" => $ruta,
-                        "texto_alt_SEO" => $altTexts[$i] ?? null
+                        "texto_alt_SEO" => $altTexts[$i] ?? null,
+                        "tipo" => "galeria" // Especificar que es una imagen de galería
                     ]);
                 }
             }

@@ -34,6 +34,7 @@ class ProductoResource extends JsonResource
                 'ancho' => $this->dimensiones->ancho,
             ] : null,
             'imagenes' => ProductoImagenResource::collection($this->imagenes),
+            'producto_imagenes' => ProductoImagenResource::collection($this->productoImagenes),
             'productos_relacionados' => $this->withRelacionados ? ProductoRelacionadoResource::collection($this->productosRelacionados) : $this->productosRelacionados,
             'etiqueta' => $this->etiqueta ? [
                 'meta_titulo' => $this->etiqueta->meta_titulo,
