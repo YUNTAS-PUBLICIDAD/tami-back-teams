@@ -15,7 +15,7 @@ class Producto extends Model
         'link',
         'titulo',
         'subtitulo',
-        'stock',    
+        'stock',
         'precio',
         'seccion',
         'descripcion',
@@ -57,5 +57,9 @@ class Producto extends Model
     public function etiqueta()
     {
         return $this->hasOne(ProductoEtiqueta::class);
+    }
+    public function productoImagenes()
+    {
+        return $this->hasMany(ProductoImagen::class, 'producto_id', 'id');
     }
 }
