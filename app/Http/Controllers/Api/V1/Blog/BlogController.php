@@ -524,15 +524,17 @@ class BlogController extends Controller
         try {
             $camposActualizar = [];
 
-            foreach ([
-                "titulo",
-                "producto_id",
-                "link",
-                "subtitulo1",
-                "subtitulo2",
-                "video_url",
-                "video_titulo"
-            ] as $campo) {
+            foreach (
+                [
+                    "titulo",
+                    "producto_id",
+                    "link",
+                    "subtitulo1",
+                    "subtitulo2",
+                    "video_url",
+                    "video_titulo"
+                ] as $campo
+            ) {
                 if ($request->has($campo)) {
                     $camposActualizar[$campo] = $datosValidados[$campo];
                 }
@@ -554,15 +556,15 @@ class BlogController extends Controller
 
             $blog->update($camposActualizar);
 
-            if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
+            if (isset($datosValidados['etiqueta']['meta_titulo']) || isset($datosValidados['etiqueta']['meta_descripcion'])) {
                 $blog->etiqueta()->updateOrCreate(
                     ['blog_id' => $blog->id],
                     [
-                        'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
-                        'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
+                        'meta_titulo' => $datosValidados['etiqueta']['meta_titulo'] ?? null,
+                        'meta_descripcion' => $datosValidados['etiqueta']['meta_descripcion'] ?? null,
                     ]
                 );
-            } else if ($blog->etiqueta && (!isset($datosValidados['meta_titulo']) && !isset($datosValidados['meta_descripcion']))) {
+            } else if ($blog->etiqueta && (!isset($datosValidados['etiqueta']['meta_titulo']) && !isset($datosValidados['etiqueta']['meta_descripcion']))) {
                 $blog->etiqueta()->delete();
             }
 

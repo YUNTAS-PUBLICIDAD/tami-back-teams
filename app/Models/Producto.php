@@ -58,4 +58,9 @@ class Producto extends Model
     {
         return $this->hasOne(ProductoEtiqueta::class);
     }
+    public function productoImagenes()
+{
+    return $this->hasMany(ProductoImagen::class, 'producto_id', 'id');
+}
+
 }
