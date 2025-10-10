@@ -86,40 +86,36 @@ class EmailController extends Controller
         }
     }
 
+    //Toma el template dinamico de productos
     public function sendEmailByProductLink(Request $request)
     {
-        $views = [
-            // Decoración
-            'mesa-led-bar-alta'           => 'emails.decoracion.mesa-led-bar-alta-circular',
-            'mesa-led-bar-alta-cuadrada'  => 'emails.decoracion.mesa-led-bar',
-            'silla-bar-led-alta'          => 'emails.decoracion.silla-led-bar-taburete',
-            'sillas-cuadradas-o-de-cubo'  => 'emails.decoracion.sillas-cuadradas-cubo-led',
-
-            // Maquinaria
-            'maquina-de-embalaje-de-te'       => 'emails.maquinaria.maquina-embalaje-te',
-            'maquina-selladora-de-bolsas-para-liquidos' => 'emails.maquinaria.maquina-selladora-bolsas',
-            'maquina-selladora-de-bolsas-para-solidos'  => 'emails.maquinaria.maquina-selladora-solidos',
-            'selladora-de-vaso-manual'        => 'emails.maquinaria.maquina-selladora-vasos',
-
-            // Negocios
-            'selladora-por-induccion'     => 'emails.negocios.maquina-sellado-por-induccion',
-            'purificador-de-agua'         => 'emails.negocios.purificador-de-agua',
-            'soldadora-lingba'            => 'emails.negocios.soldadora-lingba',
-            'soldadora-spark-mig-250'     => 'emails.negocios.soldadora-spark',
-            'ventilador-holografico'      => 'emails.negocios.ventilador-holografico',
-        ];
-
-        $link = $request->link;
-
-        if (!isset($views[$link])) {
-            abort(404, "No hay plantilla de email para el producto {$link}");
-        }
+        $request->validate([
+            'email' => 'required|email',
+            'name' => 'required|string',
+            'link' => 'required|string',
+        ]);
 
         try {
-            $view = $views[$link];
+            // Obtener el producto por su link
+            $producto = \App\Models\Producto::with(['imagenes'])
+                ->where('link', $request->link)
+                ->firstOrFail();
+
+            // Obtener la imagen de email (tipo='email') - Esta imagen contiene todo el diseño
+            $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
+
+            // Preparar los datos para el email
+            $productData = [
+                'name' => $producto->nombre,
+                'main_image' => $imagenEmail 
+                    ? config('app.url') . $imagenEmail->url_imagen 
+                    : asset('email/default-product.webp'),
+                'video_url' => $producto->video_url ?? null,
+                'client_name' => $request->name,
+            ];
 
             Mail::to($request->email)->send(
-                new ProductInfoMail($request->only('name'), $view)
+                new ProductInfoMail(['product' => $productData], 'emails.product-generic')
             );
 
             return response()->json([
@@ -127,13 +123,12 @@ class EmailController extends Controller
                 'message' => 'Correo enviado correctamente'
             ], 200);
 
-        } catch (Exception $e) {
-            // Log interno para que no pase desapercibido
-            Log::error('Error al enviar correo de producto', [
+        } catch (\Exception $e) {
+            \Log::error('Error al enviar correo de producto', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'email' => $request->email,
-                'link'  => $link,
+                'link' => $request->link ?? 'N/A',
             ]);
 
             return response()->json([
