@@ -108,7 +108,7 @@ class EmailController extends Controller
             $productData = [
                 'name' => $producto->nombre,
                 'main_image' => $imagenEmail 
-                    ? config('app.url') . $imagenEmail->url_imagen 
+                    ? url($imagenEmail->url_imagen)
                     : asset('email/default-product.webp'),
                 'video_url' => $producto->video_url ?? null,
                 'client_name' => $request->name,

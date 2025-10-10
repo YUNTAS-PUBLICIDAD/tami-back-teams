@@ -499,7 +499,7 @@ class ProductoController extends Controller
     public function showByLink($link)
     {
         try {
-            $producto = Producto::with(['imagenes', 'productoImagenes', 'productosRelacionados.imagenes', 'etiqueta', 'dimensiones'])
+            $producto = Producto::with(['imagenes', 'productosRelacionados.imagenes', 'etiqueta', 'dimensiones'])
                 ->where('link', $link)
                 ->first();
 
