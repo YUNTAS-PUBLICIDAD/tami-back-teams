@@ -63,6 +63,17 @@ class V2StoreProductoRequest extends FormRequest
             'textos_alt' => "array|min:1|max:10",
             'textos_alt.*' => "string|max:255",
 
+            // Imagen popup
+            'imagen_popup' => "nullable|file|image|max:2048",
+            'texto_alt_popup' => "nullable|string|max:255",
+
+            // Imagen email
+            'imagen_email' => "nullable|file|image|max:2048",
+            'texto_alt_email' => "nullable|string|max:255",
+
+            // URL del video
+            'video_url' => "nullable|url|max:500",
+
             // Productos relacionados
             'relacionados' => "sometimes|array",
             'relacionados.*' => "integer|exists:productos,id",

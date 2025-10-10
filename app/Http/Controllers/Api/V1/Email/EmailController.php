@@ -92,11 +92,30 @@ class EmailController extends Controller
         $request->validate([
             'email' => 'required|email',
             'name' => 'required|string',
+            'link' => 'required|string',
         ]);
 
         try {
+            // Obtener el producto por su link
+            $producto = \App\Models\Producto::with(['imagenes'])
+                ->where('link', $request->link)
+                ->firstOrFail();
+
+            // Obtener la imagen de email (tipo='email') - Esta imagen contiene todo el diseño
+            $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
+
+            // Preparar los datos para el email
+            $productData = [
+                'name' => $producto->nombre,
+                'main_image' => $imagenEmail 
+                    ? config('app.url') . $imagenEmail->url_imagen 
+                    : asset('email/default-product.webp'),
+                'video_url' => $producto->video_url ?? null,
+                'client_name' => $request->name,
+            ];
+
             Mail::to($request->email)->send(
-                new ProductInfoMail($request->all(), 'emails.product-generic')
+                new ProductInfoMail(['product' => $productData], 'emails.product-generic')
             );
 
             return response()->json([
@@ -109,6 +128,7 @@ class EmailController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'email' => $request->email,
+                'link' => $request->link ?? 'N/A',
             ]);
 
             return response()->json([

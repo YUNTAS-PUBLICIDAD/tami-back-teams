@@ -33,6 +33,10 @@ class ProductInfoMail extends Mailable
     {
         return new Content(
             view: $this->viewName,
+            with: [
+                'product' => $this->data['product'] ?? [],
+                'data' => $this->data,
+            ]
         );
     }
 
