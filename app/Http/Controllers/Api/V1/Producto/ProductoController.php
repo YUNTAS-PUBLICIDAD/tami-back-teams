@@ -269,6 +269,7 @@ class ProductoController extends Controller
             "precio" => $datosValidados["precio"] ?? null,
             "seccion" => $datosValidados["seccion"] ?? null,
             "descripcion" => $datosValidados["descripcion"] ?? null,
+            "video_url" => $datosValidados["video_url"] ?? null,
         ]);
 
         $keywords = json_decode($datosValidados['keywords'] ?? null, true);
@@ -292,8 +293,17 @@ class ProductoController extends Controller
             $urlPopup = $this->guardarImagen($request->file('imagen_popup'));
             $producto->imagenes()->create([
                 'url_imagen' => $urlPopup,
-                'texto_alt_SEO' => $request->input('texto_alt_popup', ''), // si tienes campo para alt
+                'texto_alt_SEO' => $request->input('texto_alt_popup', ''),
                 'tipo' => 'popup'
+            ]);
+        }
+
+        if ($request->hasFile('imagen_email')) {
+            $urlEmail = $this->guardarImagen($request->file('imagen_email'));
+            $producto->imagenes()->create([
+                'url_imagen' => $urlEmail,
+                'texto_alt_SEO' => $request->input('texto_alt_email', ''),
+                'tipo' => 'email'
             ]);
         }
 
@@ -624,6 +634,24 @@ class ProductoController extends Controller
                 ]);
             }
 
+            // Actualizar imagen email si se envía una nueva
+            if ($request->hasFile('imagen_email')) {
+                // Eliminar imagen email anterior si existe
+                $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
+                if ($imagenEmail) {
+                    $rutaAnterior = str_replace('/storage/', '', $imagenEmail->url_imagen);
+                    \Storage::disk('public')->delete($rutaAnterior);
+                    $imagenEmail->delete();
+                }
+                // Guardar nueva imagen email
+                $urlEmail = $this->guardarImagen($request->file('imagen_email'));
+                $producto->imagenes()->create([
+                    'url_imagen' => $urlEmail,
+                    'texto_alt_SEO' => $request->input('texto_alt_email', ''),
+                    'tipo' => 'email'
+                ]);
+            }
+
             // Construir solo los campos que se van a actualizar
             $camposActualizar = [];
             foreach (
@@ -635,7 +663,8 @@ class ProductoController extends Controller
                     "stock",
                     "precio",
                     "seccion",
-                    "descripcion"
+                    "descripcion",
+                    "video_url"
                 ] as $campo
             ) {
                 if (array_key_exists($campo, $datosValidados)) {

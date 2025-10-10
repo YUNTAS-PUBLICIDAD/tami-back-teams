@@ -19,6 +19,7 @@ class Producto extends Model
         'precio',
         'seccion',
         'descripcion',
+        'video_url',
         // 'imagenes'
     ];
 

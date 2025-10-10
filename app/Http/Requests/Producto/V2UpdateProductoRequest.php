@@ -46,6 +46,18 @@ class V2UpdateProductoRequest extends FormRequest
             'imagenes.*' => ['file', 'image', 'max:2048'],
             'textos_alt' => ['sometimes', 'array'],
             'textos_alt.*' => ['string', 'max:255'],
+            
+            // Imagen popup
+            'imagen_popup' => ['nullable', 'file', 'image', 'max:2048'],
+            'texto_alt_popup' => ['nullable', 'string', 'max:255'],
+            
+            // Imagen email
+            'imagen_email' => ['nullable', 'file', 'image', 'max:2048'],
+            'texto_alt_email' => ['nullable', 'string', 'max:255'],
+            
+            // URL del video
+            'video_url' => ['nullable', 'url', 'max:500'],
+            
             'relacionados' => ['sometimes', 'array'],
             'relacionados.*' => ['integer', 'exists:productos,id'],
         ];
