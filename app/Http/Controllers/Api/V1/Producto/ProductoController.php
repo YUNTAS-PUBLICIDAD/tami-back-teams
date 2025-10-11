@@ -243,6 +243,107 @@ class ProductoController extends Controller
         return "/storage/imagenes/" . $nombre;
     }
 
+    /**
+     * Maneja la creación o actualización de imagen especial (popup/email)
+     * 
+     * @param Producto $producto
+     * @param Request $request
+     * @param string $tipo 'popup' o 'email'
+     * @param string $fileField Nombre del campo del archivo (imagen_popup/imagen_email)
+     * @param string $altField Nombre del campo de texto alternativo
+     * @return void
+     */
+    private function handleSpecialImage($producto, $request, $tipo, $fileField, $altField)
+    {
+        if (!$request->hasFile($fileField)) {
+            return;
+        }
+
+        // Eliminar imagen anterior si existe
+        $imagenAnterior = $producto->imagenes()->where('tipo', $tipo)->first();
+        if ($imagenAnterior) {
+            $rutaAnterior = str_replace('/storage/', '', $imagenAnterior->url_imagen);
+            Storage::disk('public')->delete($rutaAnterior);
+            $imagenAnterior->delete();
+        }
+
+        // Guardar nueva imagen
+        $urlImagen = $this->guardarImagen($request->file($fileField));
+        $producto->imagenes()->create([
+            'url_imagen' => $urlImagen,
+            'texto_alt_SEO' => $request->input($altField, ''),
+            'tipo' => $tipo
+        ]);
+    }
+
+    /**
+     * Procesa y concatena las keywords desde JSON
+     * 
+     * @param string|null $keywordsJson
+     * @return string|null
+     */
+    private function processKeywords($keywordsJson)
+    {
+        $keywords = json_decode($keywordsJson ?? '[]', true);
+        
+        if (is_array($keywords) && !empty($keywords)) {
+            return implode(', ', $keywords);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Sincroniza las especificaciones del producto
+     * 
+     * @param Producto $producto
+     * @param string|null $especificacionesJson
+     * @return void
+     */
+    private function syncEspecificaciones($producto, $especificacionesJson)
+    {
+        $especificaciones = json_decode($especificacionesJson ?? '[]', true);
+        
+        if (!is_array($especificaciones)) {
+            return;
+        }
+
+        foreach ($especificaciones as $valor) {
+            $producto->especificaciones()->create([
+                'valor' => $valor,
+            ]);
+        }
+    }
+
+    /**
+     * Elimina imágenes de galería antiguas (excluyendo popup y email)
+     * 
+     * @param Producto $producto
+     * @return void
+     */
+    private function deleteGalleryImages($producto)
+    {
+        $imagenes = $producto->imagenes()
+            ->where(function($query) {
+                $query->where('tipo', 'galeria')
+                      ->orWhereNull('tipo');
+            })
+            ->get();
+
+        $rutasImagenes = $imagenes->pluck('url_imagen')
+            ->map(fn($url) => str_replace('/storage/', '', $url))
+            ->toArray();
+
+        Storage::disk('public')->delete($rutasImagenes);
+        
+        $producto->imagenes()
+            ->where(function($query) {
+                $query->where('tipo', 'galeria')
+                      ->orWhereNull('tipo');
+            })
+            ->delete();
+    }
+
     public function store(v2StoreProductoRequest $request)
     {
         $datosValidados = $request->validated();
@@ -272,16 +373,13 @@ class ProductoController extends Controller
             "video_url" => $datosValidados["video_url"] ?? null,
         ]);
 
-        $keywords = json_decode($datosValidados['keywords'] ?? null, true);
-        if(is_array($keywords)){
-            $keywordsConcatenados = implode(', ', $keywords);
-        }
-
         if ($request->has('etiqueta')) {
+            $keywordsConcatenados = $this->processKeywords($datosValidados['keywords'] ?? null);
+            
             $producto->etiqueta()->create([
                 'meta_titulo'      => $request->etiqueta['meta_titulo'] ?? null,
                 'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
-                'keywords' => $keywordsConcatenados ?? null,
+                'keywords' => $keywordsConcatenados,
             ]);
         }
 
@@ -289,35 +387,12 @@ class ProductoController extends Controller
 
         $producto->imagenes()->createMany($imagenesProcesadas);
 
-        if ($request->hasFile('imagen_popup')) {
-            $urlPopup = $this->guardarImagen($request->file('imagen_popup'));
-            $producto->imagenes()->create([
-                'url_imagen' => $urlPopup,
-                'texto_alt_SEO' => $request->input('texto_alt_popup', ''),
-                'tipo' => 'popup'
-            ]);
-        }
+        // Manejar imágenes especiales (popup y email)
+        $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
+        $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
 
-        if ($request->hasFile('imagen_email')) {
-            $urlEmail = $this->guardarImagen($request->file('imagen_email'));
-            $producto->imagenes()->create([
-                'url_imagen' => $urlEmail,
-                'texto_alt_SEO' => $request->input('texto_alt_email', ''),
-                'tipo' => 'email'
-            ]);
-        }
-
-        // Aquí solo este bloque basta
-        $especificaciones = json_decode($datosValidados['especificaciones'] ?? null, true);
-
-        if (is_array($especificaciones)) {
-            foreach ($especificaciones as $valor) {
-                $producto->especificaciones()->create([
-                    // 'clave' => $clave,
-                    'valor' => $valor,
-                ]);
-            }
-        }
+        // Guardar especificaciones
+        $this->syncEspecificaciones($producto, $datosValidados['especificaciones'] ?? null);
 
         // Dimensiones
         if (isset($datosValidados['dimensiones']) && is_array($datosValidados['dimensiones'])) {
@@ -616,41 +691,9 @@ class ProductoController extends Controller
         try {
             $producto = Producto::findOrFail($id);
 
-            // Actualizar imagen popup si se envía una nueva
-            if ($request->hasFile('imagen_popup')) {
-                // Eliminar imagen popup anterior si existe
-                $imagenPopup = $producto->imagenes()->where('tipo', 'popup')->first();
-                if ($imagenPopup) {
-                    $rutaAnterior = str_replace('/storage/', '', $imagenPopup->url_imagen);
-                    \Storage::disk('public')->delete($rutaAnterior);
-                    $imagenPopup->delete();
-                }
-                // Guardar nueva imagen popup
-                $urlPopup = $this->guardarImagen($request->file('imagen_popup'));
-                $producto->imagenes()->create([
-                    'url_imagen' => $urlPopup,
-                    'texto_alt_SEO' => $request->input('texto_alt_popup', ''),
-                    'tipo' => 'popup'
-                ]);
-            }
-
-            // Actualizar imagen email si se envía una nueva
-            if ($request->hasFile('imagen_email')) {
-                // Eliminar imagen email anterior si existe
-                $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
-                if ($imagenEmail) {
-                    $rutaAnterior = str_replace('/storage/', '', $imagenEmail->url_imagen);
-                    \Storage::disk('public')->delete($rutaAnterior);
-                    $imagenEmail->delete();
-                }
-                // Guardar nueva imagen email
-                $urlEmail = $this->guardarImagen($request->file('imagen_email'));
-                $producto->imagenes()->create([
-                    'url_imagen' => $urlEmail,
-                    'texto_alt_SEO' => $request->input('texto_alt_email', ''),
-                    'tipo' => 'email'
-                ]);
-            }
+            // Manejar imágenes especiales (popup y email)
+            $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
+            $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
 
             // Construir solo los campos que se van a actualizar
             $camposActualizar = [];
@@ -674,51 +717,26 @@ class ProductoController extends Controller
             Log::info('Fields to update:', ['campos_actualizar' => $camposActualizar]);
             $producto->update($camposActualizar);
 
-            // if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
-            //     $producto->etiqueta()->updateOrCreate(
-            //         ['producto_id' => $producto->id],
-            //         [
-            //             'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
-            //             'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
-            //         ]
-            //     );
-            // } else if ($producto->etiqueta && (!isset($datosValidados['meta_titulo']) && !isset($datosValidados['meta_descripcion']))) {
-            //     $producto->etiqueta()->delete();
-            // }
-            // traer desde etiqueta
-
-            if (isset($datosValidados['keywords'])) {
-                $keywords = json_decode($datosValidados['keywords'] ?? '[]', true);
-
-                if (is_array($keywords)) {
-                    $keywordsConcatenados = !empty($keywords) ? implode(', ', $keywords) : null;
-                } else {
-                    $keywordsConcatenados = null;
-                }
-            }
-
+            // Actualizar etiqueta con keywords procesadas
             if ($request->has('etiqueta')) {
+                $keywordsConcatenados = $this->processKeywords($datosValidados['keywords'] ?? null);
+                
                 $producto->etiqueta()->updateOrCreate(
                     ['producto_id' => $producto->id],
                     [
                         'meta_titulo'      => $request->etiqueta['meta_titulo'] ?? null,
                         'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
-                        'keywords' => $keywordsConcatenados ?? null,
+                        'keywords'         => $keywordsConcatenados,
                     ]
                 );
             }
 
-            // Eliminar imágenes antiguas si se envían nuevas (excepto la imagen popup)
+            // Actualizar imágenes de galería si se envían nuevas
             if (isset($datosValidados['imagenes'])) {
-                $rutasImagenesAntiguas = [];
-                // Solo eliminar imágenes de galería, no las de tipo popup
-                foreach ($producto->imagenes()->where('tipo', '!=', 'popup')->orWhereNull('tipo')->get() as $imagen) {
-                    array_push($rutasImagenesAntiguas, str_replace('/storage/', '', $imagen['url_imagen']));
-                }
-                Storage::disk('public')->delete($rutasImagenesAntiguas);
-                // Solo eliminar imágenes de galería, no las de tipo popup
-                $producto->imagenes()->where('tipo', '!=', 'popup')->orWhereNull('tipo')->delete();
+                // Eliminar imágenes de galería antiguas
+                $this->deleteGalleryImages($producto);
 
+                // Guardar nuevas imágenes de galería
                 $imagenes = $request->file("imagenes", []);
                 $altTexts = $datosValidados["textos_alt"] ?? [];
 
@@ -727,7 +745,7 @@ class ProductoController extends Controller
                     $producto->imagenes()->create([
                         "url_imagen" => $ruta,
                         "texto_alt_SEO" => $altTexts[$i] ?? null,
-                        "tipo" => "galeria" // Especificar que es una imagen de galería
+                        "tipo" => "galeria"
                     ]);
                 }
             }
@@ -735,15 +753,7 @@ class ProductoController extends Controller
             // Actualizar especificaciones
             if (isset($datosValidados['especificaciones'])) {
                 $producto->especificaciones()->delete();
-                $especificaciones = json_decode($datosValidados['especificaciones'] ?? '[]', true);
-                if (is_array($especificaciones)) {
-                    foreach ($especificaciones as $valor) {
-                        $producto->especificaciones()->create([
-                            // 'clave' => $clave,
-                            'valor' => $valor,
-                        ]);
-                    }
-                }
+                $this->syncEspecificaciones($producto, $datosValidados['especificaciones']);
             }
 
             // Actualizar dimensiones
