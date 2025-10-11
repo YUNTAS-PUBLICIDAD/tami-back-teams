@@ -24,8 +24,9 @@ class ProductInfoMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $productName = $this->data['product']['name'] ?? $this->data['name'] ?? 'Producto';
         return new Envelope(
-            subject: $this->data['name'] . ', empecemos a crear juntos ✨',
+            subject: $productName . ', empecemos a crear juntos ✨',
         );
     }
 
