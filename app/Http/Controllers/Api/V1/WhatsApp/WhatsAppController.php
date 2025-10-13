@@ -3,78 +3,52 @@
 namespace App\Http\Controllers\Api\V1\WhatsApp;
 
 use App\Http\Controllers\Controller;
+use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class WhatsAppController extends Controller
 {
-    protected $serviceUrl;
-
-    public function __construct()
+    public function sendProductDetails(Request $request)
     {
-        $this->serviceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:5111/api');
-    }
+        $resultados = [];
+        $producto = Producto::where('link', $request->link)->first();
 
-    /*
-    * Login para obtener el token del whatsapp service
-    */
-    public function loginWhatsApp(Request $request) {
-        $response = Http::post($this->serviceUrl . '/auth/login', [
-            'username' => $request->username,
-            'password' => $request->password,
-        ]);
+        try {
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:5111/api');
 
-        return response()->json($response->json(), $response->status());
-    }
-
-    /*
-    * Generar un QR, el emisor escanea el qr para que use su número
-    */
-    public function requestNewQr(Request $request) {
-        $token = $request->bearerToken();
-
-        $response = Http::withToken($token)->post($this->serviceUrl . '/qr-request');
-
-        return response()->json($response->json(), $response->status());
-    }
-
-    /*
-    * Envío de mensaje - con Autorización JWT
-    */
-    public function sendMessage(Request $request)
-    {
-        $request->validate([
-            'phone'          => 'required|string',
-            'templateOption' => 'required|string',
-            'psicologo'      => 'required|string',
-            'fecha'          => 'required|date',
-            'hora'           => 'required|string',
-        ]);
-
-        $token = $request->bearerToken();
-
-        $response = Http::withToken($token)
-            ->post($this->serviceUrl . '/send-message', [
-                'phone'          => $request->phone,
-                'templateOption' => $request->templateOption,
-                'psicologo'      => $request->psicologo,
-                'fecha'          => $request->fecha,
-                'hora'           => $request->hora,
+            Http::post($whatsappServiceUrl . '/send-product-info', [
+                'productName' => $producto->nombre,
+                'description' => $producto->descripcion,
+                'phone'       => "+51" . $request->phone,
+                'email'       => $request->email,
+                'imageData'   => $this->convertImageToBase64('https://res.cloudinary.com/dshi5w2wt/image/upload/v1759791593/Copia_de_Imagen_de_Beneficios_2_1_u7a7tk.png'),
             ]);
+            $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
+        } catch (\Throwable $e) {
+            $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
+        }
 
-        return response()->json($response->json(), $response->status());
+        return response()->json([
+            'message'   => 'Proceso finalizado con los siguientes resultados:',
+            'resultados' => $resultados
+        ], 200);
     }
 
-    /*
-    * Envío de mensaje - sin Autorización JWT
-    */
-    public function sendMessageAccept(Request $request) {
+    public function convertImageToBase64($url)
+    {
+        $response = Http::get($url);
 
-        $response = Http::post($this->serviceUrl . '/send-message-accept', [
-            'telefono' => $request->telefono,
-            'comentario' => $request->comentario,
-        ]);
+        if (!$response->successful()) {
+            throw new \Exception('No se pudo descargar la imagen');
+        }
 
-        return response()->json($response->json(), $response->status());
+        $mimeType = $response->header('Content-Type');
+
+        $base64 = base64_encode($response->body());
+
+        $imageData = 'data:' . $mimeType . ';base64,' . $base64;
+
+        return $imageData;
     }
 }
