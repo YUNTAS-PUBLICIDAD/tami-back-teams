@@ -46,6 +46,7 @@ class V2StoreProductoRequest extends FormRequest
             // Etiquetas SEO
             'meta_titulo' => 'nullable|string|min:10|max:60',
             'meta_descripcion' => 'nullable|string|min:40|max:160',
+            'keywords' => "string|max:65535",
 
             // Especificaciones
             'especificaciones' => "string|max:65535",
@@ -61,6 +62,17 @@ class V2StoreProductoRequest extends FormRequest
             'imagenes.*' => "file|image|max:2048",
             'textos_alt' => "array|min:1|max:10",
             'textos_alt.*' => "string|max:255",
+
+            // Imagen popup
+            'imagen_popup' => "nullable|file|image|max:2048",
+            'texto_alt_popup' => "nullable|string|max:255",
+
+            // Imagen email
+            'imagen_email' => "nullable|file|image|max:2048",
+            'texto_alt_email' => "nullable|string|max:255",
+
+            // URL del video
+            'video_url' => "nullable|url|max:500",
 
             // Productos relacionados
             'relacionados' => "sometimes|array",

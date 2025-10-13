@@ -15,10 +15,11 @@ class Producto extends Model
         'link',
         'titulo',
         'subtitulo',
-        'stock',    
+        'stock',
         'precio',
         'seccion',
         'descripcion',
+        'video_url',
         // 'imagenes'
     ];
 
@@ -32,6 +33,11 @@ class Producto extends Model
     public function imagenes()
     {
         return $this->hasMany(ProductoImagen::class, 'producto_id');
+    }
+
+    public function imagenPopup()
+    {
+        return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'popup');
     }
 
     public function productosRelacionados()
@@ -51,5 +57,9 @@ class Producto extends Model
     public function etiqueta()
     {
         return $this->hasOne(ProductoEtiqueta::class);
+    }
+    public function productoImagenes()
+    {
+        return $this->hasMany(ProductoImagen::class, 'producto_id', 'id');
     }
 }

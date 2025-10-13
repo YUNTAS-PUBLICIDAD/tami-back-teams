@@ -104,66 +104,6 @@ class ProductoController extends Controller
             $productos = Producto::with(['imagenes', 'especificaciones', 'productosRelacionados.imagenes', 'etiqueta', 'dimensiones'])
                 ->orderBy('created_at')
                 ->get();
-
-            /* $showProductos = $productos->map(function ($producto) {
-                // $especificacionesFormateadas = [];
-                // foreach ($producto->especificaciones as $especificacion) {
-                //     $especificacionesFormateadas[$especificacion->clave] = $especificacion->valor;
-                // }
-
-                Log::info('Producto ID: ' . $producto->id . ' - Etiqueta antes del mapeo: ', ['etiqueta' => $producto->etiqueta]);
-                return [
-                    'id' => $producto->id,
-                    'titulo' => $producto->titulo,
-                    'nombre' => $producto->nombre,
-                    'link' => $producto->link,
-                    'subtitulo' => $producto->subtitulo,
-                    'stock' => $producto->stock,
-                    'precio' => $producto->precio,
-                    'seccion' => $producto->seccion,
-                    'descripcion' => $producto->descripcion,
-                    'especificaciones' => $producto->especificaciones,
-                    'dimensiones' => $producto->dimensiones ? [
-                        'alto' => $producto->dimensiones->alto,
-                        'largo' => $producto->dimensiones->largo,
-                        'ancho' => $producto->dimensiones->ancho,
-                    ] : null,
-                    'imagenes' => $producto->imagenes->map(function ($imagen) {
-                        return [
-                            'url_imagen' => $imagen->url_imagen,
-                            'texto_alt_SEO' => $imagen->texto_alt_SEO,
-                        ];
-                    }),
-                    'productos_relacionados' => $producto->productosRelacionados->map(function ($relacionado) {
-                        return [
-                            'id' => $relacionado->id,
-                            'nombre' => $relacionado->nombre,
-                            'link' => $relacionado->link,
-                            'titulo' => $relacionado->titulo,
-                            'subtitulo' => $relacionado->subtitulo,
-                            'stock' => $relacionado->stock,
-                            'precio' => $relacionado->precio,
-                            'seccion' => $relacionado->seccion,
-                            'descripcion' => $relacionado->descripcion,
-                            'imagenes' => $relacionado->imagenes->map(function ($imagen) {
-                                return [
-                                    'url_imagen' => $imagen->url_imagen,
-                                    'texto_alt_SEO' => $imagen->texto_alt_SEO,
-                                ];
-                            }),
-                        ];
-                    }),
-                    'etiqueta' => $producto->etiqueta ? [
-                        'meta_titulo' => $producto->etiqueta->meta_titulo,
-                        'meta_descripcion' => $producto->etiqueta->meta_descripcion,
-                    ] : null,
-                    'created_at' => $producto->created_at,
-                    'updated_at' => $producto->updated_at
-                ];
-            });
-
-            return response()->json($showProductos); */
-
             return ProductoResource::collection($productos)->resolve();
         } catch (\Exception $e) {
             return response()->json([
@@ -192,9 +132,9 @@ class ProductoController extends Controller
     }
 
     /**
-     * 
+     *
      * Permit only two params: `perPage` and `page`:
-     * 
+     *
      * - `perPage`: It is a range of products.
      * - `page`: The initial position of a specific group of products.
      */
@@ -303,6 +243,107 @@ class ProductoController extends Controller
         return "/storage/imagenes/" . $nombre;
     }
 
+    /**
+     * Maneja la creación o actualización de imagen especial (popup/email)
+     * 
+     * @param Producto $producto
+     * @param Request $request
+     * @param string $tipo 'popup' o 'email'
+     * @param string $fileField Nombre del campo del archivo (imagen_popup/imagen_email)
+     * @param string $altField Nombre del campo de texto alternativo
+     * @return void
+     */
+    private function handleSpecialImage($producto, $request, $tipo, $fileField, $altField)
+    {
+        if (!$request->hasFile($fileField)) {
+            return;
+        }
+
+        // Eliminar imagen anterior si existe
+        $imagenAnterior = $producto->imagenes()->where('tipo', $tipo)->first();
+        if ($imagenAnterior) {
+            $rutaAnterior = str_replace('/storage/', '', $imagenAnterior->url_imagen);
+            Storage::disk('public')->delete($rutaAnterior);
+            $imagenAnterior->delete();
+        }
+
+        // Guardar nueva imagen
+        $urlImagen = $this->guardarImagen($request->file($fileField));
+        $producto->imagenes()->create([
+            'url_imagen' => $urlImagen,
+            'texto_alt_SEO' => $request->input($altField, ''),
+            'tipo' => $tipo
+        ]);
+    }
+
+    /**
+     * Procesa y concatena las keywords desde JSON
+     * 
+     * @param string|null $keywordsJson
+     * @return string|null
+     */
+    private function processKeywords($keywordsJson)
+    {
+        $keywords = json_decode($keywordsJson ?? '[]', true);
+        
+        if (is_array($keywords) && !empty($keywords)) {
+            return implode(', ', $keywords);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Sincroniza las especificaciones del producto
+     * 
+     * @param Producto $producto
+     * @param string|null $especificacionesJson
+     * @return void
+     */
+    private function syncEspecificaciones($producto, $especificacionesJson)
+    {
+        $especificaciones = json_decode($especificacionesJson ?? '[]', true);
+        
+        if (!is_array($especificaciones)) {
+            return;
+        }
+
+        foreach ($especificaciones as $valor) {
+            $producto->especificaciones()->create([
+                'valor' => $valor,
+            ]);
+        }
+    }
+
+    /**
+     * Elimina imágenes de galería antiguas (excluyendo popup y email)
+     * 
+     * @param Producto $producto
+     * @return void
+     */
+    private function deleteGalleryImages($producto)
+    {
+        $imagenes = $producto->imagenes()
+            ->where(function($query) {
+                $query->where('tipo', 'galeria')
+                      ->orWhereNull('tipo');
+            })
+            ->get();
+
+        $rutasImagenes = $imagenes->pluck('url_imagen')
+            ->map(fn($url) => str_replace('/storage/', '', $url))
+            ->toArray();
+
+        Storage::disk('public')->delete($rutasImagenes);
+        
+        $producto->imagenes()
+            ->where(function($query) {
+                $query->where('tipo', 'galeria')
+                      ->orWhereNull('tipo');
+            })
+            ->delete();
+    }
+
     public function store(v2StoreProductoRequest $request)
     {
         $datosValidados = $request->validated();
@@ -315,7 +356,8 @@ class ProductoController extends Controller
             $url = $this->guardarImagen($img);
             $imagenesProcesadas[] = [
                 "url_imagen" => $url,
-                "texto_alt_SEO" => $textos[$i] ?? null
+                "texto_alt_SEO" => $textos[$i] ?? null,
+                "tipo" => "galeria" // Especificar que son imágenes de galería
             ];
         }
 
@@ -328,35 +370,29 @@ class ProductoController extends Controller
             "precio" => $datosValidados["precio"] ?? null,
             "seccion" => $datosValidados["seccion"] ?? null,
             "descripcion" => $datosValidados["descripcion"] ?? null,
+            "video_url" => $datosValidados["video_url"] ?? null,
         ]);
 
-        // if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
-        //     $producto->etiqueta()->create([
-        //         'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
-        //         'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
-        //     ]);
-        // }
         if ($request->has('etiqueta')) {
+            $keywordsConcatenados = $this->processKeywords($datosValidados['keywords'] ?? null);
+            
             $producto->etiqueta()->create([
                 'meta_titulo'      => $request->etiqueta['meta_titulo'] ?? null,
                 'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
+                'keywords' => $keywordsConcatenados,
             ]);
         }
 
         $producto->productosRelacionados()->sync($datosValidados['relacionados'] ?? []);
+
         $producto->imagenes()->createMany($imagenesProcesadas);
 
-        // Aquí solo este bloque basta
-        $especificaciones = json_decode($datosValidados['especificaciones'] ?? null, true);
+        // Manejar imágenes especiales (popup y email)
+        $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
+        $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
 
-        if (is_array($especificaciones)) {
-            foreach ($especificaciones as $valor) {
-                $producto->especificaciones()->create([
-                    // 'clave' => $clave,
-                    'valor' => $valor,
-                ]);
-            }
-        }
+        // Guardar especificaciones
+        $this->syncEspecificaciones($producto, $datosValidados['especificaciones'] ?? null);
 
         // Dimensiones
         if (isset($datosValidados['dimensiones']) && is_array($datosValidados['dimensiones'])) {
@@ -454,40 +490,9 @@ class ProductoController extends Controller
                 ], 404);
             }
 
-            /* $imagenes = $producto->imagenes->map(function ($imagen) {
-                return [
-                    'url_imagen' => $imagen->url_imagen,
-                    'texto_alt_SEO' => $imagen->texto_alt_SEO,
-                ];
-            });
-
-            $formattedProducto = [
-                'id' => $producto->id,
-                'nombre' => $producto->nombre,
-                'link' => $producto->link,
-                'titulo' => $producto->titulo,
-                'subtitulo' => $producto->subtitulo,
-                'descripcion' => $producto->descripcion,
-                'especificaciones' => $producto->especificaciones ?? [],
-                'productos_relacionados' => $producto->productosRelacionados,
-                'imagenes' => $imagenes->toArray(),
-                'stock' => $producto->stock,
-                'precio' => $producto->precio,
-                'seccion' => $producto->seccion,
-                'etiqueta' => $producto->etiqueta ? [
-                    'meta_titulo' => $producto->etiqueta->meta_titulo,
-                    'meta_descripcion' => $producto->etiqueta->meta_descripcion,
-                ] : null,
-                'dimensiones' => $producto->dimensiones ? [
-                    'alto' => $producto->dimensiones->alto,
-                    'largo' => $producto->dimensiones->largo,
-                    'ancho' => $producto->dimensiones->ancho,
-                ] : null,
-            ]; */
             //Con el argumento false indicamos que no use el ProductoRelacionadoResource de esta manera no mapea datos innecesarios
             return response()->json([
                 'message' => 'Producto encontrado exitosamente',
-                //'data' => $formattedProducto
                 'data' => new ProductoResource($producto, false)
             ], 200);
         } catch (\Exception $e) {
@@ -577,40 +582,8 @@ class ProductoController extends Controller
                 return response()->json(["message" => "Producto no encontrado"], 404);
             }
 
-            /* $imagenes = $producto->imagenes->map(function ($imagen) {
-                return [
-                    'url_imagen' => $imagen->url_imagen,
-                    'texto_alt_SEO' => $imagen->texto_alt_SEO,
-                ];
-            });
-
-            $formattedProducto = [
-                'id' => $producto->id,
-                'nombre' => $producto->nombre,
-                'link' => $producto->link,
-                'titulo' => $producto->titulo,
-                'subtitulo' => $producto->subtitulo,
-                'descripcion' => $producto->descripcion,
-                'especificaciones' => $producto->especificaciones ?? [],
-                'productos_relacionados' => $producto->productosRelacionados,
-                'imagenes' => $imagenes->toArray(),
-                'stock' => $producto->stock,
-                'precio' => $producto->precio,
-                'seccion' => $producto->seccion,
-                'etiqueta' => $producto->etiqueta ? [
-                    'meta_titulo' => $producto->etiqueta->meta_titulo,
-                    'meta_descripcion' => $producto->etiqueta->meta_descripcion,
-                ] : null,
-                'dimensiones' => $producto->dimensiones ? [
-                    'alto' => $producto->dimensiones->alto,
-                    'largo' => $producto->dimensiones->largo,
-                    'ancho' => $producto->dimensiones->ancho,
-                ] : null,
-            ]; */
-
             return response()->json([
                 'message' => 'Producto encontrado exitosamente',
-                //'data' => $formattedProducto
                 'data' => new ProductoResource($producto, false)
             ], 200);
         } catch (\Exception $e) {
@@ -713,10 +686,14 @@ class ProductoController extends Controller
         Log::info('PATCH Producto Request received:', ['request_all' => $request->all(), 'id' => $id]);
         $datosValidados = $request->validated();
         Log::info('Validated data:', ['datos_validados' => $datosValidados]);
-
+        
         DB::beginTransaction();
         try {
             $producto = Producto::findOrFail($id);
+
+            // Manejar imágenes especiales (popup y email)
+            $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
+            $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
 
             // Construir solo los campos que se van a actualizar
             $camposActualizar = [];
@@ -729,7 +706,8 @@ class ProductoController extends Controller
                     "stock",
                     "precio",
                     "seccion",
-                    "descripcion"
+                    "descripcion",
+                    "video_url"
                 ] as $campo
             ) {
                 if (array_key_exists($campo, $datosValidados)) {
@@ -739,37 +717,26 @@ class ProductoController extends Controller
             Log::info('Fields to update:', ['campos_actualizar' => $camposActualizar]);
             $producto->update($camposActualizar);
 
-            // if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
-            //     $producto->etiqueta()->updateOrCreate(
-            //         ['producto_id' => $producto->id],
-            //         [
-            //             'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
-            //             'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
-            //         ]
-            //     );
-            // } else if ($producto->etiqueta && (!isset($datosValidados['meta_titulo']) && !isset($datosValidados['meta_descripcion']))) {
-            //     $producto->etiqueta()->delete();
-            // }
-            // traer desde etiqueta
+            // Actualizar etiqueta con keywords procesadas
             if ($request->has('etiqueta')) {
+                $keywordsConcatenados = $this->processKeywords($datosValidados['keywords'] ?? null);
+                
                 $producto->etiqueta()->updateOrCreate(
                     ['producto_id' => $producto->id],
                     [
                         'meta_titulo'      => $request->etiqueta['meta_titulo'] ?? null,
                         'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
+                        'keywords'         => $keywordsConcatenados,
                     ]
                 );
             }
 
-            // Eliminar imágenes antiguas si se envían nuevas
+            // Actualizar imágenes de galería si se envían nuevas
             if (isset($datosValidados['imagenes'])) {
-                $rutasImagenesAntiguas = [];
-                foreach ($producto->imagenes as $imagen) {
-                    array_push($rutasImagenesAntiguas, str_replace('/storage/', '', $imagen['url_imagen']));
-                }
-                Storage::disk('public')->delete($rutasImagenesAntiguas);
-                $producto->imagenes()->delete();
+                // Eliminar imágenes de galería antiguas
+                $this->deleteGalleryImages($producto);
 
+                // Guardar nuevas imágenes de galería
                 $imagenes = $request->file("imagenes", []);
                 $altTexts = $datosValidados["textos_alt"] ?? [];
 
@@ -777,7 +744,8 @@ class ProductoController extends Controller
                     $ruta = $this->guardarImagen($imagen);
                     $producto->imagenes()->create([
                         "url_imagen" => $ruta,
-                        "texto_alt_SEO" => $altTexts[$i] ?? null
+                        "texto_alt_SEO" => $altTexts[$i] ?? null,
+                        "tipo" => "galeria"
                     ]);
                 }
             }
@@ -785,15 +753,7 @@ class ProductoController extends Controller
             // Actualizar especificaciones
             if (isset($datosValidados['especificaciones'])) {
                 $producto->especificaciones()->delete();
-                $especificaciones = json_decode($datosValidados['especificaciones'] ?? '[]', true);
-                if (is_array($especificaciones)) {
-                    foreach ($especificaciones as $valor) {
-                        $producto->especificaciones()->create([
-                            // 'clave' => $clave,
-                            'valor' => $valor,
-                        ]);
-                    }
-                }
+                $this->syncEspecificaciones($producto, $datosValidados['especificaciones']);
             }
 
             // Actualizar dimensiones
