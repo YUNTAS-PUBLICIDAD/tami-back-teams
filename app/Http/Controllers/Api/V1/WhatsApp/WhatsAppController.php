@@ -30,7 +30,7 @@ class WhatsAppController extends Controller
                     $imageUrl = env('APP_URL') . $imagenParaEnviar->url_imagen;
                 }
 
-                Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
+               // Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
             
             $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:5111/api');
 
