@@ -39,7 +39,10 @@ class Producto extends Model
     {
         return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'popup');
     }
-
+      public function imagenWhatsapp()
+    {
+        return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'whatsapp');
+    }
     public function productosRelacionados()
     {
         return $this->belongsToMany(Producto::class, 'producto_relacionados', 'id_producto', 'id_relacionado');

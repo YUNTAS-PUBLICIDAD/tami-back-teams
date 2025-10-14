@@ -248,8 +248,8 @@ class ProductoController extends Controller
      * 
      * @param Producto $producto
      * @param Request $request
-     * @param string $tipo 'popup' o 'email'
-     * @param string $fileField Nombre del campo del archivo (imagen_popup/imagen_email)
+     * @param string $tipo 'popup' 'whatsapp' o 'email'
+     * @param string $fileField Nombre del campo del archivo (imagen_popup/imagen_email/imagen_whatsapp)
      * @param string $altField Nombre del campo de texto alternativo
      * @return void
      */
@@ -316,7 +316,7 @@ class ProductoController extends Controller
     }
 
     /**
-     * Elimina imágenes de galería antiguas (excluyendo popup y email)
+     * Elimina imágenes de galería antiguas (excluyendo popupm,whatsapp y email)
      * 
      * @param Producto $producto
      * @return void
@@ -387,9 +387,10 @@ class ProductoController extends Controller
 
         $producto->imagenes()->createMany($imagenesProcesadas);
 
-        // Manejar imágenes especiales (popup y email)
+        // Manejar imágenes especiales (popup,whatsapp y email)
         $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
         $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
+        $this->handleSpecialImage($producto, $request, 'whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp');
 
         // Guardar especificaciones
         $this->syncEspecificaciones($producto, $datosValidados['especificaciones'] ?? null);
@@ -691,9 +692,10 @@ class ProductoController extends Controller
         try {
             $producto = Producto::findOrFail($id);
 
-            // Manejar imágenes especiales (popup y email)
+            // Manejar imágenes especiales (popup, whatsapp y email)
             $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
             $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
+            $this->handleSpecialImage($producto, $request, 'whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp');
 
             // Construir solo los campos que se van a actualizar
             $camposActualizar = [];
