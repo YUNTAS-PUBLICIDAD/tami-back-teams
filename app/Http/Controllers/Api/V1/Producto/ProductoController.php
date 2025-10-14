@@ -3,19 +3,23 @@
 namespace App\Http\Controllers\Api\V1\Producto;
 
 use App\Http\Controllers\Controller;
-use App\Models\Producto;
-use Illuminate\Pagination\LengthAwarePaginator;
 use App\Http\Requests\Producto\V2StoreProductoRequest;
 use App\Http\Requests\Producto\V2UpdateProductoRequest;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use App\Http\Contains\HttpStatusCode;
 use App\Http\Resources\ProductoResource;
+use App\Http\Contains\HttpStatusCode;
+use App\Models\Producto;
+use App\Services\ProductoService;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ProductoController extends Controller
 {
+    use ApiResponseTrait;
+
+    public function __construct(
+        private ProductoService $productoService
+    ) {}
     /**
      * @OA\Get(
      *     path="/api/v1/productos",
@@ -106,9 +110,7 @@ class ProductoController extends Controller
                 ->get();
             return ProductoResource::collection($productos)->resolve();
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener los productos: ' . $e->getMessage()
-            ], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
+            return $this->handleException($e, 'obtener los productos');
         }
     }
 
@@ -124,10 +126,10 @@ class ProductoController extends Controller
                 'producto' => $producto->nombre,
                 'relacionados' => $producto->productosRelacionados
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Producto');
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener productos relacionados: ' . $e->getMessage()
-            ], 500);
+            return $this->handleException($e, 'obtener productos relacionados');
         }
     }
 
@@ -148,14 +150,6 @@ class ProductoController extends Controller
         return response()->json([
             'data'=> $productos->items()
         ]);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -235,176 +229,20 @@ class ProductoController extends Controller
      *     )
      * )
      */
-
-    private function guardarImagen($archivo)
-    {
-        $nombre = uniqid() . '_' . time() . '.' . $archivo->getClientOriginalExtension();
-        $archivo->storeAs("imagenes", $nombre, "public");
-        return "/storage/imagenes/" . $nombre;
-    }
-
-    /**
-     * Maneja la creación o actualización de imagen especial (popup/email)
-     * 
-     * @param Producto $producto
-     * @param Request $request
-     * @param string $tipo 'popup' 'whatsapp' o 'email'
-     * @param string $fileField Nombre del campo del archivo (imagen_popup/imagen_email/imagen_whatsapp)
-     * @param string $altField Nombre del campo de texto alternativo
-     * @return void
-     */
-    private function handleSpecialImage($producto, $request, $tipo, $fileField, $altField)
-    {
-        if (!$request->hasFile($fileField)) {
-            return;
-        }
-
-        // Eliminar imagen anterior si existe
-        $imagenAnterior = $producto->imagenes()->where('tipo', $tipo)->first();
-        if ($imagenAnterior) {
-            $rutaAnterior = str_replace('/storage/', '', $imagenAnterior->url_imagen);
-            Storage::disk('public')->delete($rutaAnterior);
-            $imagenAnterior->delete();
-        }
-
-        // Guardar nueva imagen
-        $urlImagen = $this->guardarImagen($request->file($fileField));
-        $producto->imagenes()->create([
-            'url_imagen' => $urlImagen,
-            'texto_alt_SEO' => $request->input($altField, ''),
-            'tipo' => $tipo
-        ]);
-    }
-
-    /**
-     * Procesa y concatena las keywords desde JSON
-     * 
-     * @param string|null $keywordsJson
-     * @return string|null
-     */
-    private function processKeywords($keywordsJson)
-    {
-        $keywords = json_decode($keywordsJson ?? '[]', true);
-        
-        if (is_array($keywords) && !empty($keywords)) {
-            return implode(', ', $keywords);
-        }
-        
-        return null;
-    }
-
-    /**
-     * Sincroniza las especificaciones del producto
-     * 
-     * @param Producto $producto
-     * @param string|null $especificacionesJson
-     * @return void
-     */
-    private function syncEspecificaciones($producto, $especificacionesJson)
-    {
-        $especificaciones = json_decode($especificacionesJson ?? '[]', true);
-        
-        if (!is_array($especificaciones)) {
-            return;
-        }
-
-        foreach ($especificaciones as $valor) {
-            $producto->especificaciones()->create([
-                'valor' => $valor,
-            ]);
-        }
-    }
-
-    /**
-     * Elimina imágenes de galería antiguas (excluyendo popupm,whatsapp y email)
-     * 
-     * @param Producto $producto
-     * @return void
-     */
-    private function deleteGalleryImages($producto)
-    {
-        $imagenes = $producto->imagenes()
-            ->where(function($query) {
-                $query->where('tipo', 'galeria')
-                      ->orWhereNull('tipo');
-            })
-            ->get();
-
-        $rutasImagenes = $imagenes->pluck('url_imagen')
-            ->map(fn($url) => str_replace('/storage/', '', $url))
-            ->toArray();
-
-        Storage::disk('public')->delete($rutasImagenes);
-        
-        $producto->imagenes()
-            ->where(function($query) {
-                $query->where('tipo', 'galeria')
-                      ->orWhereNull('tipo');
-            })
-            ->delete();
-    }
-
     public function store(v2StoreProductoRequest $request)
     {
-        $datosValidados = $request->validated();
-
-        $imagenes = $datosValidados["imagenes"] ?? [];
-        $textos = $datosValidados["textos_alt"] ?? [];
-
-        $imagenesProcesadas = [];
-        foreach ($imagenes as $i => $img) {
-            $url = $this->guardarImagen($img);
-            $imagenesProcesadas[] = [
-                "url_imagen" => $url,
-                "texto_alt_SEO" => $textos[$i] ?? null,
-                "tipo" => "galeria" // Especificar que son imágenes de galería
-            ];
-        }
-
-        $producto = Producto::create([
-            "nombre" => $datosValidados["nombre"] ?? null,
-            "link" => $datosValidados["link"] ?? null,
-            "titulo" => $datosValidados["titulo"] ?? null,
-            "subtitulo" => $datosValidados["subtitulo"] ?? null,
-            "stock" => $datosValidados["stock"] ?? null,
-            "precio" => $datosValidados["precio"] ?? null,
-            "seccion" => $datosValidados["seccion"] ?? null,
-            "descripcion" => $datosValidados["descripcion"] ?? null,
-            "video_url" => $datosValidados["video_url"] ?? null,
-        ]);
-
-        if ($request->has('etiqueta')) {
-            $keywordsConcatenados = $this->processKeywords($datosValidados['keywords'] ?? null);
+        try {
+            $datosValidados = $request->validated();
             
-            $producto->etiqueta()->create([
-                'meta_titulo'      => $request->etiqueta['meta_titulo'] ?? null,
-                'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
-                'keywords' => $keywordsConcatenados,
-            ]);
+            $producto = $this->productoService->createProducto($datosValidados, $request);
+            
+            return $this->successMessage(
+                'Producto insertado exitosamente',
+                HttpStatusCode::CREATED->value
+            );
+        } catch (\Exception $e) {
+            return $this->handleException($e, 'crear el producto', true);
         }
-
-        $producto->productosRelacionados()->sync($datosValidados['relacionados'] ?? []);
-
-        $producto->imagenes()->createMany($imagenesProcesadas);
-
-        // Manejar imágenes especiales (popup,whatsapp y email)
-        $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
-        $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
-        $this->handleSpecialImage($producto, $request, 'whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp');
-
-        // Guardar especificaciones
-        $this->syncEspecificaciones($producto, $datosValidados['especificaciones'] ?? null);
-
-        // Dimensiones
-        if (isset($datosValidados['dimensiones']) && is_array($datosValidados['dimensiones'])) {
-            $producto->dimensiones()->create([
-                'alto'  => $datosValidados['dimensiones']['alto'] ?? null,
-                'largo' => $datosValidados['dimensiones']['largo'] ?? null,
-                'ancho' => $datosValidados['dimensiones']['ancho'] ?? null,
-            ]);
-        }
-
-        return response()->json(["message" => "Producto insertado exitosamente"], 201);
     }
 
 
@@ -486,20 +324,16 @@ class ProductoController extends Controller
             $producto = Producto::with(['imagenes', 'productosRelacionados', 'etiqueta', 'dimensiones'])->find($id);
 
             if ($producto === null) {
-                return response()->json([
-                    'message' => 'Producto no encontrado'
-                ], 404);
+                return $this->notFound('Producto');
             }
 
-            //Con el argumento false indicamos que no use el ProductoRelacionadoResource de esta manera no mapea datos innecesarios
-            return response()->json([
-                'message' => 'Producto encontrado exitosamente',
-                'data' => new ProductoResource($producto, false)
-            ], 200);
+            return $this->successResponse(
+                new ProductoResource($producto, false),
+                'Producto encontrado exitosamente',
+                HttpStatusCode::OK->value
+            );
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Hubo un error en el servidor'
-            ], 500);
+            return $this->handleException($e, 'obtener el producto');
         }
     }
 
@@ -580,29 +414,19 @@ class ProductoController extends Controller
                 ->first();
 
             if ($producto === null) {
-                return response()->json(["message" => "Producto no encontrado"], 404);
+                return $this->notFound('Producto');
             }
 
-            return response()->json([
-                'message' => 'Producto encontrado exitosamente',
-                'data' => new ProductoResource($producto, false)
-            ], 200);
+            return $this->successResponse(
+                new ProductoResource($producto, false),
+                'Producto encontrado exitosamente',
+                HttpStatusCode::OK->value
+            );
         } catch (\Exception $e) {
-            return response()->json(["message" => "Hubo un error en el servidor"], 500);
+            return $this->handleException($e, 'obtener el producto por link');
         }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     /**
      * Actualizar un producto específico
      *
@@ -685,103 +509,25 @@ class ProductoController extends Controller
     public function update(V2UpdateProductoRequest $request, string $id)
     {
         Log::info('PATCH Producto Request received:', ['request_all' => $request->all(), 'id' => $id]);
-        $datosValidados = $request->validated();
-        Log::info('Validated data:', ['datos_validados' => $datosValidados]);
         
-        DB::beginTransaction();
         try {
             $producto = Producto::findOrFail($id);
-
-            // Manejar imágenes especiales (popup, whatsapp y email)
-            $this->handleSpecialImage($producto, $request, 'popup', 'imagen_popup', 'texto_alt_popup');
-            $this->handleSpecialImage($producto, $request, 'email', 'imagen_email', 'texto_alt_email');
-            $this->handleSpecialImage($producto, $request, 'whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp');
-
-            // Construir solo los campos que se van a actualizar
-            $camposActualizar = [];
-            foreach (
-                [
-                    "nombre",
-                    "link",
-                    "titulo",
-                    "subtitulo",
-                    "stock",
-                    "precio",
-                    "seccion",
-                    "descripcion",
-                    "video_url"
-                ] as $campo
-            ) {
-                if (array_key_exists($campo, $datosValidados)) {
-                    $camposActualizar[$campo] = $datosValidados[$campo];
-                }
-            }
-            Log::info('Fields to update:', ['campos_actualizar' => $camposActualizar]);
-            $producto->update($camposActualizar);
-
-            // Actualizar etiqueta con keywords procesadas
-            if ($request->has('etiqueta')) {
-                $keywordsConcatenados = $this->processKeywords($datosValidados['keywords'] ?? null);
-                
-                $producto->etiqueta()->updateOrCreate(
-                    ['producto_id' => $producto->id],
-                    [
-                        'meta_titulo'      => $request->etiqueta['meta_titulo'] ?? null,
-                        'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
-                        'keywords'         => $keywordsConcatenados,
-                    ]
-                );
-            }
-
-            // Actualizar imágenes de galería si se envían nuevas
-            if (isset($datosValidados['imagenes'])) {
-                // Eliminar imágenes de galería antiguas
-                $this->deleteGalleryImages($producto);
-
-                // Guardar nuevas imágenes de galería
-                $imagenes = $request->file("imagenes", []);
-                $altTexts = $datosValidados["textos_alt"] ?? [];
-
-                foreach ($imagenes as $i => $imagen) {
-                    $ruta = $this->guardarImagen($imagen);
-                    $producto->imagenes()->create([
-                        "url_imagen" => $ruta,
-                        "texto_alt_SEO" => $altTexts[$i] ?? null,
-                        "tipo" => "galeria"
-                    ]);
-                }
-            }
-
-            // Actualizar especificaciones
-            if (isset($datosValidados['especificaciones'])) {
-                $producto->especificaciones()->delete();
-                $this->syncEspecificaciones($producto, $datosValidados['especificaciones']);
-            }
-
-            // Actualizar dimensiones
-            if (isset($datosValidados['dimensiones'])) {
-                $producto->dimensiones()->updateOrCreate(
-                    ['id_producto' => $producto->id],
-                    $datosValidados['dimensiones']
-                );
-            }
-
-            // Sincronizar productos relacionados
-            if (isset($datosValidados['relacionados'])) {
-                $producto->productosRelacionados()->sync($datosValidados['relacionados'] ?? []);
-            }
-
-            DB::commit();
-            return response()->json(["message" => "Producto actualizado exitosamente"], HttpStatusCode::OK->value);
+            $datosValidados = $request->validated();
+            Log::info('Validated data:', ['datos_validados' => $datosValidados]);
+            
+            $this->productoService->updateProducto($producto, $datosValidados, $request);
+            
+            return $this->successMessage(
+                'Producto actualizado exitosamente',
+                HttpStatusCode::OK->value
+            );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Producto');
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Error al actualizar el producto: ' . $e->getMessage()],  HttpStatusCode::INTERNAL_SERVER_ERROR->value);
+            return $this->handleException($e, 'actualizar el producto', true);
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     /**
      * Eliminar un producto específico
      *
@@ -819,31 +565,18 @@ class ProductoController extends Controller
      */
     public function destroy(string $id)
     {
-        //
-        DB::beginTransaction();
         try {
-            $producto = Producto::with(['imagenes', 'especificaciones', 'etiqueta'])->find($id);
-            if ($producto == null) {
-                return response()->json(["message" => "Producto no encontrado"], status: 404);
-            }
-            $imagenesArray = $producto->imagenes->toArray();
-            $productoImagenes = array_map(function ($x) {
-                $archivo = str_ireplace("/storage/imagenes/", "", $x["url_imagen"]);
-                return $archivo;
-            }, $imagenesArray);
-            foreach ($productoImagenes as $imagen) {
-                Storage::delete("imagenes/" . $imagen);
-            }
-
-            $producto->especificaciones()->delete();
-            $producto->etiqueta()->delete();
-
-            $producto->delete();
-            DB::commit();
-            return response()->json(["message" => "Producto eliminado exitosamente"], 200);
+            $producto = Producto::findOrFail($id);
+            $this->productoService->deleteProductoCompleto($producto);
+            
+            return $this->successMessage(
+                'Producto eliminado exitosamente',
+                HttpStatusCode::OK->value
+            );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->notFound('Producto');
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(["message" => "Hubo un error en el servidor"], 500);
+            return $this->handleException($e, 'eliminar el producto', true);
         }
     }
 }
