@@ -71,7 +71,7 @@ class V2StoreProductoRequest extends FormRequest
             'imagen_email' => "nullable|file|image|max:2048",
             'texto_alt_email' => "nullable|string|max:255",
             
-            // Imagen email
+            // Imagen Whatsapp
             'imagen_Whatsapp' => "nullable|file|image|max:2048",
             'texto_alt_Whatsapp' => "nullable|string|max:255",
 
