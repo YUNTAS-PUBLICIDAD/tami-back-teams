@@ -13,6 +13,7 @@ class BlogResource extends JsonResource
             'id'              => $this->id,
             'titulo'          => $this->titulo,
             'nombre_producto' => $this->producto ? $this->producto->nombre : null,
+            'producto_id' => $this->producto_id,
             'link'            => $this->link,
             'subtitulo1'      => $this->subtitulo1,
             'subtitulo2'      => $this->subtitulo2,
