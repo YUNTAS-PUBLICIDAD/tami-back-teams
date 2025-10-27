@@ -11,17 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('blogs', function (Blueprint $table) {
-            $table->renameColumn('imagen_principal', 'miniatura');
+        Schema::create('especificaciones', function (Blueprint $table) {
+            $table->id();
+            $table->string('valor', 125)->nullable();
+            $table->string('texto', 125)->nullable();
+            $table->foreignId('producto_id')->constrained('productos');
+            $table->timestamps();
         });
     }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('blogs', function (Blueprint $table) {
-            $table->renameColumn('miniatura', 'imagen_principal');
-        });
+        Schema::dropIfExists('especificaciones');
     }
 };

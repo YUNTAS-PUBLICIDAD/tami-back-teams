@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('producto_imagenes', function (Blueprint $table) {
+        Schema::create('whatsapp', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("producto_id")->constrained("productos")->onDelete("cascade");
-            $table->string("url_imagen");
-            $table->string("texto_alt_SEO");
+            $table->foreignId('interesado_id')->constrained('interesados');
+            $table->foreignId('producto_id')->constrained('productos');
+            $table->text('texto')->nullable();
+            $table->string('imagen', 500)->nullable();
             $table->timestamps();
         });
     }
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('producto_imagenes');
+        Schema::dropIfExists('whatsapp');
     }
 };

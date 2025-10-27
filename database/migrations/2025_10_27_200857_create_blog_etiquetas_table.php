@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('producto_imagenes', function (Blueprint $table) {
-            $table->string('tipo')->default('galeria')->after('url_imagen'); // 'galeria', 'popup', 'email', etc.
+        Schema::create('blog_etiquetas', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('blog_id')->constrained('blogs');
+            $table->string('meta_titulo', 255)->nullable();
+            $table->text('meta_descripcion')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -21,8 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('producto_imagenes', function (Blueprint $table) {
-            $table->dropColumn('tipo');
-        });
+        Schema::dropIfExists('blog_etiquetas');
     }
 };

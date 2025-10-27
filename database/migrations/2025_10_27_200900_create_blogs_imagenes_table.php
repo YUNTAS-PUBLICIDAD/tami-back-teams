@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('productos', function (Blueprint $table) {
-            $table->dropColumn('lema');
+        Schema::create('blogs_imagenes', function (Blueprint $table) {
+            $table->id();
+            $table->string('ruta_imagen', 255)->nullable();
+            $table->string('text_alt', 255)->nullable();
+            $table->foreignId('blog_id')->constrained('blogs');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('productos', function (Blueprint $table) {
-            $table->string('lema')->nullable();
-        });
+        Schema::dropIfExists('blogs_imagenes');
     }
 };
