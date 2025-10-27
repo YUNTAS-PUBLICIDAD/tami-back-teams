@@ -1,18 +1,22 @@
 <?php
+
 namespace App\Refactor\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Producto extends Model
 {
-    protected $table = 'productos';
+    use HasFactory;
+
     protected $fillable = [
-        'nombre', 'descripcion', 'precio', 'stock', 'link', 'video_url'
+        'nombre', 'descripcion', 'precio', 'stock',
+        'link', 'video_url', 'alto', 'largo', 'ancho'
     ];
 
     public function etiquetas()
     {
-        return $this->hasMany(ProductoEtiqueta::class);
+        return $this->hasOne(ProductoEtiqueta::class);
     }
 
     public function imagenes()
@@ -25,9 +29,14 @@ class Producto extends Model
         return $this->hasMany(Especificacion::class);
     }
 
-    public function dimensiones()
+    public function relacionados()
     {
-        return $this->hasOne(Dimension::class, 'id_producto');
+        return $this->hasMany(ProductoRelacionado::class, 'producto_id');
+    }
+
+    public function relacionadosConmigo()
+    {
+        return $this->hasMany(ProductoRelacionado::class, 'producto_relacionado_id');
     }
 
     public function blogs()
@@ -35,13 +44,8 @@ class Producto extends Model
         return $this->hasMany(Blog::class);
     }
 
-    public function whatsappEnvios()
+    public function whatsapp()
     {
         return $this->hasMany(Whatsapp::class);
-    }
-
-    public function relacionados()
-    {
-        return $this->hasMany(ProductoRelacionado::class, 'producto_id');
     }
 }
