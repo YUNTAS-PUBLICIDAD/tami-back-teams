@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('productos', function (Blueprint $table) {
-            $table->json('meta_data')->nullable()->after('descripcion');
+        Schema::create('blogs_parrafos', function (Blueprint $table) {
+            $table->id();
+            $table->text('parrafo')->nullable();
+            $table->foreignId('blog_id')->constrained('blogs');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('productos', function (Blueprint $table) {
-            $table->dropColumn('meta_data');
-        });
+        Schema::dropIfExists('blogs_parrafos');
     }
 };

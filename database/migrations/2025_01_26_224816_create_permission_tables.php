@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    /* public function up(): void
     {
         $teams = config('permission.teams');
         $tableNames = config('permission.table_names');
@@ -118,12 +118,12 @@ return new class extends Migration
         app('cache')
             ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)
             ->forget(config('permission.cache.key'));
-    }
+    } */
 
     /**
      * Reverse the migrations.
      */
-    public function down(): void
+    /* public function down(): void
     {
         $tableNames = config('permission.table_names');
 
@@ -136,5 +136,5 @@ return new class extends Migration
         Schema::drop($tableNames['model_has_permissions']);
         Schema::drop($tableNames['roles']);
         Schema::drop($tableNames['permissions']);
-    }
+    } */
 };
