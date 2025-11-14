@@ -12,7 +12,8 @@ class ProductoImagen extends Model
         'url_imagen',
         'texto_alt_SEO',
         'tipo',
-        'producto_id'
+        'producto_id',
+        'asunto',
     ];
 
     /**
