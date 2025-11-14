@@ -94,6 +94,7 @@ class EmailController extends Controller
             'name' => 'required|string',
             'link' => 'required|string',
         ]);
+        
 
         try {
             // Obtener el producto por su link

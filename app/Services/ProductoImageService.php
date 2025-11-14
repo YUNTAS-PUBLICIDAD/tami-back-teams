@@ -19,15 +19,31 @@ class ProductoImageService
      * @param string|null $altText Texto alternativo para SEO
      * @return ProductoImagen|null
      */
-    public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $altText = null): ?ProductoImagen
+    public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $textValue = null): ?ProductoImagen
     {
-        if (!$file) {
-            return null;
+        $imagenExistente = $producto->imagenes()->where('tipo', $tipo)->first();
+
+        $data = [];
+        if ($tipo === 'email') {
+            $data['asunto'] = $textValue ?? '';
+        } else {
+            $data['texto_alt_SEO'] = $textValue ?? '';
         }
 
-        $this->deleteExistingImageByType($producto, $tipo);
 
-        return $this->saveImage($producto, $file, $tipo, $altText);
+        if ($file) {
+            if ($imagenExistente) {
+                $this->deleteExistingImageByType($producto, $tipo);
+            }
+            return $this->saveImage($producto, $file, $tipo, $data);
+        
+        } elseif ($imagenExistente) {
+            $imagenExistente->update($data);
+            return $imagenExistente;
+        
+        } else {
+            return null; 
+        }
     }
 
     /**
@@ -108,15 +124,16 @@ class ProductoImageService
         }
     }
 
-    private function saveImage(Producto $producto, UploadedFile $file, string $tipo, ?string $altText): ProductoImagen
+    private function saveImage(Producto $producto, UploadedFile $file, string $tipo, array $data): ProductoImagen
     {
         $url = $this->guardarImagen($file);
 
-        return $producto->imagenes()->create([
+        $payload = array_merge($data, [
             'url_imagen' => $url,
-            'texto_alt_SEO' => $altText ?? '',
             'tipo' => $tipo
         ]);
+
+        return $producto->imagenes()->create($payload);
     }
 
     private function deleteImageFromStorage(string $url): void
