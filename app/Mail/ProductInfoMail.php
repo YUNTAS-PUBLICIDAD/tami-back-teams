@@ -15,18 +15,19 @@ class ProductInfoMail extends Mailable
 
     public $data;
     public $viewName;
+    public $asunto;
 
-    public function __construct($data, $viewName)
+    public function __construct($data, $viewName,$asunto)
     {
         $this->data = $data;
         $this->viewName = $viewName;
+        $this->asunto = $asunto;
     }
 
     public function envelope(): Envelope
     {
-        $productName = $this->data['product']['name'] ?? $this->data['name'] ?? 'Producto';
         return new Envelope(
-            subject: $productName . ', empecemos a crear juntos ✨',
+            subject: $this->asunto,
         );
     }
 
