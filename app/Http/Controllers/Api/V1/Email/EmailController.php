@@ -104,7 +104,7 @@ class EmailController extends Controller
 
             // Obtener la imagen de email (tipo='email') - Esta imagen contiene todo el diseño
             $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
-
+            $asunto = $imagenEmail->asunto ?? 'Información sobre ' . $producto->nombre;    
             // Preparar los datos para el email
             $productData = [
                 'name' => $producto->nombre,
@@ -116,7 +116,7 @@ class EmailController extends Controller
             ];
 
             Mail::to($request->email)->send(
-                new ProductInfoMail(['product' => $productData], 'emails.product-generic')
+                new ProductInfoMail(['product' => $productData], 'emails.product-generic', $asunto)
             );
 
             return response()->json([
