@@ -14,13 +14,14 @@ class ProductoImagen extends Model
         'tipo',
         'producto_id',
         'asunto',
+        'whatsapp_mensaje',
     ];
 
     /**
      * Scope para filtrar imágenes por tipo
      */
     public function scopeTipo($query, $tipo)
-    {
+    {   
         return $query->where('tipo', $tipo);
     }
     public $timestamps = true;
