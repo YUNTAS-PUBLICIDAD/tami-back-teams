@@ -26,7 +26,12 @@ class ProductoImageService
         $data = [];
         if ($tipo === 'email') {
             $data['asunto'] = $textValue ?? '';
-        } else {
+        } elseif ($tipo === 'whatsapp') {
+            
+            $data['whatsapp_mensaje'] = $textValue ?? '';
+            
+        }
+         else {
             $data['texto_alt_SEO'] = $textValue ?? '';
         }
 
