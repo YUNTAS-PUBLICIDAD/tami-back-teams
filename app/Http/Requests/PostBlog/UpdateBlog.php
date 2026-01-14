@@ -45,9 +45,9 @@ class UpdateBlog extends FormRequest
             'meta_titulo' => 'nullable|string|min:10|max:60',
             'meta_descripcion' => 'nullable|string|min:40|max:160',
 
-            'miniatura' => ['sometimes', 'image', 'max:2048'],
+            'miniatura' => ['sometimes', 'image', 'max:3048'],
             'imagenes' => ['sometimes', 'array'],
-            'imagenes.*' => ['sometimes', 'image', 'max:2048'],
+            'imagenes.*' => ['sometimes', 'image', 'max:3048'],
 
             /* 'text_alt' => [$isPut ? 'required' : 'sometimes', 'array'],
             'text_alt.*' => [$isPut ? 'required' : 'sometimes', 'string', 'max:255'],

@@ -59,21 +59,21 @@ class V2StoreProductoRequest extends FormRequest
 
             // Imágenes y textos_alt
             'imagenes' => "array|min:1|max:10",
-            'imagenes.*' => "file|image|max:2048",
+            'imagenes.*' => "file|image|max:3048",
             'textos_alt' => "array|min:1|max:10",
             'textos_alt.*' => "string|max:255",
 
             // Imagen popup
-            'imagen_popup' => "nullable|file|image|max:2048",
+            'imagen_popup' => "nullable|file|image|max:3048",
             'texto_alt_popup' => "nullable|string|max:255",
 
             // Imagen email
-            'imagen_email' => "nullable|file|image|max:2048",
+            'imagen_email' => "nullable|file|image|max:3048",
             'texto_alt_email' => "nullable|string|max:255",
             'asunto' => ['nullable', 'string', 'max:255'],
             
             // Imagen Whatsapp
-            'imagen_Whatsapp' => "nullable|file|image|max:2048",
+            'imagen_Whatsapp' => "nullable|file|image|max:3048",
             'texto_alt_Whatsapp' => "nullable|string|max:255",
 
             // URL del video
