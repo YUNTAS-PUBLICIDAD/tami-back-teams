@@ -43,21 +43,21 @@ class V2UpdateProductoRequest extends FormRequest
             'dimensiones.largo' => "nullable|numeric|min:0",
             'dimensiones.ancho' => "nullable|numeric|min:0",
             'imagenes' => ['sometimes', 'array'],
-            'imagenes.*' => ['file', 'image', 'max:2048'],
+            'imagenes.*' => ['file', 'image', 'max:3048'],
             'textos_alt' => ['sometimes', 'array'],
             'textos_alt.*' => ['string', 'max:255'],
             
             // Imagen popup
-            'imagen_popup' => ['nullable', 'file', 'image', 'max:2048'],
+            'imagen_popup' => ['nullable', 'file', 'image', 'max:3048'],
             'texto_alt_popup' => ['nullable', 'string', 'max:255'],
             
             // Imagen email
-            'imagen_email' => ['nullable', 'file', 'image', 'max:2048'],
+            'imagen_email' => ['nullable', 'file', 'image', 'max:3048'],
             'asunto' => ['nullable', 'string', 'max:255'], 
         
             
             // Imagen Whatsapp
-            'imagen_Whatsapp' => ['nullable', 'file', 'image', 'max:2048'],
+            'imagen_Whatsapp' => ['nullable', 'file', 'image', 'max:3048'],
             'texto_alt_Whatsapp' => ['nullable', 'string', 'max:255'],
             
             
