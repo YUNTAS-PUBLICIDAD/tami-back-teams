@@ -40,7 +40,7 @@ class WhatsAppController extends Controller
                 'description' => $producto->descripcion,
                 'phone'       => $request->phone,
                 'email'       => $request->email,
-                'imageData'   => $this->convertImageToBase64($imageUrl),
+                'imageData'   => $this->convertImageToBase64($defaultImageUrl),
             ]);
             $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
         } catch (\Throwable $e) {
