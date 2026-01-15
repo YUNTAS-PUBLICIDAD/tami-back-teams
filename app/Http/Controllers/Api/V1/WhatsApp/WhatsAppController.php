@@ -47,7 +47,7 @@ if ($imagenParaEnviar && $imagenParaEnviar->url_imagen) {
                 'description' => $producto->descripcion,
                 'phone'       => $request->phone,
                 'email'       => $request->email,
-                'imageData' => $this->safeImageBase64($imageUrl),
+                'imageData' => $imageUrl,
             ]);
             $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
         } catch (\Throwable $e) {
