@@ -27,9 +27,14 @@ class WhatsAppController extends Controller
 
 
             $imageUrl = $defaultImageUrl;
-                if ($imagenParaEnviar) {
-                    $imageUrl = env('APP_URL') . $imagenParaEnviar->url_imagen;
-                }
+
+if ($imagenParaEnviar && $imagenParaEnviar->url_imagen) {
+    if (str_starts_with($imagenParaEnviar->url_imagen, 'http')) {
+        $imageUrl = $imagenParaEnviar->url_imagen;
+    } else {
+        $imageUrl = rtrim(config('app.url'), '/') . $imagenParaEnviar->url_imagen;
+    }
+}
 
                // Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
 
