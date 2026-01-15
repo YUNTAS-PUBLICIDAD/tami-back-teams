@@ -35,14 +35,21 @@ class WhatsAppController extends Controller
 
             $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:5111/api');
 
-            Http::post($whatsappServiceUrl . '/send-product-info', [
-                'productName' => $producto->nombre,
-                'description' => $producto->descripcion,
-                'phone'       => $request->phone,
-                'email'       => $request->email,
-                'imageData'   => $this->convertImageToBase64($imageUrl),
-            ]);
-            $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
+            $response = Http::post($whatsappServiceUrl . '/send-product-info', [
+    'productName' => $producto->nombre,
+    'description' => $producto->descripcion,
+    'phone'       => $request->phone,
+    'email'       => $request->email,
+    'imageData'   => $this->convertImageToBase64($imageUrl),
+]);
+
+if (!$response->successful()) {
+    throw new \Exception(
+        'WhatsApp API error: ' . $response->status() . ' - ' . $response->body()
+    );
+}
+
+$resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
         } catch (\Throwable $e) {
             $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
         }
