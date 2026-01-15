@@ -27,27 +27,20 @@ class WhatsAppController extends Controller
 
 
             $imageUrl = $defaultImageUrl;
-
-if ($imagenParaEnviar && $imagenParaEnviar->url_imagen) {
-    if (str_starts_with($imagenParaEnviar->url_imagen, 'http')) {
-        $imageUrl = $imagenParaEnviar->url_imagen;
-    } else {
-        $imageUrl = rtrim(config('app.url'), '/') . $imagenParaEnviar->url_imagen;
-    }
-}
+                if ($imagenParaEnviar) {
+                    $imageUrl = env('APP_URL') . $imagenParaEnviar->url_imagen;
+                }
 
                // Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
 
             $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:5111/api');
-
-            \Log::info('WHATSAPP IMAGE URL => ' . $imageUrl);
 
             Http::post($whatsappServiceUrl . '/send-product-info', [
                 'productName' => $producto->nombre,
                 'description' => $producto->descripcion,
                 'phone'       => $request->phone,
                 'email'       => $request->email,
-                'imageData' => $imageUrl,
+                'imageData'   => $this->convertImageToBase64($defaultImageUrl),
             ]);
             $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
         } catch (\Throwable $e) {
@@ -60,15 +53,20 @@ if ($imagenParaEnviar && $imagenParaEnviar->url_imagen) {
         ], 200);
     }
 
-    private function safeImageBase64(string $url): string
-{
-    try {
-        return $this->convertImageToBase64($url);
-    } catch (\Throwable $e) {
-        // fallback seguro
-        return $this->convertImageToBase64(
-            'https://res.cloudinary.com/dshi5w2wt/image/upload/v1759791593/Copia_de_Imagen_de_Beneficios_2_1_u7a7tk.png'
-        );
+    public function convertImageToBase64($url)
+    {
+        $response = Http::get($url);
+
+        if (!$response->successful()) {
+            throw new \Exception('No se pudo descargar la imagen');
+        }
+
+        $mimeType = $response->header('Content-Type');
+
+        $base64 = base64_encode($response->body());
+
+        $imageData = 'data:' . $mimeType . ';base64,' . $base64;
+
+        return $imageData;
     }
-}
 }
