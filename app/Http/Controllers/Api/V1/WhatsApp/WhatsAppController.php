@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Producto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class WhatsAppController extends Controller
 {
@@ -27,20 +29,20 @@ class WhatsAppController extends Controller
 
 
             $imageUrl = $defaultImageUrl;
-                if ($imagenParaEnviar) {
-                    $imageUrl = env('APP_URL') . $imagenParaEnviar->url_imagen;
-                }
+            if ($imagenParaEnviar) {
+                $imageUrl = $imagenParaEnviar->url_imagen;
+            }
 
-               // Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
+            Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
 
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:5111/api');
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3000/api');
 
             Http::post($whatsappServiceUrl . '/send-product-info', [
                 'productName' => $producto->nombre,
                 'description' => $producto->descripcion,
                 'phone'       => $request->phone,
                 'email'       => $request->email,
-                'imageData'   => $this->convertImageToBase64($defaultImageUrl),
+                'imageData'   => $this->convertImageToBase64($imageUrl),
             ]);
             $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
         } catch (\Throwable $e) {
@@ -53,20 +55,39 @@ class WhatsAppController extends Controller
         ], 200);
     }
 
-    public function convertImageToBase64($url)
+    public function convertImageToBase64($pathOrUrl) 
     {
-        $response = Http::get($url);
+        if (filter_var($pathOrUrl, FILTER_VALIDATE_URL)) {
+            $response = Http::get($pathOrUrl);
 
-        if (!$response->successful()) {
-            throw new \Exception('No se pudo descargar la imagen');
+            if (!$response->successful()) {
+                throw new \Exception('No se pudo descargar la imagen desde la URL');
+            }
+
+            $mimeType = $response->header('Content-Type');
+            $base64 = base64_encode($response->body());
+
+            return 'data:' . $mimeType . ';base64,' . $base64;
         }
 
-        $mimeType = $response->header('Content-Type');
+        $storagePath = str_replace('/storage/', '', $pathOrUrl);
+        
+        if (!\Storage::disk('public')->exists($storagePath)) {
+            throw new \Exception('La imagen no existe en el storage: ' . $storagePath);
+        }
 
-        $base64 = base64_encode($response->body());
+        $image = \Storage::disk('public')->get($storagePath);
+        $base64 = base64_encode($image);
 
-        $imageData = 'data:' . $mimeType . ';base64,' . $base64;
+        $extension = pathinfo($pathOrUrl, PATHINFO_EXTENSION);
+        $mimeType = match(strtolower($extension)) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'image/jpeg'
+        };
 
-        return $imageData;
+        return 'data:' . $mimeType . ';base64,' . $base64;
     }
 }
