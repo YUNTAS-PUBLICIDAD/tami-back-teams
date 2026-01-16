@@ -20,9 +20,13 @@ class ProductoRelacionadoResource extends JsonResource
             'seccion' => $this->seccion,
             'descripcion' => $this->descripcion,
             
-            'imagenes' => ProductoImagenResource::collection($this->imagenes->filter(function($img) {
-                return $img->tipo === 'galeria' || $img->tipo === null;
-            })),
+            'imagenes' => ProductoImagenResource::collection(
+                $this->imagenes->filter(function($img) {
+                    
+                    return $img->tipo === 'galeria'; 
+                    
+                })->values() 
+            ),
         ];
     }
 }
