@@ -4,6 +4,8 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\ProductoRelacionadoResource; 
+use App\Http\Resources\ProductoImagenResource;
 
 class ProductoResource extends JsonResource
 {
@@ -33,10 +35,13 @@ class ProductoResource extends JsonResource
                 'largo' => $this->dimensiones->largo,
                 'ancho' => $this->dimensiones->ancho,
             ] : null,
-            'imagenes' => ProductoImagenResource::collection($this->imagenes->filter(function($img) {
-                return $img->tipo === 'galeria' || $img->tipo === null;
-            })),
+            'imagenes' => ProductoImagenResource::collection(
+                $this->imagenes->filter(function($img) {
+                    return $img->tipo === 'galeria' || $img->tipo === null;
+                })->values() 
+            ),
             'producto_imagenes' => ProductoImagenResource::collection($this->imagenes),
+
             'productos_relacionados' => $this->withRelacionados ? ProductoRelacionadoResource::collection($this->productosRelacionados) : $this->productosRelacionados,
             'etiqueta' => $this->etiqueta ? [
                 'meta_titulo' => $this->etiqueta->meta_titulo,
