@@ -16,6 +16,7 @@ class ProductoEtiqueta extends Model
         'meta_titulo',
         'meta_descripcion',
         'keywords',
+        'popup_estilo'
     ];
 
     public function producto()
