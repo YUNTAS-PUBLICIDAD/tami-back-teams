@@ -328,7 +328,7 @@ class ProductoController extends Controller
             }
 
             return $this->successResponse(
-                new ProductoResource($producto, false),
+                new ProductoResource($producto, true),
                 'Producto encontrado exitosamente',
                 HttpStatusCode::OK->value
             );
@@ -418,7 +418,7 @@ class ProductoController extends Controller
             }
 
             return $this->successResponse(
-                new ProductoResource($producto, false),
+                new ProductoResource($producto, true),
                 'Producto encontrado exitosamente',
                 HttpStatusCode::OK->value
             );
