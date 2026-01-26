@@ -14,7 +14,7 @@ class WhatsAppController extends Controller
     public function sendProductDetails(Request $request)
     {
         $resultados = [];
-        $producto = Producto::where('link', $request->link)->first();
+        
         $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
                             ->where('link', $request->link)
                             ->first();
@@ -35,9 +35,9 @@ class WhatsAppController extends Controller
 
             Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
 
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3000/api');
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
 
-            Http::post($whatsappServiceUrl . '/send-product-info', [
+            Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
                 'productName' => $producto->nombre,
                 'description' => $producto->descripcion,
                 'phone'       => $request->phone,
@@ -90,4 +90,55 @@ class WhatsAppController extends Controller
 
         return 'data:' . $mimeType . ';base64,' . $base64;
     }
+
+    public function requestQR()
+    {
+        try{
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
+
+            $response = Http::get($whatsappServiceUrl . '/whatsapp/request-qr');
+
+            if ($response->successful()) {
+                return response()->json([
+                    'message' => 'QR code requested successfully',
+                    'data' => $response->json()
+                ], 200);
+            } else {
+                return response()->json([
+                    'message' => 'Failed to request QR code',
+                    'error' => $response->body()
+                ], $response->status());
+            }
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Error requesting QR code: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    public function resetSession()
+    {
+        try{
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
+
+            $response = Http::post($whatsappServiceUrl . '/whatsapp/reset');
+
+            if ($response->successful()) {
+                return response()->json([
+                    'message' => 'WhatsApp session reset successfully',
+                    'data' => $response->json()
+                ], 200);
+            } else {
+                return response()->json([
+                    'message' => 'Failed to reset WhatsApp session',
+                    'error' => $response->body()
+                ], $response->status());
+            }
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Error resetting WhatsApp session: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
 }
