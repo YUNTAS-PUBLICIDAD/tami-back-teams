@@ -66,6 +66,8 @@ Route::prefix('v1')->group(function () {
 
     Route::prefix('whatsapp')->group(function () {
         Route::post('/solicitar-info-producto', [WhatsAppController::class, 'sendProductDetails']);
+        Route::get('/request-qr', [WhatsAppController::class, 'requestQR']);
+        Route::post('/reset', [WhatsAppController::class, 'resetSession']);
     });
 });
 
