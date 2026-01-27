@@ -29,6 +29,7 @@ class ProductoResource extends JsonResource
             'precio' => $this->precio,
             'seccion' => $this->seccion,
             'descripcion' => $this->descripcion,
+            'video_url' => $this->video_url,
             'especificaciones' => $this->especificaciones ?? [],
             'dimensiones' => $this->dimensiones ? [
                 'alto' => $this->dimensiones->alto,
