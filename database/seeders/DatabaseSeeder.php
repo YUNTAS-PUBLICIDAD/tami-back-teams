@@ -28,10 +28,13 @@ class DatabaseSeeder extends Seeder
             // Blog
             BlogSeeder::class,
             BlogImagenesSeeder::class,
-            BlogParrafosSeeder::class
+            BlogParrafosSeeder::class,
             // DetalleBlogSeeder::class,
             // ImagenBlogSeeder::class,
             //VideoBlogSeeder::class,
+
+            // Reclamos
+            Claims::class,
 
         ]);
     }
