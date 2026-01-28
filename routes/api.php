@@ -13,6 +13,10 @@ use App\Http\Controllers\Api\V1\WhatsApp\WhatsAppController;
 use App\Http\Controllers\RoleController;
 
 
+use App\Http\Controllers\Api\V1\Reclamos\ClaimController;
+use App\Http\Controllers\Api\V1\Reclamos\ContactMessageController;
+
+
 Route::prefix('v1')->group(function () {
 
     Route::controller(AuthController::class)->prefix('auth')->group(function () {
@@ -69,6 +73,45 @@ Route::prefix('v1')->group(function () {
         Route::get('/request-qr', [WhatsAppController::class, 'requestQR']);
         Route::post('/reset', [WhatsAppController::class, 'resetSession']);
     });
+
+
+
+    // ------------------- RECLAMOS (Público) -------------------
+    Route::post('claims', [ClaimController::class, 'store']);
+    //
+    
+    // Datos para formularios públicos
+    Route::get('claim-form-data', [ClaimController::class, 'formData']);
+
+    // ------------------- CONTACTO (Público) -------------------
+    Route::post('contacto', [ContactMessageController::class, 'store']);
+
+    // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO -------------------
+   
+        
+        // Gestión de Reclamos
+        Route::controller(ClaimController::class)->prefix('admin/claims')->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{id}', 'show');
+            Route::patch('/{id}/status', 'updateStatus');
+        
+            // Route::post('/{id}/reply', 'reply'); // Por si implementas respuestas luego
+        });
+
+        // Gestión de Mensajes de Contacto
+        Route::controller(ContactMessageController::class)->prefix('admin/contacto')->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{id}', 'show');
+            Route::delete('/{id}', 'destroy');
+        });
+    
+
+
+
+
+
+
+
 });
 
 
@@ -127,3 +170,7 @@ Route::controller(RoleController::class)->prefix("roles")->group(function () {
         Route::get('/getUserRoles/{id}', 'getUserRoles');
     });
 });
+
+
+
+// RECLAMOS
