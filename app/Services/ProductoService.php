@@ -182,6 +182,7 @@ class ProductoService
             'meta_titulo' => $request->etiqueta['meta_titulo'] ?? null,
             'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
             'keywords' => $keywords,
+            'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
         ]);
     }
 
@@ -195,6 +196,7 @@ class ProductoService
                 'meta_titulo' => $request->etiqueta['meta_titulo'] ?? null,
                 'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
                 'keywords' => $keywords,
+                'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
             ]
         );
     }

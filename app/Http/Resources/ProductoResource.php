@@ -29,6 +29,7 @@ class ProductoResource extends JsonResource
             'precio' => $this->precio,
             'seccion' => $this->seccion,
             'descripcion' => $this->descripcion,
+            'video_url' => $this->video_url,
             'especificaciones' => $this->especificaciones ?? [],
             'dimensiones' => $this->dimensiones ? [
                 'alto' => $this->dimensiones->alto,
@@ -47,6 +48,7 @@ class ProductoResource extends JsonResource
                 'meta_titulo' => $this->etiqueta->meta_titulo,
                 'meta_descripcion' => $this->etiqueta->meta_descripcion,
                 'keywords' => $this->etiqueta->keywords,
+                'popup_estilo' => $this->etiqueta->popup_estilo,
             ] : null,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

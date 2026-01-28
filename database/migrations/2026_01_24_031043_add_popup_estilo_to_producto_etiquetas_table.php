@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('producto_imagenes', function (Blueprint $table) {
-            if (!Schema::hasColumn('producto_imagenes', 'whatsapp_mensaje')) {
-                $table->text('whatsapp_mensaje')->nullable()->after('asunto');
-            }
+        Schema::table('producto_etiquetas', function (Blueprint $table) {
+            $table->enum('popup_estilo', ['estilo1', 'estilo2', 'estilo3'])
+                ->default('estilo1')
+                ->after('keywords');
         });
     }
 
@@ -23,8 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('producto_imagenes', function (Blueprint $table) {
-             $table->dropColumn('whatsapp_mensaje');
+        Schema::table('producto_etiquetas', function (Blueprint $table) {
+            $table->dropColumn('popup_estilo');
         });
     }
 };
