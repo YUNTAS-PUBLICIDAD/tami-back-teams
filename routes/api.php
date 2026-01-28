@@ -83,12 +83,12 @@ Route::prefix('v1')->group(function () {
     // Datos para formularios públicos
     Route::get('claim-form-data', [ClaimController::class, 'formData']);
 
-    // ------------------- CONTACTO (Público) -------------------
+    // ------------------- CONTACTO (Público) en beta-------------------
     Route::post('contacto', [ContactMessageController::class, 'store']);
 
     // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO -------------------
    
-        
+    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         // Gestión de Reclamos
         Route::controller(ClaimController::class)->prefix('admin/claims')->group(function () {
             Route::get('/', 'index');
@@ -104,11 +104,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', 'show');
             Route::delete('/{id}', 'destroy');
         });
-    
-
-
-
-
+    });
 
 
 
@@ -171,6 +167,3 @@ Route::controller(RoleController::class)->prefix("roles")->group(function () {
     });
 });
 
-
-
-// RECLAMOS
