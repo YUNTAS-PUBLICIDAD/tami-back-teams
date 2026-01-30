@@ -88,7 +88,7 @@ Route::prefix('v1')->group(function () {
 
     // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO -------------------
    
-    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+    
         // Gestión de Reclamos
         Route::controller(ClaimController::class)->prefix('admin/claims')->group(function () {
             Route::get('/', 'index');
@@ -104,7 +104,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', 'show');
             Route::delete('/{id}', 'destroy');
         });
-    });
 
 
 
