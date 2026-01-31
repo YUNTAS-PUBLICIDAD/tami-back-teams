@@ -96,7 +96,7 @@ class WhatsAppController extends Controller
         try{
             $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
 
-            $response = Http::get($whatsappServiceUrl . '/whatsapp/request-qr');
+            $response = Http::post($whatsappServiceUrl . '/whatsapp/request-qr');
 
             if ($response->successful()) {
                 return response()->json([
