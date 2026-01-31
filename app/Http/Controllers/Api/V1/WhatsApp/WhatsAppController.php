@@ -33,17 +33,21 @@ class WhatsAppController extends Controller
                 $imageUrl = $imagenParaEnviar->url_imagen;
             }
 
-            Log::info('Enviando imagen a WhatsApp desde la URL: ' . $imageUrl);
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
 
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
-
-            Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
+            $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
                 'productName' => $producto->nombre,
                 'description' => $producto->descripcion,
                 'phone'       => $request->phone,
                 'email'       => $request->email,
                 'imageData'   => $this->convertImageToBase64($imageUrl),
             ]);
+
+            if (!$response->successful()) {
+                Log::error('Error en la respuesta del servicio WhatsApp: ' . $response->body());
+                throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
+            }
+
             $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
         } catch (\Throwable $e) {
             $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
@@ -94,7 +98,7 @@ class WhatsAppController extends Controller
     public function requestQR()
     {
         try{
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
 
             $response = Http::post($whatsappServiceUrl . '/whatsapp/request-qr');
 
@@ -118,7 +122,7 @@ class WhatsAppController extends Controller
     public function resetSession()
     {
         try{
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001');
+            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
 
             $response = Http::post($whatsappServiceUrl . '/whatsapp/reset');
 
