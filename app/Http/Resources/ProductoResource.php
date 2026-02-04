@@ -49,6 +49,7 @@ class ProductoResource extends JsonResource
                 'meta_descripcion' => $this->etiqueta->meta_descripcion,
                 'keywords' => $this->etiqueta->keywords,
                 'popup_estilo' => $this->etiqueta->popup_estilo,
+                'popup3_sin_fondo' => $this->etiqueta->popup3_sin_fondo,
             ] : null,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

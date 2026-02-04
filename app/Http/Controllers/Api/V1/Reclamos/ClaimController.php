@@ -69,16 +69,27 @@ class ClaimController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Cargamos relaciones para que el listado sea útil (Eager Loading)
-        $claims = Claim::with(['documentType', 'claimStatus', 'claimType'])
-            ->latest()
-            ->paginate($request->get('perPage', 20));
+    // 1. Iniciamos la consulta con las relaciones
+    $query = Claim::with(['documentType', 'claimStatus', 'claimType']);
 
-        return response()->json([
-            'success' => true,
-            'data'    => $claims
-        ]);
-    }
+    // 2. Aplicamos el filtro si 'status_id' viene en la petición
+    $query->when($request->filled('status_id'), function ($q) use ($request) {
+        return $q->where('claim_status_id', $request->status_id);
+    });
+
+    // 3. Puedes agregar otros filtros fácilmente, por ejemplo, por número de documento
+    $query->when($request->filled('document_number'), function ($q) use ($request) {
+        return $q->where('document_number', 'like', '%' . $request->document_number . '%');
+    });
+
+    // 4. Ordenamos y paginamos
+    $claims = $query->latest()->paginate($request->get('perPage', 20));
+
+    return response()->json([
+        'success' => true,
+        'data'    => $claims
+    ]);
+}
 
     /**
      * Admin: Ver Detalle

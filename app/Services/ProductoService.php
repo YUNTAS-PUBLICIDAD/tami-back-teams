@@ -183,6 +183,10 @@ class ProductoService
             'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
             'keywords' => $keywords,
             'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
+            'popup3_sin_fondo' => filter_var(
+                $request->etiqueta['popup3_sin_fondo'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            ),
         ]);
     }
 
@@ -197,6 +201,10 @@ class ProductoService
                 'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
                 'keywords' => $keywords,
                 'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
+                'popup3_sin_fondo' => filter_var(
+                    $request->etiqueta['popup3_sin_fondo'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                ),
             ]
         );
     }
