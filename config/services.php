@@ -38,5 +38,9 @@ return [
     'imgur' => [
         'access_token' => env('IMGUR_ACCESS_TOKEN'),
     ],
+    'deploy' => [
+    'webhook' => env('DEPLOY_WEBHOOK_URL'),
+],
+
 
 ];

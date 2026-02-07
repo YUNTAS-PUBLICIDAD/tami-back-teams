@@ -6,6 +6,12 @@ use App\Models\Producto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+use App\Events\ProductoCreado;
+use App\Events\ProductoActualizado;
+use App\Events\ProductoEliminado;
+
+
+
 class ProductoService
 {
     public function __construct(
@@ -49,6 +55,7 @@ class ProductoService
             }
 
             DB::commit();
+            event(new ProductoCreado($producto));
             return $producto;
         } catch (\Exception $e) {
             DB::rollBack();
@@ -104,6 +111,7 @@ class ProductoService
             }
 
             DB::commit();
+            event(new ProductoActualizado($producto));
             return $producto->fresh();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -134,6 +142,7 @@ class ProductoService
             $producto->delete();
 
             DB::commit();
+            event(new ProductoEliminado($producto));
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Error al eliminar producto {$producto->id}: " . $e->getMessage());
