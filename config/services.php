@@ -38,5 +38,14 @@ return [
     'imgur' => [
         'access_token' => env('IMGUR_ACCESS_TOKEN'),
     ],
+    //'deploy' => [
+    //'webhook_url' => env('DEPLOY_WEBHOOK_URL'),
+
+//],
+'github' => [
+    'token' => env('GITHUB_TOKEN'),
+    'repo' => env('GITHUB_REPO'),
+],
+
 
 ];
