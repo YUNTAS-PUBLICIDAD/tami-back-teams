@@ -10,6 +10,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+use App\Services\GitHubAppService;
+
 class TriggerFrontendDeployJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -23,32 +25,35 @@ class TriggerFrontendDeployJob implements ShouldQueue
     ) {}
 
     public function handle(): void
-    {
-        $repo = config('services.github.repo');
-        $token = config('services.github.token');
+{
+    $repo = config('services.github.repo');
 
-        if (!$repo || !$token) {
-            throw new \Exception('GitHub repo o token no configurado');
-        }
-
-        Http::withToken($token)
-            ->acceptJson()
-            ->post(
-                "https://api.github.com/repos/{$repo}/dispatches",
-                [
-                    'event_type' => 'rebuild-frontend',
-                    'client_payload' => [
-                        'event' => $this->eventName,
-                        'producto_id' => $this->productoId,
-                    ],
-                ]
-            );
-
-        Log::info('Deploy frontend disparado', [
-            'event' => $this->eventName,
-            'producto_id' => $this->productoId,
-        ]);
+    if (!$repo) {
+        throw new \Exception('GitHub repo no configurado');
     }
+
+    $githubApp = new GitHubAppService();
+    $token = $githubApp->getInstallationToken();
+
+    Http::withToken($token)
+        ->acceptJson()
+        ->post(
+            "https://api.github.com/repos/{$repo}/dispatches",
+            [
+                'event_type' => 'rebuild-frontend',
+                'client_payload' => [
+                    'event' => $this->eventName,
+                    'producto_id' => $this->productoId,
+                ],
+            ]
+        );
+
+    Log::info('Deploy frontend disparado', [
+        'event' => $this->eventName,
+        'producto_id' => $this->productoId,
+    ]);
+}
+
 
     public function failed(\Throwable $e): void
     {
