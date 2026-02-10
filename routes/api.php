@@ -108,7 +108,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Deploy Frontend (solo ADMIN)
-        Route::post('/frontend/deploy', [FrontendDeployController::class, 'deploy']);
+        Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
 
 });
 
