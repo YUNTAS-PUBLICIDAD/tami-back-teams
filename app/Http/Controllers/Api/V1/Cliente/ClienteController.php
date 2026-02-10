@@ -104,7 +104,7 @@ class ClienteController extends Controller
                     'celular' => $cliente->celular,
                     'producto' => $cliente->producto ? $cliente->producto->nombre : null,
                     'source' => $cliente->source ? $cliente->source->name : null,
-                    'updated_at' => $cliente->updated_at,
+                    'created_at' => $cliente->created_at,
                 ];
             });
 
@@ -188,11 +188,13 @@ class ClienteController extends Controller
             [
                 'name' => $datosValidados['name'],
                 'email' => $datosValidados['email'],
-                'celular' => $datosValidados['celular']
+                'celular' => $datosValidados['celular'],
+                'source_id' => $datosValidados['source_id'],
+                'producto_id' => $datosValidados['producto_id'] ?? null,
             ]
             );
 
-            Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
+            //Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
 
             DB::commit();
             return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente creado con éxito.', HttpStatusCode::CREATED);

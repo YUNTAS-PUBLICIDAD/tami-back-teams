@@ -23,6 +23,8 @@ class StoreClienteRequest extends FormRequest
                 'unique:clientes,celular',
                 'regex:/^\+\d{1,3}\s?\d{1,15}(?:[-\s]?\d+)*$/'
             ],
+            'source_id' => 'required|exists:cliente_sources,id',
+            'producto_id' => 'null|exists:productos,id',
         ];
     }
 
@@ -38,6 +40,9 @@ class StoreClienteRequest extends FormRequest
             'celular.required' => 'El número de celular es obligatorio.',
             // 'celular.regex' => 'El celular debe tener exactamente 9 dígitos numéricos.'
             'celular.regex' => 'El formato del teléfono no es válido. Ejemplo: +51 999-999-999',
+            'source_id.required' => 'La fuente de adquisición es obligatoria.',
+            'source_id.exists' => 'La fuente de adquisición seleccionada no es válida.',
+            'producto_id.exists' => 'El producto seleccionado no es válido.',
         ];
     }
 
