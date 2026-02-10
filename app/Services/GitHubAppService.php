@@ -11,7 +11,7 @@ class GitHubAppService
     {
         $appId = config('services.github.app_id');
         $installationId = config('services.github.installation_id');
-        $keyPath = base_path(config('services.github.private_key_path'));
+        $keyPath = base_path(config('services.github.app_private_key_path'));
 
         if (!file_exists($keyPath)) {
             throw new \Exception('Archivo PEM de GitHub App no encontrado');
