@@ -42,8 +42,7 @@ return [
     //'webhook_url' => env('DEPLOY_WEBHOOK_URL'),
 
 //],
-'github' => [
-    //'token' => env('GITHUB_TOKEN'), no se usa 
+'github' => [ 
     'repo' => env('GITHUB_REPO'),
     'app_id' => env('GITHUB_APP_ID'),
     'app_private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH'),
