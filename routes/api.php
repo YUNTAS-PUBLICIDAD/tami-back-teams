@@ -16,6 +16,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Api\V1\Reclamos\ClaimController;
 use App\Http\Controllers\Api\V1\Reclamos\ContactMessageController;
 
+use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
+
 
 Route::prefix('v1')->group(function () {
 
@@ -105,7 +107,8 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', 'destroy');
         });
 
-
+        // Deploy Frontend (solo ADMIN)
+        Route::post('/frontend/deploy', [FrontendDeployController::class, 'deploy']);
 
 });
 
