@@ -94,7 +94,7 @@ class ClienteController extends Controller
     public function index()
     {
         try{
-            $cliente = Cliente::get();
+            $cliente = Cliente::with(['producto', 'source'])->get();
 
             $showClient = $cliente->map(function ($cliente){
                 return [
@@ -102,6 +102,9 @@ class ClienteController extends Controller
                     'name' => $cliente->name,
                     'email' => $cliente->email,
                     'celular' => $cliente->celular,
+                    'producto' => $cliente->producto ? $cliente->producto->nombre : null,
+                    'source' => $cliente->source ? $cliente->source->name : null,
+                    'updated_at' => $cliente->updated_at,
                 ];
             });
 
