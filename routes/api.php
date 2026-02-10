@@ -88,16 +88,15 @@ Route::prefix('v1')->group(function () {
     // ------------------- CONTACTO (Público) en beta-------------------
     Route::post('contacto', [ContactMessageController::class, 'store']);
 
-    // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO -------------------
-   
-    
+    // ------------------- ADMINISTRACIÓN Y DEPLOY -------------------
+    // Todo lo que requiera ser ADMIN y estar autenticado debe ir aquí
+    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+        
         // Gestión de Reclamos
         Route::controller(ClaimController::class)->prefix('admin/claims')->group(function () {
             Route::get('/', 'index');
             Route::get('/{id}', 'show');
             Route::patch('/{id}/status', 'updateStatus');
-        
-            // Route::post('/{id}/reply', 'reply'); // Por si implementas respuestas luego
         });
 
         // Gestión de Mensajes de Contacto
@@ -107,12 +106,9 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{id}', 'destroy');
         });
 
-        // Deploy Frontend (solo ADMIN)
-        // Rutas protegidas
-        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
-        // Solo un ADMIN autenticado puede disparar el deploy
-            Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
-});
+        // Deploy Frontend
+        Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
+    });
 
 });
 
