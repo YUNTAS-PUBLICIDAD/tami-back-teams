@@ -10,7 +10,6 @@ use App\Listeners\DispatchFrontendDeploy;
 
 class EventServiceProvider extends ServiceProvider
 {
-    /*
     protected $listen = [
         ProductoCreado::class => [
             DispatchFrontendDeploy::class,
@@ -22,8 +21,4 @@ class EventServiceProvider extends ServiceProvider
             DispatchFrontendDeploy::class,
         ],
     ];
-    */
-
-    protected $listen = [];
-
 }
