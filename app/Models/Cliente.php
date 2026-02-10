@@ -15,7 +15,19 @@ class Cliente extends Model
         'name',
         'email',
         'celular',
+        'producto_id',
+        'source_id',
     ];
 
     public $timestamps = true;
+
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class, 'producto_id');
+    }
+
+    public function source(): BelongsTo
+    {
+        return $this->belongsTo(ClienteSource::class, 'source_id');
+    }
 }
