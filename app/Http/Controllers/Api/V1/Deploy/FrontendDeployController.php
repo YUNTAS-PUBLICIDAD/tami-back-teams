@@ -6,18 +6,18 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Jobs\TriggerFrontendDeployJob;
 
-
 class FrontendDeployController extends Controller
 {
-     public function deploy(Request $request)
+    public function deploy(Request $request)
     {
         
-        // Dispatch the job to trigger the frontend deployment
-        TriggerFrontendDeployJob::dispatch();
+        TriggerFrontendDeployJob::dispatch(
+            'ManualTrigger',          // origen del deploy
+            auth()->id()              // usuario que lo ejecuta
+        );
 
-        return response()->json(['message' => 'Frontend deployment triggered successfully.']);
-
-
+        return response()->json([
+            'message' => 'Deploy iniciado correctamente'
+        ]);
     }
-
 }
