@@ -10,17 +10,22 @@ use App\Jobs\TriggerFrontendDeployJob;
 class FrontendDeployController extends Controller
 {
     public function deploy(Request $request)
-    {
-        if($request->header('X-DEPLOY-KEY') !== config('app.deploy_key')){
-            return response()->json(['message' => 'Unauthorized'], 401);
-         }
-         TriggerFrontendDeployJob::dispatch(
-            'ManualTrigger',
-             null
-        );
-            return response()->json([
-                'message' => 'Deploy iniciado correctamente'
-                ]);
-        }
+{
+    // El middleware 'auth:sanctum' y 'role:ADMIN' ya hicieron el trabajo pesado.
+    // Aquí puedes añadir logs para saber QUIÉN disparó el deploy:
+    \Log::info("Deploy iniciado por el usuario ID: " . $request->user()->id);
+
+    // Opcional: Si aún quieres una capa extra interna, la clave se lee de config/app.php
+    // pero ya NO viene del request del frontend.
+    
+    TriggerFrontendDeployJob::dispatch(
+        'ManualTrigger',
+        $request->user()->name // Pasamos el nombre del admin al Job si quieres
+    );
+
+    return response()->json([
+        'message' => '🚀 Despliegue en cola. El frontend se actualizará pronto.'
+    ]);
+}
     }
 

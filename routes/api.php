@@ -108,7 +108,11 @@ Route::prefix('v1')->group(function () {
         });
 
         // Deploy Frontend (solo ADMIN)
-        Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
+        // Rutas protegidas
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+        // Solo un ADMIN autenticado puede disparar el deploy
+            Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
+});
 
 });
 
