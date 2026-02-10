@@ -9,18 +9,15 @@ use App\Jobs\TriggerFrontendDeployJob;
 
 class FrontendDeployController extends Controller
 {
-    public function deploy(Request $request)
+     public function deploy(Request $request)
     {
-        if($request->header('X-DEPLOY-KEY') !== config('app.deploy_key')){
-            return response()->json(['message' => 'Unauthorized'], 401);
-         }
-         TriggerFrontendDeployJob::dispatch(
-            'ManualTrigger',
-             null
-        );
-            return response()->json([
-                'message' => 'Deploy iniciado correctamente'
-                ]);
-        }
+        
+        // Dispatch the job to trigger the frontend deployment
+        TriggerFrontendDeployJob::dispatch();
+
+        return response()->json(['message' => 'Frontend deployment triggered successfully.']);
+
+
     }
 
+}

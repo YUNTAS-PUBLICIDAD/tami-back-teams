@@ -108,7 +108,13 @@ Route::prefix('v1')->group(function () {
         });
 
         // Deploy Frontend (solo ADMIN)
-        Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
+Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+        Route::post(
+            'frontend/deploy',
+           [FrontendDeployController::class, 'deploy']
+        );
+    });
+
 
 });
 
