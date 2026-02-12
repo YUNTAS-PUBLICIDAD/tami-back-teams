@@ -141,9 +141,10 @@ class ProductoImageService
         return $producto->imagenes()->create($payload);
     }
 
-    private function deleteImageFromStorage(string $url): void
+    public function deleteImageFromStorage(string $path): void
     {
-        $rutaRelativa = str_replace('/storage/', '', $url);
-        Storage::disk('public')->delete($rutaRelativa);
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }
