@@ -73,23 +73,127 @@ class ProductoService
      * @return Producto
      * @throws \Exception
      */
-    public function updateProducto(Producto $producto, array $datosValidados, $request): Producto
+   public function updateProducto(Producto $producto, array $datosValidados, $request): Producto
     {
         DB::beginTransaction();
         try {
+            Log::info('🔄 Iniciando actualización de producto', ['id' => $producto->id]);
+            
             $this->updateBaseProducto($producto, $datosValidados);
 
             if ($request->has('etiqueta')) {
                 $this->updateEtiqueta($producto, $datosValidados, $request);
             }
 
-            if (isset($datosValidados['imagenes'])) {
-                $this->imageService->deleteGalleryImages($producto);
-                $this->imageService->saveGalleryImages(
-                    $producto,
-                    $request->file('imagenes', []),
-                    $datosValidados['textos_alt'] ?? []
-                );
+            // ==========================================
+            // MANEJO INTELIGENTE DE IMÁGENES DE GALERÍA
+            // ==========================================
+            
+            $imagenesNuevas = $request->file('imagenes_nuevas', []);
+            $imagenesExistentes = $request->input('imagenes_existentes', []); 
+            
+            $hayImagenesNuevas = !empty($imagenesNuevas) && count($imagenesNuevas) > 0;
+            $hayImagenesExistentes = !empty($imagenesExistentes) && count($imagenesExistentes) > 0;
+            
+            if ($hayImagenesNuevas || $hayImagenesExistentes) {
+                
+                Log::info('✅ Procesando cambios en imágenes de galería');
+
+                // Obtener imágenes actuales de la BD PRIMERO para poder comparar URLs
+                $imagenesActuales = $producto->imagenes()
+                    ->where(function($query) {
+                        $query->where('tipo', 'galeria')
+                            ->orWhereNull('tipo');
+                    })
+                    ->get();
+
+                // Recopilar IDs de imágenes a CONSERVAR (Buscando por ID o por URL)
+                $idsAConservar = [];
+                
+                // Iteramos por lo que manda el frontend 
+                foreach ($imagenesExistentes as $key => $imgData) {
+                    $encontrada = false;
+
+                    // Si viene con ID, lo usamos
+                    if (!empty($imgData['id'])) {
+                        $idsAConservar[] = $imgData['id'];
+                        $encontrada = true;
+                    } 
+                    // Si NO viene ID pero viene URL, buscamos en la BD cuál coincide
+                    elseif (!empty($imgData['url'])) {
+                        $match = $imagenesActuales->first(function ($dbImg) use ($imgData) {
+                            return $dbImg->url_imagen === $imgData['url'];
+                        });
+
+                        if ($match) {
+                            $idsAConservar[] = $match->id;
+                            // Inyectamos el ID encontrado al array del request para poder actualizar el ALT después
+                            $imagenesExistentes[$key]['id'] = $match->id;
+                            Log::info("🔍 Imagen recuperada por URL: {$imgData['url']} -> ID: {$match->id}");
+                            $encontrada = true;
+                        }
+                    }
+
+                    if (!$encontrada) {
+                        Log::warning("⚠️ Imagen existente enviada por frontend no encontrada en BD: " . ($imgData['url'] ?? 'Sin URL'));
+                    }
+                }
+                
+                // Limpiamos duplicados
+                $idsAConservar = array_unique($idsAConservar);
+
+                Log::info('🔐 IDs confirmados a conservar:', $idsAConservar);
+                Log::info('📋 Imágenes actuales en BD antes de borrar: ' . $imagenesActuales->count());
+
+                //  Eliminar imágenes que NO están en la lista de conservar
+                $contadorEliminadas = 0;
+                foreach ($imagenesActuales as $imagen) {
+                    if (!in_array($imagen->id, $idsAConservar)) {
+                        Log::info("🗑️ ELIMINANDO imagen ID: {$imagen->id} | URL: {$imagen->url_imagen}");
+                        
+                        $this->imageService->deleteImageFromStorage($imagen->url_imagen);
+                        $imagen->delete();
+                        $contadorEliminadas++;
+                    } else {
+                         Log::info("🛡️ CONSERVANDO imagen ID: {$imagen->id}");
+                    }
+                }
+                
+                Log::info("✅ Total de imágenes eliminadas: {$contadorEliminadas}");
+
+                //  Actualizar textos ALT de imágenes conservadas
+                $contadorActualizadas = 0;
+                foreach ($imagenesExistentes as $imgData) {
+                    
+                    if (isset($imgData['id']) && isset($imgData['alt'])) {
+                        $updated = $producto->imagenes()
+                            ->where('id', $imgData['id'])
+                            ->update(['texto_alt_SEO' => $imgData['alt']]);
+                        
+                        if ($updated) {
+                            $contadorActualizadas++;
+                        }
+                    }
+                }
+
+                //  Guardar imágenes NUEVAS
+                if ($hayImagenesNuevas) {
+                    $altTextsNuevos = $request->input('imagenes_nuevas_alt', []);
+                    $contadorNuevas = 0;
+                    foreach ($imagenesNuevas as $index => $file) {
+                        $ruta = $this->imageService->guardarImagen($file);
+                        $altText = $altTextsNuevos[$index] ?? "Imagen {$index}";
+                        
+                        $producto->imagenes()->create([
+                            'url_imagen' => $ruta,
+                            'texto_alt_SEO' => $altText,
+                            'tipo' => 'galeria'
+                        ]);
+                        $contadorNuevas++;
+                    }
+                }
+            } else {
+                Log::info('⏭️ NO se detectaron cambios en imágenes - conservando las existentes');
             }
 
             $this->saveSpecialImages($producto, $request);
@@ -113,11 +217,13 @@ class ProductoService
             DB::commit();
             event(new ProductoActualizado($producto));
             return $producto->fresh();
+            
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al actualizar producto {$producto->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error("Error al actualizar producto {$producto->id}: " . $e->getMessage());
             throw $e;
         }
+    
     }
 
     /**

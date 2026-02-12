@@ -8,7 +8,7 @@ use App\Jobs\TriggerFrontendDeployJob;
 
 class FrontendDeployController extends Controller
 {
-    public function deploy(Request $request)
+     public function deploy(Request $request)
     {
         
         TriggerFrontendDeployJob::dispatch(
