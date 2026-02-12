@@ -116,6 +116,13 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
     });
 
 
+
+
+    // WhatsApp Templates
+    Route::get('/whatsapp-templates/{name}', [WhatsappTemplateController::class, 'show']);
+    Route::put('/whatsapp-templates/{name}', [WhatsappTemplateController::class, 'update']);
+
+
 });
 
 
