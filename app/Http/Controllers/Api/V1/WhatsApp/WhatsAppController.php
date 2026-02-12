@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\WhatsApp;
 
 use App\Http\Controllers\Controller;
 use App\Models\Producto;
+use App\Models\WhatsappTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -143,6 +144,22 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
+
+    // Obtener la plantilla para el modal
+    public function show($name) {
+        $template = WhatsappTemplate::where('name', $name)->first();
+        return response()->json($template);
+    }
+
+    // Guardar cambios desde el modal
+    public function update(Request $request, $name) {
+        $template = WhatsappTemplate::updateOrCreate(
+            ['name' => $name],
+            ['content' => $request->content]
+        );
+        return response()->json(['message' => 'Plantilla actualizada', 'data' => $template]);
+    }
+
 
 
 }
