@@ -57,6 +57,12 @@ class V2UpdateProductoRequest extends FormRequest
         'imagenes_existentes.*.id' => 'nullable|integer|exists:producto_imagenes,id',
         'imagenes_existentes.*.url' => 'nullable|string|max:500',
         'imagenes_existentes.*.alt' => 'nullable|string|max:255',
+
+         // IMÁGENES EDITADAS
+        'imagenes_editadas' => 'nullable|array',
+        'imagenes_editadas.*.id' => 'required|integer|exists:producto_imagenes,id',
+        'imagenes_editadas.*.file' => 'required|file|image|mimes:jpeg,png,jpg,gif,webp|max:3048',
+        'imagenes_editadas.*.alt' => 'nullable|string|max:255',
         
         // Imagen popup
         'imagen_popup' => 'nullable|file|image|max:3048',

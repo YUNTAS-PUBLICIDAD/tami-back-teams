@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\ProductoImagen;
 use App\Models\Dimension;
 use App\Http\Controllers\Api\V1\Blog\BlogController;
+use App\Models\WhatsappTemplate;
 
 class Producto extends Model
 {
@@ -64,5 +65,10 @@ class Producto extends Model
     public function productoImagenes()
     {
         return $this->hasMany(ProductoImagen::class, 'producto_id', 'id');
+    }
+
+    public function whatsappTemplate()
+    {
+        return $this->hasOne(WhatsappTemplate::class, 'producto_id');
     }
 }

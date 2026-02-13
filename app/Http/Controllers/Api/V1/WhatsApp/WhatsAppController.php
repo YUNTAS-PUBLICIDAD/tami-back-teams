@@ -12,53 +12,53 @@ use Illuminate\Support\Facades\Storage;
 
 class WhatsAppController extends Controller
 {
-    public function sendProductDetails(Request $request)
-    {
-        $resultados = [];
-        
-        $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
-                            ->where('link', $request->link)
-                            ->first();
-         if (!$producto) {
-            return response()->json(['message' => 'Producto no encontrado'], 404);
-        }
-
-
-        try {
-            $imagenParaEnviar = $producto->imagenWhatsapp ?? $producto->imagenes->where('tipo', 'galeria')->first();
-            $defaultImageUrl = 'https://res.cloudinary.com/dshi5w2wt/image/upload/v1759791593/Copia_de_Imagen_de_Beneficios_2_1_u7a7tk.png';
-
-
-            $imageUrl = $defaultImageUrl;
-            if ($imagenParaEnviar) {
-                $imageUrl = $imagenParaEnviar->url_imagen;
-            }
-
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
-
-            $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
-                'productName' => $producto->nombre,
-                'description' => $producto->descripcion,
-                'phone'       => $request->phone,
-                'email'       => $request->email,
-                'imageData'   => $this->convertImageToBase64($imageUrl),
-            ]);
-
-            if (!$response->successful()) {
-                Log::error('Error en la respuesta del servicio WhatsApp: ' . $response->body());
-                throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
-            }
-
-            $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
-        } catch (\Throwable $e) {
-            $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
-        }
-
-        return response()->json([
-            'message'   => 'Proceso finalizado con los siguientes resultados:',
-            'resultados' => $resultados
-        ], 200);
+    // En WhatsAppController.php
+public function sendProductDetails(Request $request)
+{
+    $resultados = [];
+    
+    $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
+                        ->where('link', $request->link)
+                        ->first();
+     if (!$producto) {
+        return response()->json(['message' => 'Producto no encontrado'], 404);
     }
+
+    try {
+        $imagenParaEnviar = $producto->imagenWhatsapp ?? $producto->imagenes->where('tipo', 'galeria')->first();
+        $defaultImageUrl = 'https://res.cloudinary.com/dshi5w2wt/image/upload/v1759791593/Copia_de_Imagen_de_Beneficios_2_1_u7a7tk.png';
+
+        $imageUrl = $defaultImageUrl;
+        if ($imagenParaEnviar) {
+            $imageUrl = $imagenParaEnviar->url_imagen;
+        }
+
+        $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
+
+        $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
+            'productName' => $producto->nombre,
+            'description' => $producto->descripcion,
+            'phone'       => $request->phone,
+            'email'       => $request->email,
+            'imageData'   => $this->convertImageToBase64($imageUrl),
+            'productoId'  => $producto->id, // ✅ AGREGADO
+        ]);
+
+        if (!$response->successful()) {
+            Log::error('Error en la respuesta del servicio WhatsApp: ' . $response->body());
+            throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
+        }
+
+        $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
+    } catch (\Throwable $e) {
+        $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
+    }
+
+    return response()->json([
+        'message'   => 'Proceso finalizado con los siguientes resultados:',
+        'resultados' => $resultados
+    ], 200);
+}
 
     public function convertImageToBase64($pathOrUrl) 
     {
@@ -145,21 +145,58 @@ class WhatsAppController extends Controller
         }
     }
 
-    // Obtener la plantilla para el modal
-    public function show($name) {
-        $template = WhatsappTemplate::where('name', $name)->first();
-        return response()->json($template);
+    // **NUEVA FUNCIÓN: Obtener plantilla por producto_id**
+    public function showByProduct($productoId) {
+        $template = WhatsappTemplate::where('producto_id', $productoId)->first();
+        
+        if (!$template) {
+            return response()->json([
+                'message' => 'No hay plantilla personalizada para este producto',
+                'data' => null
+            ], 200);
+        }
+        
+        return response()->json([
+            'message' => 'Plantilla encontrada',
+            'data' => $template
+        ], 200);
     }
 
-    // Guardar cambios desde el modal
-    public function update(Request $request, $name) {
+    // **NUEVA FUNCIÓN: Actualizar/crear plantilla por producto_id**
+    public function updateTemplateByProduct(Request $request, $productoId) {
+        $request->validate([
+            'content' => 'required|string'
+        ]);
+
+        // Verificar que el producto existe
+        $producto = Producto::find($productoId);
+        if (!$producto) {
+            return response()->json(['message' => 'Producto no encontrado'], 404);
+        }
+
         $template = WhatsappTemplate::updateOrCreate(
-            ['name' => $name],
+            ['producto_id' => $productoId],
             ['content' => $request->content]
         );
-        return response()->json(['message' => 'Plantilla actualizada', 'data' => $template]);
+        
+        return response()->json([
+            'message' => 'Plantilla del producto actualizada',
+            'data' => $template
+        ], 200);
     }
 
-
-
+    // **NUEVA FUNCIÓN: Eliminar plantilla personalizada de un producto**
+    public function deleteTemplateByProduct($productoId) {
+        $template = WhatsappTemplate::where('producto_id', $productoId)->first();
+        
+        if (!$template) {
+            return response()->json(['message' => 'No hay plantilla para eliminar'], 404);
+        }
+        
+        $template->delete();
+        
+        return response()->json([
+            'message' => 'Plantilla eliminada correctamente'
+        ], 200);
+    }
 }
