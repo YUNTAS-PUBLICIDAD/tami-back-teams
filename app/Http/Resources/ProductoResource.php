@@ -50,6 +50,10 @@ class ProductoResource extends JsonResource
                 'keywords' => $this->etiqueta->keywords,
                 'popup_estilo' => $this->etiqueta->popup_estilo,
                 'popup3_sin_fondo' => $this->etiqueta->popup3_sin_fondo,
+
+                'titulo_popup_1' => $this->etiqueta->titulo_popup_1,
+                'titulo_popup_2' => $this->etiqueta->titulo_popup_2,
+                'titulo_popup_3' => $this->etiqueta->titulo_popup_3,
             ] : null,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
