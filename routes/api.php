@@ -120,9 +120,10 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
 
 
 
-    // WhatsApp Templates
-    Route::get('/whatsapp-templates/{name}', [WhatsAppController::class, 'show']);
-    Route::put('/whatsapp-templates/{name}', [WhatsAppController::class, 'update']);
+    // Rutas para plantillas de WhatsApp por producto
+Route::get('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'showByProduct']);
+Route::post('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'updateTemplateByProduct']);
+Route::delete('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'deleteTemplateByProduct']);
 
 
 });
