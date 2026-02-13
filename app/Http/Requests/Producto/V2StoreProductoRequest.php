@@ -74,7 +74,7 @@ class V2StoreProductoRequest extends FormRequest
             
             // Imagen Whatsapp
             'imagen_Whatsapp' => "nullable|file|image|max:3048",
-            'texto_alt_Whatsapp' => "nullable|string|max:255",
+            'texto_alt_Whatsapp' => "nullable|string|max:2000",
 
             // URL del video
             'video_url' => "nullable|url|max:500",
