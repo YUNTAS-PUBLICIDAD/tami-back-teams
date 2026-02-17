@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use App\Models\ClienteSource;
 
 class ClienteController extends Controller
 {
@@ -184,6 +185,38 @@ class ClienteController extends Controller
 
         try
         {
+            $shouldUpsert = false;
+
+            if (isset($datosValidados['source_id'])) {
+                $source = ClienteSource::find($datosValidados['source_id']);
+                $shouldUpsert = $datosValidados['source_id'] == 2 || ($source && $source->name === 'Producto detalle');
+            }
+            
+            if ($shouldUpsert) {
+                // Buscar cliente existente por email o celular
+                $clienteExistente = Cliente::where('email', $datosValidados['email'])
+                    ->orWhere('celular', $datosValidados['celular'])
+                    ->first();
+
+                if ($clienteExistente) {
+                    // Actualizar cliente existente
+                    $clienteExistente->update([
+                        'name' => $datosValidados['name'],
+                        'email' => $datosValidados['email'],
+                        'celular' => $datosValidados['celular'],
+                        'source_id' => $datosValidados['source_id'],
+                        'producto_id' => $datosValidados['producto_id'] ?? $clienteExistente->producto_id,
+                    ]);
+
+                    DB::commit();
+                    return $this->apiResponse->successResponse(
+                        $clienteExistente->fresh(), 
+                        'Cliente actualizado con éxito.', 
+                        HttpStatusCode::OK
+                    );
+                }
+            }
+
             $cliente = Cliente::create(
             [
                 'name' => $datosValidados['name'],

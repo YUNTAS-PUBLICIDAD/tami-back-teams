@@ -14,17 +14,31 @@ class StoreClienteRequest extends FormRequest
 
     public function rules(): array
     {
+        $sourceId = $this->input('source_id');
+    
+        $isUpsertSource = $sourceId == 2;
+        if (!$isUpsertSource && $sourceId) {
+            $source = \App\Models\ClienteSource::find($sourceId);
+            $isUpsertSource = $source && $source->name === 'Producto detalle';
+        }
+
         return [
             'name' => 'required|string|min:2|max:100',
-            'email' => 'required|email|unique:clientes,email|max:100',
-            'celular' => [
+            'email' => $isUpsertSource ? 
+                'required|email|max:100' : 
+                'required|email|unique:clientes,email|max:100',
+            'celular' => $isUpsertSource ? [
+                'required',
+                'string',
+                'regex:/^\+\d{1,3}\s?\d{1,15}(?:[-\s]?\d+)*$/'
+            ] : [
                 'required',
                 'string',
                 'unique:clientes,celular',
                 'regex:/^\+\d{1,3}\s?\d{1,15}(?:[-\s]?\d+)*$/'
             ],
             'source_id' => 'required|exists:cliente_sources,id',
-            'producto_id' => 'null|exists:productos,id',
+            'producto_id' => 'nullable|exists:productos,id',
         ];
     }
 
