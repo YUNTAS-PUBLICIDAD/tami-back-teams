@@ -77,28 +77,120 @@ class ProductoService
     {
         DB::beginTransaction();
         try {
+            
+            
+            //  Actualizar datos básicos
             $this->updateBaseProducto($producto, $datosValidados);
 
+            // Actualizar etiquetas/SEO
             if ($request->has('etiqueta')) {
                 $this->updateEtiqueta($producto, $datosValidados, $request);
             }
 
-            if (isset($datosValidados['imagenes'])) {
-                $this->imageService->deleteGalleryImages($producto);
-                $this->imageService->saveGalleryImages(
-                    $producto,
-                    $request->file('imagenes', []),
-                    $datosValidados['textos_alt'] ?? []
-                );
+            // ==========================================
+            // MANEJO INTELIGENTE DE IMÁGENES DE GALERÍA
+            // ==========================================
+            
+            $imagenesNuevas = $request->file('imagenes_nuevas', []);
+            $imagenesExistentes = $request->input('imagenes_existentes', []); 
+            
+            // Obtenemos los datos de edición
+            $imagenesEditadasDatos = $request->input('imagenes_editadas', []);
+            $imagenesEditadasArchivos = $request->file('imagenes_editadas', []);
+
+            // Recopilar IDs que NO se debe borrar (Existentes + Editadas)
+            $idsAConservar = [];
+            foreach ($imagenesExistentes as $imgData) {
+                if (!empty($imgData['id'])) {
+                    $idsAConservar[] = $imgData['id'];
+                } elseif (!empty($imgData['url'])) {
+                    // buscar por URL si falta el ID
+                    $match = $producto->imagenes()->where('url_imagen', $imgData['url'])->first();
+                    if ($match) $idsAConservar[] = $match->id;
+                }
             }
 
+            // De las editadas 
+            foreach ($imagenesEditadasDatos as $editData) {
+                if (!empty($editData['id'])) {
+                    $idsAConservar[] = $editData['id'];
+                }
+            }
+            
+            $idsAConservar = array_unique($idsAConservar);
+
+            // Eliminar imágenes que ya no están en la lista
+            $producto->imagenes()
+                ->where(function($q) { $q->where('tipo', 'galeria')->orWhereNull('tipo'); })
+                ->whereNotIn('id', $idsAConservar)
+                ->get()
+                ->each(function($img) {
+                    $this->imageService->deleteImageFromStorage($img->url_imagen);
+                    $img->delete();
+                });
+
+
+            if (!empty($imagenesEditadasDatos)) {
+                foreach ($imagenesEditadasDatos as $index => $data) {
+                    // Verificamos si existe el archivo en el índice correspondiente
+                    if (isset($imagenesEditadasArchivos[$index]['file'])) {
+                        $file = $imagenesEditadasArchivos[$index]['file'];
+                        $id = $data['id'];
+                        $alt = $data['alt'] ?? '';
+
+                        $imagenDb = $producto->imagenes()->find($id);
+                        
+                        if ($imagenDb) {
+                            // Borrar archivo viejo del disco
+                            $this->imageService->deleteImageFromStorage($imagenDb->url_imagen);
+                            // Subir archivo nuevo
+                            $nuevaRuta = $this->imageService->guardarImagen($file);
+                            
+                            // Actualizar registro
+                            $imagenDb->update([
+                                'url_imagen' => $nuevaRuta,
+                                'texto_alt_SEO' => $alt
+                            ]);
+                            
+                        }
+                    }
+                }
+            }
+
+            foreach ($imagenesExistentes as $imgData) {
+                if (isset($imgData['id']) && isset($imgData['alt'])) {
+                    $producto->imagenes()
+                        ->where('id', $imgData['id'])
+                        ->update(['texto_alt_SEO' => $imgData['alt']]);
+                }
+            }
+
+            // Crear imágenes totalmente nuevas
+            if (!empty($imagenesNuevas)) {
+                $altTextsNuevos = $request->input('imagenes_nuevas_alt', []);
+                foreach ($imagenesNuevas as $index => $file) {
+                    $ruta = $this->imageService->guardarImagen($file);
+                    $altText = $altTextsNuevos[$index] ?? "";
+                    
+                    $producto->imagenes()->create([
+                        'url_imagen' => $ruta,
+                        'texto_alt_SEO' => $altText,
+                        'tipo' => 'galeria'
+                    ]);
+                }
+            }
+
+            // Imágenes Especiales (Popup, Email, Whatsapp)
             $this->saveSpecialImages($producto, $request);
 
+            // Especificaciones
             if (isset($datosValidados['especificaciones'])) {
+                // Borramos las anteriores y creamos las nuevas para asegurar consistencia
                 $producto->especificaciones()->delete();
                 $this->syncEspecificaciones($producto, $datosValidados['especificaciones']);
             }
 
+            // Dimensiones
             if (isset($datosValidados['dimensiones'])) {
                 $producto->dimensiones()->updateOrCreate(
                     ['id_producto' => $producto->id],
@@ -106,16 +198,20 @@ class ProductoService
                 );
             }
 
+            //Productos Relacionados
             if (isset($datosValidados['relacionados'])) {
                 $producto->productosRelacionados()->sync($datosValidados['relacionados']);
             }
 
             DB::commit();
-            event(new ProductoActualizado($producto));
+            
+            // Disparar evento
+            event(new ProductoActualizado($producto));        
             return $producto->fresh();
+            
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Error al actualizar producto {$producto->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            
             throw $e;
         }
     }
@@ -196,6 +292,9 @@ class ProductoService
                 $request->etiqueta['popup3_sin_fondo'] ?? false,
                 FILTER_VALIDATE_BOOLEAN
             ),
+             'titulo_popup_1' => $request->etiqueta['titulo_popup_1'] ?? null,
+            'titulo_popup_2' => $request->etiqueta['titulo_popup_2'] ?? null,
+            'titulo_popup_3' => $request->etiqueta['titulo_popup_3'] ?? null,
         ]);
     }
 
@@ -214,6 +313,9 @@ class ProductoService
                     $request->etiqueta['popup3_sin_fondo'] ?? false,
                     FILTER_VALIDATE_BOOLEAN
                 ),
+                'titulo_popup_1' => $request->etiqueta['titulo_popup_1'] ?? null,
+                'titulo_popup_2' => $request->etiqueta['titulo_popup_2'] ?? null,
+                'titulo_popup_3' => $request->etiqueta['titulo_popup_3'] ?? null,
             ]
         );
     }

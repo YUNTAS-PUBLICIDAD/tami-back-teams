@@ -19,7 +19,10 @@ class ProductoEtiqueta extends Model
         'meta_descripcion',
         'keywords',
         'popup_estilo',
-        'popup3_sin_fondo'
+        'popup3_sin_fondo',
+        'titulo_popup_1',
+        'titulo_popup_2',
+        'titulo_popup_3'
     ];
 
     protected $casts = [

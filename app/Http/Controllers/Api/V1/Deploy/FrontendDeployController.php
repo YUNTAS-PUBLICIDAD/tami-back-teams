@@ -6,21 +6,18 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Jobs\TriggerFrontendDeployJob;
 
-
 class FrontendDeployController extends Controller
 {
-    public function deploy(Request $request)
+     public function deploy(Request $request)
     {
-        if($request->header('X-DEPLOY-KEY') !== config('app.deploy_key')){
-            return response()->json(['message' => 'Unauthorized'], 401);
-         }
-         TriggerFrontendDeployJob::dispatch(
-            'ManualTrigger',
-             null
+        
+        TriggerFrontendDeployJob::dispatch(
+            'ManualTrigger',          // origen del deploy
+            auth()->id()              // usuario que lo ejecuta
         );
-            return response()->json([
-                'message' => 'Deploy iniciado correctamente'
-                ]);
-        }
-    }
 
+        return response()->json([
+            'message' => 'Deploy iniciado correctamente'
+        ]);
+    }
+}

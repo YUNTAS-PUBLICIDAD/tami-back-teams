@@ -30,11 +30,13 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('users', UserController::class);
     });
 
-    Route::controller(ClienteController::class)->prefix('clientes')->group(function () {
-        Route::get('/paginate', 'paginate');
+    // Clientes (Solo ADMIN y VENTAS)
+    Route::middleware(['auth:sanctum', 'role:ADMIN|VENTAS'])->group(function () {
+        Route::controller(ClienteController::class)->prefix('clientes')->group(function () {
+            Route::get('/paginate', 'paginate');
+        });
+        Route::apiResource('clientes', ClienteController::class);
     });
-
-    Route::apiResource('clientes', ClienteController::class);
 
     Route::controller(BlogController::class)->prefix('blogs')->group(function () {
         Route::get('/', 'index');
@@ -42,32 +44,34 @@ Route::prefix('v1')->group(function () {
         Route::get('/link/{link}', 'showLink');
         Route::get('/{id}', 'show');
 
-        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {});
-        Route::post('/', 'store');
-        Route::post('/{blog}', 'update');
-        //Route::patch('/{blog}', 'update');
-        Route::delete('/{blog}', 'destroy');
+        #protegidas
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+            Route::post('/', 'store');
+            Route::post('/{blog}', 'update');
+            Route::delete('/{blog}', 'destroy');
+        });
     });
-
+        // Rutas públicas
     Route::controller(EmailController::class)->prefix('/emails')->group(function () {
         Route::post('/', 'sendEmail');
         Route::post('/product-link', 'sendEmailByProductLink');
     });
 
     Route::controller(ProductoController::class)->prefix('productos')->group(function(){
+        // Rutas públicas
         Route::get('/', 'index');
         Route::get('/paginate', 'paginate');
         Route::get('/{id}', 'show');
-
         Route::get('/{id}/related', 'related');
-
-        Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'permission:ENVIAR'])->group(function () {});
-
-        Route::post('/', 'store');
-        Route::put('/{id}', 'update');
-        Route::patch('/{id}', 'update'); // Añadida ruta PATCH
-        Route::delete('/{id}', 'destroy');
         Route::get('/link/{link}', 'showByLink');
+
+        // Rutas protegidas (Solo ADMIN)
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+            Route::post('/', 'store');
+            Route::put('/{id}', 'update');
+            Route::patch('/{id}', 'update');
+            Route::delete('/{id}', 'destroy');
+        });
     });
 
     Route::controller(WhatsAppController::class)->prefix('whatsapp')->group(function () {
@@ -88,16 +92,13 @@ Route::prefix('v1')->group(function () {
     // ------------------- CONTACTO (Público) en beta-------------------
     Route::post('contacto', [ContactMessageController::class, 'store']);
 
-    // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO -------------------
-   
-    
+    // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO (Solo ADMIN) -------------------
+    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         // Gestión de Reclamos
         Route::controller(ClaimController::class)->prefix('admin/claims')->group(function () {
             Route::get('/', 'index');
             Route::get('/{id}', 'show');
             Route::patch('/{id}/status', 'updateStatus');
-        
-            // Route::post('/{id}/reply', 'reply'); // Por si implementas respuestas luego
         });
 
         // Gestión de Mensajes de Contacto
@@ -106,9 +107,24 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', 'show');
             Route::delete('/{id}', 'destroy');
         });
+    });
 
         // Deploy Frontend (solo ADMIN)
-        Route::post('frontend/deploy', [FrontendDeployController::class, 'deploy']);
+Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+        Route::post(
+            'frontend/deploy',
+           [FrontendDeployController::class, 'deploy']
+        );
+    });
+
+
+
+
+    // Rutas para plantillas de WhatsApp por producto
+Route::get('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'showByProduct']);
+Route::post('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'updateTemplateByProduct']);
+Route::delete('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'deleteTemplateByProduct']);
+
 
 });
 
@@ -140,7 +156,7 @@ Route::prefix('v1')->group(function () {
 
 
 Route::controller(PermissionController::class)->prefix("permisos")->group(function () {
-    Route::middleware(["auth:sanctum"])->group(function () {
+    Route::middleware(["auth:sanctum", 'role:ADMIN'])->group(function () {
         Route::get('/', 'index');
         Route::post('/', 'store');
         Route::get('/{id}', 'show');
@@ -155,9 +171,9 @@ Route::controller(PermissionController::class)->prefix("permisos")->group(functi
 });
 
 Route::controller(RoleController::class)->prefix("roles")->group(function () {
-    Route::middleware(["auth:sanctum"])->group(function () {
+    Route::middleware(["auth:sanctum", 'role:ADMIN'])->group(function () {
         Route::get('/', 'index');
-        Route::post('/', 'store');
+        Route::post('/', 'store');          
         Route::get('/{id}', 'show');
         Route::put('/{id}', 'update');
         Route::delete('/{id}', 'destroy');
