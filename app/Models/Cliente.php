@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Cliente extends Model
 {
@@ -15,7 +16,19 @@ class Cliente extends Model
         'name',
         'email',
         'celular',
+        'producto_id',
+        'source_id',
     ];
 
     public $timestamps = true;
+
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class, 'producto_id');
+    }
+
+    public function source(): BelongsTo
+    {
+        return $this->belongsTo(ClienteSource::class, 'source_id');
+    }
 }

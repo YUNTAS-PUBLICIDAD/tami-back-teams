@@ -14,15 +14,31 @@ class StoreClienteRequest extends FormRequest
 
     public function rules(): array
     {
+        $sourceId = $this->input('source_id');
+    
+        $isUpsertSource = $sourceId == 2;
+        if (!$isUpsertSource && $sourceId) {
+            $source = \App\Models\ClienteSource::find($sourceId);
+            $isUpsertSource = $source && $source->name === 'Producto detalle';
+        }
+
         return [
             'name' => 'required|string|min:2|max:100',
-            'email' => 'required|email|unique:clientes,email|max:100',
-            'celular' => [
+            'email' => $isUpsertSource ? 
+                'required|email|max:100' : 
+                'required|email|unique:clientes,email|max:100',
+            'celular' => $isUpsertSource ? [
+                'required',
+                'string',
+                'regex:/^\+\d{1,3}\s?\d{1,15}(?:[-\s]?\d+)*$/'
+            ] : [
                 'required',
                 'string',
                 'unique:clientes,celular',
                 'regex:/^\+\d{1,3}\s?\d{1,15}(?:[-\s]?\d+)*$/'
             ],
+            'source_id' => 'required|exists:cliente_sources,id',
+            'producto_id' => 'nullable|exists:productos,id',
         ];
     }
 
@@ -38,6 +54,9 @@ class StoreClienteRequest extends FormRequest
             'celular.required' => 'El número de celular es obligatorio.',
             // 'celular.regex' => 'El celular debe tener exactamente 9 dígitos numéricos.'
             'celular.regex' => 'El formato del teléfono no es válido. Ejemplo: +51 999-999-999',
+            'source_id.required' => 'La fuente de adquisición es obligatoria.',
+            'source_id.exists' => 'La fuente de adquisición seleccionada no es válida.',
+            'producto_id.exists' => 'El producto seleccionado no es válido.',
         ];
     }
 
