@@ -30,12 +30,17 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('users', UserController::class);
     });
 
+    // Crear cliente (Público)
+    Route::post('clientes', [ClienteController::class, 'store']);
     // Clientes (Solo ADMIN y VENTAS)
     Route::middleware(['auth:sanctum', 'role:ADMIN|VENTAS'])->group(function () {
         Route::controller(ClienteController::class)->prefix('clientes')->group(function () {
             Route::get('/paginate', 'paginate');
+            Route::get('/', 'index');
+            Route::get('/{cliente}', 'show');
+            Route::put('/{cliente}', 'update');
+            Route::delete('/{cliente}', 'destroy');
         });
-        Route::apiResource('clientes', ClienteController::class);
     });
 
     Route::controller(BlogController::class)->prefix('blogs')->group(function () {
