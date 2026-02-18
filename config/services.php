@@ -42,12 +42,14 @@ return [
     //'webhook_url' => env('DEPLOY_WEBHOOK_URL'),
 
 //],
-'github' => [ 
-    'repo' => env('GITHUB_REPO'),
-    'app_id' => env('GITHUB_APP_ID'),
-    'app_private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH'),
-    'installation_id' => env('GITHUB_APP_INSTALLATION_ID'),
-],
+    'github' => [ 
+        'repo' => env('GITHUB_REPO'),
+        'app_id' => env('GITHUB_APP_ID'),
+        'app_private_key_path' => env('GITHUB_APP_PRIVATE_KEY_PATH'),
+        'installation_id' => env('GITHUB_APP_INSTALLATION_ID'),
+    ],
 
-
+    'whatsapp' => [
+        'url' => env('WHATSAPP_SERVICE_URL'),
+    ],
 ];

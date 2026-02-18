@@ -14,8 +14,11 @@ use App\Models\BlogEtiqueta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\SafeErrorTrait;
+
 class BlogController extends Controller
 {
+    use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
 
     public function __construct(ApiResponseService $apiResponse)
@@ -105,7 +108,7 @@ class BlogController extends Controller
             );
         } catch (\Exception $e) {
             return $this->apiResponse->errorResponse(
-                'Error al obtener los blogs: ' . $e->getMessage(),
+                $this->safeErrorMessage($e, 'obtener los blogs'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
@@ -275,7 +278,7 @@ class BlogController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->apiResponse->errorResponse(
-                'Error al crear el blog: ' . $e->getMessage(),
+                $this->safeErrorMessage($e, 'crear el blog'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
@@ -600,7 +603,10 @@ class BlogController extends Controller
             return $this->apiResponse->successResponse(new BlogResource($blog->fresh()), 'Blog actualizado exitosamente', HttpStatusCode::OK);
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->apiResponse->errorResponse('Error al actualizar el blog: ' . $e->getMessage(), HttpStatusCode::INTERNAL_SERVER_ERROR);
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'actualizar el blog'), 
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -672,7 +678,7 @@ class BlogController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->apiResponse->errorResponse(
-                'Error al eliminar el blog: ' . $e->getMessage(),
+                $this->safeErrorMessage($e, 'eliminar el blog'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }

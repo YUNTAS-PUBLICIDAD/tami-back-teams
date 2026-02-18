@@ -22,7 +22,7 @@ use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
 Route::prefix('v1')->group(function () {
 
     Route::controller(AuthController::class)->prefix('auth')->group(function () {
-        Route::post('/login', 'login');
+        Route::middleware('throttle:login')->post('/login', 'login');
         Route::post('/logout', 'logout')->middleware(['auth:sanctum', 'role:ADMIN|USER']);
     });
 
@@ -39,10 +39,10 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::controller(BlogController::class)->prefix('blogs')->group(function () {
-        Route::get('/', 'index');
-        Route::get('/paginate', 'paginate');
-        Route::get('/link/{link}', 'showLink');
-        Route::get('/{id}', 'show');
+        Route::middleware('throttle:api')->get('/', 'index');
+        Route::middleware('throttle:api')->get('/paginate', 'paginate');
+        Route::middleware('throttle:api')->get('/link/{link}', 'showLink');
+        Route::middleware('throttle:api')->get('/{id}', 'show');
 
         #protegidas
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
@@ -51,10 +51,10 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{blog}', 'destroy');
         });
     });
-        // Rutas públicas
+        // Rutas de Email (Protegidas y con Rate Limit)
     Route::controller(EmailController::class)->prefix('/emails')->group(function () {
-        Route::post('/', 'sendEmail');
-        Route::post('/product-link', 'sendEmailByProductLink');
+        Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'throttle:public-forms'])->post('/', 'sendEmail');
+        Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'throttle:public-forms'])->post('/product-link', 'sendEmailByProductLink');
     });
 
     Route::controller(ProductoController::class)->prefix('productos')->group(function(){
@@ -75,22 +75,28 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::controller(WhatsAppController::class)->prefix('whatsapp')->group(function () {
-        Route::post('/solicitar-info-producto', 'sendProductDetails');
-        Route::post('/request-qr', 'requestQR');
-        Route::post('/reset', 'resetSession');
+        Route::middleware('throttle:public-forms')->post('/solicitar-info-producto', 'sendProductDetails');
+        
+        // Rutas protegidas de WhatsApp Admin
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function() {
+            Route::post('/request-qr', 'requestQR');
+            Route::post('/reset', 'resetSession');
+            Route::get('/template/product/{productoId}', 'showByProduct');
+            Route::post('/template/product/{productoId}', 'updateTemplateByProduct');
+            Route::delete('/template/product/{productoId}', 'deleteTemplateByProduct');
+        });
     });
 
 
 
     // ------------------- RECLAMOS (Público) -------------------
-    Route::post('claims', [ClaimController::class, 'store']);
-    //
+    Route::middleware('throttle:public-forms')->post('claims', [ClaimController::class, 'store']);
     
     // Datos para formularios públicos
-    Route::get('claim-form-data', [ClaimController::class, 'formData']);
+    Route::middleware('throttle:api')->get('claim-form-data', [ClaimController::class, 'formData']);
 
-    // ------------------- CONTACTO (Público) en beta-------------------
-    Route::post('contacto', [ContactMessageController::class, 'store']);
+    // ------------------- CONTACTO (Público) -------------------
+    Route::middleware('throttle:public-forms')->post('contacto', [ContactMessageController::class, 'store']);
 
     // ------------------- ADMINISTRACIÓN RECLAMOS Y CONTACTO (Solo ADMIN) -------------------
     Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
@@ -120,10 +126,8 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
 
 
 
-    // Rutas para plantillas de WhatsApp por producto
-Route::get('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'showByProduct']);
-Route::post('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'updateTemplateByProduct']);
-Route::delete('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'deleteTemplateByProduct']);
+    // Las rutas individuales anteriores se movieron dentro del grupo protegido de WhatsAppController
+
 
 
 });

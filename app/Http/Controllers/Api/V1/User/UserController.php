@@ -9,6 +9,7 @@ use App\Http\Contains\HttpStatusCode;
 use App\Models\User;
 use App\Services\ApiResponseService;
 use Illuminate\Support\Facades\DB;
+use App\Traits\SafeErrorTrait;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Hash;
  */
 class UserController extends Controller
 {
+    use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
 
     public function __construct(ApiResponseService $apiResponse) {
@@ -202,7 +204,7 @@ class UserController extends Controller
             );
         } catch (\Exception $e) {
             return $this->apiResponse->errorResponse(
-                'Ocurrió un problema al procesar la solicitud. ' . $e->getMessage(),
+                $this->safeErrorMessage($e, 'obtener los usuarios'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }

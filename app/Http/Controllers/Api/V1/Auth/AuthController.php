@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
  */
 class AuthController extends Controller
 {
+    use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
 
     public function __construct(ApiResponseService $apiResponse)
@@ -79,7 +80,7 @@ class AuthController extends Controller
             
         } catch (\Exception $e) {
             return $this->apiResponse->errorResponse(
-                'Hubo un problema al procesar la solicitud: ' . $e->getMessage(),
+                $this->safeErrorMessage($e, 'iniciar sesión'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
@@ -138,7 +139,7 @@ class AuthController extends Controller
     
         } catch (\Exception $e) {
             return $this->apiResponse->errorResponse(
-                'Error al cerrar sesión: ' . $e->getMessage(),
+                $this->safeErrorMessage($e, 'cerrar sesión'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }

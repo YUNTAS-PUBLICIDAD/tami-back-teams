@@ -9,12 +9,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use GuzzleHttp\Client;
+use App\Traits\SafeErrorTrait;
+use App\Services\ApiResponseService; // Assuming ApiResponseService is in this namespace
 
 class WhatsAppController extends Controller
 {
+    use SafeErrorTrait;
+    protected ApiResponseService $apiResponse;
     // En WhatsAppController.php
 public function sendProductDetails(Request $request)
 {
+    $request->validate([
+        'link' => 'required|string|max:255',
+        'phone' => 'required|string|max:20',
+        'email' => 'nullable|email|max:191',
+    ]);
+
     $resultados = [];
     
     $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
@@ -33,7 +44,10 @@ public function sendProductDetails(Request $request)
             $imageUrl = $imagenParaEnviar->url_imagen;
         }
 
-        $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
+        $whatsappServiceUrl = config('services.whatsapp.url');
+        if (!$whatsappServiceUrl) {
+            throw new \Exception('Configuración de WhatsApp no encontrada.');
+        }
 
         $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
             'productName' => $producto->nombre,
@@ -41,17 +55,16 @@ public function sendProductDetails(Request $request)
             'phone'       => $request->phone,
             'email'       => $request->email,
             'imageData'   => $this->convertImageToBase64($imageUrl),
-            'productoId'  => $producto->id, // ✅ AGREGADO
+            'productoId'  => $producto->id,
         ]);
 
         if (!$response->successful()) {
-            Log::error('Error en la respuesta del servicio WhatsApp: ' . $response->body());
             throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
         }
 
         $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
     } catch (\Throwable $e) {
-        $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
+        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de producto');
     }
 
     return response()->json([
@@ -99,7 +112,10 @@ public function sendProductDetails(Request $request)
     public function requestQR()
     {
         try{
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
+            $whatsappServiceUrl = config('services.whatsapp.url');
+            if (!$whatsappServiceUrl) {
+                return $this->apiResponse->errorResponse('Configuración de WhatsApp no encontrada.', HttpStatusCode::INTERNAL_SERVER_ERROR);
+            }
 
             $response = Http::post($whatsappServiceUrl . '/whatsapp/request-qr');
 
@@ -115,9 +131,10 @@ public function sendProductDetails(Request $request)
                 ], $response->status());
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'message' => 'Error requesting QR code: ' . $e->getMessage()
-            ], 500);
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'solicitar código QR de WhatsApp'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
         }
     }
     public function resetSession()

@@ -8,8 +8,12 @@ use Illuminate\Http\Request;
 use App\Models\ContactMessage; // Asumiendo que tu modelo se llama así
 use Exception;
 
+use App\Traits\SafeErrorTrait;
+
 class ContactMessageController extends Controller
 {
+    use SafeErrorTrait;
+
     /**
      * Guardar un nuevo mensaje de contacto.
      */
@@ -36,7 +40,7 @@ class ContactMessageController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'success' => false, 
-                'message' => 'Error al enviar el mensaje: ' . $e->getMessage()
+                'message' => $this->safeErrorMessage($e, 'enviar el mensaje')
             ], 500);
         }
     }
@@ -91,7 +95,7 @@ class ContactMessageController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'success' => false, 
-                'message' => 'No se pudo eliminar el mensaje: ' . $e->getMessage()
+                'message' => $this->safeErrorMessage($e, 'eliminar el mensaje')
             ], 500);
         }
     }
