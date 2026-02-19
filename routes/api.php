@@ -11,7 +11,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\Api\V1\Email\EmailController;
 use App\Http\Controllers\Api\V1\WhatsApp\WhatsAppController;
 use App\Http\Controllers\RoleController;
-
+use App\Http\Controllers\Api\V1\WhatsApp\CampañaController;
 
 use App\Http\Controllers\Api\V1\Reclamos\ClaimController;
 use App\Http\Controllers\Api\V1\Reclamos\ContactMessageController;
@@ -129,6 +129,29 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
 Route::get('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'showByProduct']);
 Route::post('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'updateTemplateByProduct']);
 Route::delete('/whatsapp/template/product/{productoId}', [WhatsAppController::class, 'deleteTemplateByProduct']);
+
+
+
+    // Rutas para campañas de WhatsApp
+// ------------------- CAMPAÑAS WHATSAPP -------------------
+
+
+    Route::controller(CampañaController::class)
+        ->prefix('whatsapp/campañas')
+        ->group(function () {
+
+            // activar campaña
+            Route::post('/activar', 'activar');
+
+            // opcional: listar campañas
+            Route::get('/', 'index');
+
+            // opcional: ver campaña
+            Route::get('/{id}', 'show');
+
+        });
+
+
 
 
 });
