@@ -49,5 +49,9 @@ return [
     'installation_id' => env('GITHUB_APP_INSTALLATION_ID'),
 ],
 
+'whatsapp' => [
+    'base_url' => env('WHATSAPP_SERVICE_URL'),
+],
+
 
 ];

@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use App\Models\ClienteSource;
 
 class ClienteController extends Controller
 {
@@ -94,7 +95,7 @@ class ClienteController extends Controller
     public function index()
     {
         try{
-            $cliente = Cliente::get();
+            $cliente = Cliente::with(['producto', 'source'])->get();
 
             $showClient = $cliente->map(function ($cliente){
                 return [
@@ -102,6 +103,9 @@ class ClienteController extends Controller
                     'name' => $cliente->name,
                     'email' => $cliente->email,
                     'celular' => $cliente->celular,
+                    'producto' => $cliente->producto ? $cliente->producto->nombre : null,
+                    'source' => $cliente->source ? $cliente->source->name : null,
+                    'created_at' => $cliente->created_at,
                 ];
             });
 
@@ -181,15 +185,49 @@ class ClienteController extends Controller
 
         try
         {
+            $shouldUpsert = false;
+
+            if (isset($datosValidados['source_id'])) {
+                $source = ClienteSource::find($datosValidados['source_id']);
+                $shouldUpsert = $datosValidados['source_id'] == 2 || ($source && $source->name === 'Producto detalle');
+            }
+            
+            if ($shouldUpsert) {
+                // Buscar cliente existente por email o celular
+                $clienteExistente = Cliente::where('email', $datosValidados['email'])
+                    ->orWhere('celular', $datosValidados['celular'])
+                    ->first();
+
+                if ($clienteExistente) {
+                    // Actualizar cliente existente
+                    $clienteExistente->update([
+                        'name' => $datosValidados['name'],
+                        'email' => $datosValidados['email'],
+                        'celular' => $datosValidados['celular'],
+                        'source_id' => $datosValidados['source_id'],
+                        'producto_id' => $datosValidados['producto_id'] ?? $clienteExistente->producto_id,
+                    ]);
+
+                    DB::commit();
+                    return $this->apiResponse->successResponse(
+                        $clienteExistente->fresh(), 
+                        'Cliente actualizado con éxito.', 
+                        HttpStatusCode::OK
+                    );
+                }
+            }
+
             $cliente = Cliente::create(
             [
                 'name' => $datosValidados['name'],
                 'email' => $datosValidados['email'],
-                'celular' => $datosValidados['celular']
+                'celular' => $datosValidados['celular'],
+                'source_id' => $datosValidados['source_id'],
+                'producto_id' => $datosValidados['producto_id'] ?? null,
             ]
             );
 
-            Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
+            //Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
 
             DB::commit();
             return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente creado con éxito.', HttpStatusCode::CREATED);
