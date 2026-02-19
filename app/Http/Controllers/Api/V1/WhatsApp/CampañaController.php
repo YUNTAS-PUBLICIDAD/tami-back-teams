@@ -40,7 +40,7 @@ class CampañaController extends Controller
         $delay = 0;
         foreach ($clientes as $cliente) {
             EnviarCampañaWhatsAppJob::dispatch(
-                $cliente->telefono,
+                $cliente->celular,
                 $campaña->contenido_personalizado,
                 $campaña->imagen_path,
                 $cliente->name
