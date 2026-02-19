@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\ApiResponseService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
-
+use App\Traits\SafeErrorTrait;
 /**
  * @OA\Tag(
  * name="Autenticación",

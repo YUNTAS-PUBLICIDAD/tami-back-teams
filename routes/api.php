@@ -56,10 +56,12 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{blog}', 'destroy');
         });
     });
-        // Rutas de Email (Protegidas y con Rate Limit)
+    // Rutas de Email
     Route::controller(EmailController::class)->prefix('/emails')->group(function () {
-        Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'throttle:public-forms'])->post('/', 'sendEmail');
-        Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'throttle:public-forms'])->post('/product-link', 'sendEmailByProductLink');
+        // Enviar correo general (Protegido por seguridad)
+        Route::middleware(['throttle:public-forms'])->post('/', 'sendEmail');
+        // Enviar correo de producto (Público para el popup de clientes)
+        Route::middleware(['throttle:public-forms'])->post('/product-link', 'sendEmailByProductLink');
     });
 
     Route::controller(ProductoController::class)->prefix('productos')->group(function(){

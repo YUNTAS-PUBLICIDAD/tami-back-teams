@@ -5,7 +5,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://tamimaquinarias.com','http://localhost:4321'],
+    'allowed_origins' => [
+        'https://tamimaquinarias.com',
+        'http://localhost:4321',
+        'http://127.0.0.1:4321',
+    ],
 
     'allowed_origins_patterns' => [],
 
