@@ -18,7 +18,7 @@ class EnviarCampañaWhatsAppJob implements ShouldQueue
     public int $timeout = 30;
 
     public function __construct(
-        public string $telefono,
+        public string $celular,
         public string $mensaje,
         public ?string $imagenPath,
         public string $nombre
@@ -37,19 +37,19 @@ class EnviarCampañaWhatsAppJob implements ShouldQueue
         $url = config('services.whatsapp.base_url') . '/whatsapp/send-product-info';
 
         Http::post($url, [
-            'phone' => $this->telefono,
+            'phone' => $this->celular,
             'message' => $mensajeFinal,
             'image' => $imageUrl,
         ]);
 
         Log::info('Campaña enviada', [
-            'telefono' => $this->telefono
+            'telefono' => $this->celular
         ]);
 
     } catch (\Throwable $e) {
 
         Log::error('Error enviando campaña', [
-            'telefono' => $this->telefono,
+            'telefono' => $this->celular,
             'error' => $e->getMessage()
         ]);
 
