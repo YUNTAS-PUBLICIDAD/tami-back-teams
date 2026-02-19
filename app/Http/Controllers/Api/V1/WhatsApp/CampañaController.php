@@ -26,7 +26,7 @@ class CampañaController extends Controller
         //guardar imagen
         $imagenPath = null;
         if ($request->hasFile('imagen')) {
-            $imagenPath = $request->file('imagen')->store('campañas', 'public');
+            $imagenPath = $request->file('imagen')->store('campanas', 'public');
         }
         // Crear la campaña
         $campaña = Campaña::create([

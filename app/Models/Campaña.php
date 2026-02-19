@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Campaña extends Model
 {
     // Permitimos que estos campos se puedan llenar masivamente
-    protected $table = "campañas";
+    protected $table = "campanas";
     protected $fillable = [
     'nombre', 
     'producto_id',
