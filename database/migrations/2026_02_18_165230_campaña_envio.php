@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('campaña_envio', function (Blueprint $table) {
+        Schema::create('campana_envio', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('campaña_id');
+            $table->unsignedBigInteger('campana_id');
             $table->unsignedBigInteger('envio_id');
             $table->timestamps();
 
-            $table->foreign('campaña_id')->references('id')->on('campañas')->onDelete('cascade');
+            $table->foreign('campana_id')->references('id')->on('campanas')->onDelete('cascade');
             $table->foreign('envio_id')->references('id')->on('envios')->onDelete('cascade');
         });
     }
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('campaña_envio');
+        Schema::dropIfExists('campana_envio');
     }
 };
