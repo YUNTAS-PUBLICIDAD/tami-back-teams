@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('campañas', function (Blueprint $table){
+        Schema::create('campanas', function (Blueprint $table){
             $table->id();
             $table->string('nombre');
             //relacion con productos
-            $table->foreingId('producto_id')
+            $table->foreignId('producto_id')
                 ->constrained('productos')
                 ->onDelete('cascade');
             //contenido personalizado
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('campañas');
+        Schema::dropIfExists('campanas');
     }
 };
