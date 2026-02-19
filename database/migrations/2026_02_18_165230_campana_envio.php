@@ -12,14 +12,28 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('campana_envio', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('campana_id');
-            $table->unsignedBigInteger('envio_id');
-            $table->timestamps();
 
-            $table->foreign('campana_id')->references('id')->on('campanas')->onDelete('cascade');
-            $table->foreign('envio_id')->references('id')->on('envios')->onDelete('cascade');
-        });
+    $table->id();
+
+    $table->foreignId('campana_id')
+        ->constrained('campanas')
+        ->cascadeOnDelete();
+
+    // cliente al que se envía
+    $table->string('telefono');
+
+    // estado del envío
+    $table->enum('estado', [
+        'pendiente',
+        'enviado',
+        'fallido'
+    ])->default('pendiente');
+
+    // opcional: guardar respuesta API
+    $table->text('respuesta')->nullable();
+
+    $table->timestamps();
+});
     }
 
     /**
