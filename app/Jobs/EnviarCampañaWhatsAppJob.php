@@ -33,7 +33,7 @@ class EnviarCampañaWhatsAppJob implements ShouldQueue
             ? asset('storage/' . $this->imagenPath)
             : null;
 
-        $url = config('services.whatsapp.base_url') . '/api/whatsapp/send-campaign';
+        $url = config('services.whatsapp.base_url') . 'whatsapp/send-campaign';
 
         $response = Http::post($url, [
             'phone'   => $this->celular,
