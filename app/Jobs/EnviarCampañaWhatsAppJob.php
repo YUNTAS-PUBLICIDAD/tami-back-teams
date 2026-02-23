@@ -27,32 +27,36 @@ class EnviarCampañaWhatsAppJob implements ShouldQueue
     public function handle(): void
 {
     try {
-
         $mensajeFinal = "Hola {$this->nombre}, {$this->mensaje}";
 
         $imageUrl = $this->imagenPath
             ? asset('storage/' . $this->imagenPath)
             : null;
 
-        $url = config('services.whatsapp.base_url') . '/whatsapp/send-product-info';
+        $url = config('services.whatsapp.base_url') . '/whatsapp/send-campaign';
 
-        Http::post($url, [
-            'phone' => $this->celular,
+        $response = Http::post($url, [
+            'phone'   => $this->celular,
             'message' => $mensajeFinal,
-            'image' => $imageUrl,
+            'image'   => $imageUrl,
         ]);
 
-        Log::info('Campaña enviada', [
-            'telefono' => $this->celular
+        // 👇 AGREGA ESTO para ver qué responde Node
+        Log::info('Respuesta de WhatsApp Node', [
+            'status'   => $response->status(),
+            'body'     => $response->body(),
+            'telefono' => $this->celular,
         ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Error Node: ' . $response->body());
+        }
 
     } catch (\Throwable $e) {
-
         Log::error('Error enviando campaña', [
             'telefono' => $this->celular,
-            'error' => $e->getMessage()
+            'error'    => $e->getMessage()
         ]);
-
         throw $e;
     }
 }
