@@ -53,7 +53,7 @@ Route::prefix('v1')->group(function () {
         #protegidas
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
             Route::post('/', 'store');
-            Route::post('/{blog}', 'update');
+            Route::match(['POST', 'PUT'], '/{blog}', 'update');
             Route::delete('/{blog}', 'destroy');
         });
     });
@@ -90,7 +90,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/request-qr', 'requestQR');
             Route::post('/reset', 'resetSession');
             Route::get('/template/product/{productoId}', 'showByProduct');
-            Route::post('/template/product/{productoId}', 'updateTemplateByProduct');
+            Route::match(['POST', 'PUT'], '/template/product/{productoId}', 'updateTemplateByProduct');
             Route::delete('/template/product/{productoId}', 'deleteTemplateByProduct');
         });
     });
