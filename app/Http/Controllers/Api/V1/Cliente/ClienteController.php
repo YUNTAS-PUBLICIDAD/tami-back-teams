@@ -14,10 +14,12 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use App\Traits\SafeErrorTrait;
 use App\Models\ClienteSource;
 
 class ClienteController extends Controller
 {
+    use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
 
     public function __construct(ApiResponseService $apiResponse)
@@ -345,9 +347,9 @@ class ClienteController extends Controller
                 HttpStatusCode::OK
             );
         } catch (\Exception $e) {
-            return response()->json(
-                ['error' => 'Error al obtener el cliente: ' . $e->getMessage()],
-                HttpStatusCode::INTERNAL_SERVER_ERROR->value
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'obtener clientes'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
     }
@@ -462,7 +464,10 @@ class ClienteController extends Controller
         }
         catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Error al actualizar el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'actualizar el cliente'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
         }
     }
 

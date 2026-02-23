@@ -15,8 +15,12 @@ use App\Models\ProductoEtiqueta;
 use Illuminate\Support\Facades\Validator;
 
 
+use App\Traits\SafeErrorTrait;
+
 class ClaimController extends Controller
 {
+    use SafeErrorTrait;
+
     /**
      * Store a newly created claim in storage.
      */
@@ -58,8 +62,7 @@ class ClaimController extends Controller
     } catch (\Throwable $e) {
         return response()->json([
             'success' => false,
-            'message' => 'Error interno',
-            'error'   => $e->getMessage()
+            'message' => $this->safeErrorMessage($e, 'registrar el reclamo')
         ], 500);
     }
 }
@@ -133,7 +136,7 @@ class ClaimController extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'success' => false, 
-                'message' => $e->getMessage()
+                'message' => $this->safeErrorMessage($e, 'actualizar estado del reclamo')
             ], 500);
         }
     }
@@ -162,8 +165,7 @@ class ClaimController extends Controller
         ]);
     } catch (\Throwable $e) {
         return response()->json([
-            'message' => 'Error al cargar datos del formulario',
-            'error' => $e->getMessage(),
+            'message' => $this->safeErrorMessage($e, 'cargar datos del formulario')
         ], 500);
     }
 }
