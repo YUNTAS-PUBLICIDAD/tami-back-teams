@@ -11,12 +11,18 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use GuzzleHttp\Client;
 use App\Traits\SafeErrorTrait;
-use App\Services\ApiResponseService; // Assuming ApiResponseService is in this namespace
+use App\Services\ApiResponseService;
+use App\Http\Contains\HttpStatusCode;
 
 class WhatsAppController extends Controller
 {
     use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
+
+    public function __construct(ApiResponseService $apiResponse)
+    {
+        $this->apiResponse = $apiResponse;
+    }
     // En WhatsAppController.php
 public function sendProductDetails(Request $request)
 {

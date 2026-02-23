@@ -10,6 +10,7 @@ use App\Mail\ProductInfoMail;
 use App\Mail\SimpleMail;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Services\ApiResponseService;
 
 /**
  * @OA\Tag(
@@ -24,6 +25,11 @@ class EmailController extends Controller
 {
     use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
+
+    public function __construct(ApiResponseService $apiResponse)
+    {
+        $this->apiResponse = $apiResponse;
+    }
 
     /**
      * @OA\Post(
