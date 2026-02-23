@@ -24,6 +24,7 @@ Route::prefix('v1')->group(function () {
     Route::controller(AuthController::class)->prefix('auth')->group(function () {
         Route::middleware('throttle:login')->post('/login', 'login');
         Route::post('/logout', 'logout')->middleware(['auth:sanctum', 'role:ADMIN|USER']);
+        Route::post('/refresh', 'refresh');
     });
 
     Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {

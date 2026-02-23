@@ -144,4 +144,83 @@ class AuthController extends Controller
             );
         }
     }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/auth/refresh",
+     *     summary="Refrescar token de acceso",
+     *     tags={"Autenticación"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token refrescado exitosamente",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="token", type="string"),
+     *             @OA\Property(property="user", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="No autorizado",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="No autorizado para refrescar el token")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Error interno del servidor",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Error al refrescar el token")
+     *         )
+     *     )
+     * )
+     */
+    public function refresh(Request $request) {
+        try {
+            $token = $request->bearerToken();
+            if (!$token) {
+                return $this->apiResponse->errorResponse(
+                    'No se proporcionó un token.',
+                    HttpStatusCode::UNAUTHORIZED
+                );
+            }
+
+            // Buscamos el token manualmente en la base de datos
+            // findToken funciona incluso si el token está "expirado" según la configuración global
+            $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+    
+            if (!$accessToken) {
+                return $this->apiResponse->errorResponse(
+                    'Token inválido o no encontrado.',
+                    HttpStatusCode::UNAUTHORIZED
+                );
+            }
+
+            $user = $accessToken->tokenable;
+            $tokenName = $accessToken->name ?? 'API Token';
+            
+            // Eliminamos el token viejo
+            $accessToken->delete();
+    
+            // Creamos uno nuevo
+            $newToken = $user->createToken($tokenName)->plainTextToken;
+
+            return $this->apiResponse->successResponse(
+                [
+                    'token' => $newToken,
+                    'user' => $user,
+                ],
+                'Token refrescado exitosamente',
+                HttpStatusCode::OK
+            );
+    
+        } catch (\Exception $e) {
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'refrescar token'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
+        }
+    }        
 }
