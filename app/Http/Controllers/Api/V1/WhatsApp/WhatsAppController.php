@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api\V1\WhatsApp;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
+use App\Models\ClienteSource;
 use App\Models\Producto;
+use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -41,6 +44,40 @@ public function sendProductDetails(Request $request)
         return response()->json(['message' => 'Producto no encontrado'], 404);
     }
 
+    // Buscar o crear cliente por email o celular
+    $cliente = null;
+    if ($request->email) {
+        $cliente = Cliente::where('email', $request->email)->first();
+    }
+    if (!$cliente && $request->phone) {
+        $cliente = Cliente::where('celular', $request->phone)->first();
+    }
+    
+    $sourceProductoDetalle = ClienteSource::where('name', 'Producto detalle')->first();
+    
+    if (!$cliente) {
+        // Crear nuevo cliente
+        $cliente = Cliente::create([
+            'name' => 'Cliente WhatsApp',
+            'email' => $request->email,
+            'celular' => $request->phone,
+            'producto_id' => $producto->id,
+            'source_id' => $sourceProductoDetalle?->id,
+        ]);
+    } else {
+        // Actualizar cliente existente si hay datos nuevos
+        $updateData = [];
+        if ($request->email && !$cliente->email) {
+            $updateData['email'] = $request->email;
+        }
+        if ($request->phone && !$cliente->celular) {
+            $updateData['celular'] = $request->phone;
+        }
+        if (!empty($updateData)) {
+            $cliente->update($updateData);
+        }
+    }
+
     try {
         $imagenParaEnviar = $producto->imagenWhatsapp ?? $producto->imagenes->where('tipo', 'galeria')->first();
         $defaultImageUrl = 'https://res.cloudinary.com/dshi5w2wt/image/upload/v1759791593/Copia_de_Imagen_de_Beneficios_2_1_u7a7tk.png';
@@ -50,7 +87,7 @@ public function sendProductDetails(Request $request)
             $imageUrl = $imagenParaEnviar->url_imagen;
         }
 
-        $whatsappServiceUrl = config('services.whatsapp.url');
+        $whatsappServiceUrl = config('services.whatsapp.base_url');
         if (!$whatsappServiceUrl) {
             throw new \Exception('Configuración de WhatsApp no encontrada.');
         }
@@ -68,9 +105,32 @@ public function sendProductDetails(Request $request)
             throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
         }
 
+        // Registrar mensaje exitoso en BD
+        WhatsappMessageLog::create([
+            'producto_id' => $producto->id,
+            'cliente_id' => $cliente->id,
+            'phone' => $request->phone,
+            'email' => $request->email,
+            'status' => 'success',
+            'image_url' => $imageUrl,
+        ]);
+
         $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
     } catch (\Throwable $e) {
-        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de producto');
+        // Registrar mensaje fallido en BD
+        if (isset($producto)) {
+            WhatsappMessageLog::create([
+                'producto_id' => $producto->id,
+                'cliente_id' => $cliente?->id,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'image_url' => $imageUrl ?? null,
+            ]);
+        }
+
+        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de producto', 500);
     }
 
     return response()->json([
