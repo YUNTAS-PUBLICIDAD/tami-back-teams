@@ -15,10 +15,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 use App\Traits\SafeErrorTrait;
+use App\Traits\SanitizesInput;
 
 class BlogController extends Controller
 {
     use SafeErrorTrait;
+    use SanitizesInput;
     protected ApiResponseService $apiResponse;
 
     public function __construct(ApiResponseService $apiResponse)
@@ -237,20 +239,20 @@ class BlogController extends Controller
             $rutaImagenPrincipal = $this->guardarImagen($imagenPrincipal);
 
             $blog = Blog::create([
-                "titulo" => $datosValidados["titulo"],
-                "producto_id" => $datosValidados["producto_id"],
-                "link" => $datosValidados["link"],
-                "subtitulo1" => $datosValidados["subtitulo1"],
-                "subtitulo2" => $datosValidados["subtitulo2"],
-                "video_url" => $datosValidados["video_url"],
-                "video_titulo" => $datosValidados["video_titulo"],
+                "titulo" => $this->sanitizeText($datosValidados["titulo"] ?? null),
+                "producto_id" => $this->sanitizeInteger($datosValidados["producto_id"] ?? null),
+                "link" => $this->sanitizeSlug($datosValidados["link"] ?? null),
+                "subtitulo1" => $this->sanitizeText($datosValidados["subtitulo1"] ?? null),
+                "subtitulo2" => $this->sanitizeText($datosValidados["subtitulo2"] ?? null),
+                "video_url" => $this->sanitizeUrl($datosValidados["video_url"] ?? null),
+                "video_titulo" => $this->sanitizeText($datosValidados["video_titulo"] ?? null),
                 "miniatura" => $rutaImagenPrincipal,
             ]);
 
             if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
                 $blog->etiqueta()->create([
-                    'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
-                    'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
+                    'meta_titulo' => $this->sanitizeText($datosValidados['meta_titulo'] ?? null),
+                    'meta_descripcion' => $this->sanitizeText($datosValidados['meta_descripcion'] ?? null),
                 ]);
             }
 
@@ -262,14 +264,14 @@ class BlogController extends Controller
                     $ruta = $this->guardarImagen($imagen);
                     $blog->imagenes()->create([
                         "ruta_imagen" => $ruta,
-                        "text_alt" => $altTexts[$i] ?? null
+                        "text_alt" => $this->sanitizeText($altTexts[$i] ?? null)
                     ]);
                 }
             }
 
             foreach ($datosValidados["parrafos"] as $item) {
                 $blog->parrafos()->createMany([
-                    ["parrafo" => $item]
+                    ["parrafo" => $this->sanitizeText($item)]
                 ]);
             }
 
@@ -537,7 +539,12 @@ class BlogController extends Controller
                 "video_titulo"
             ] as $campo) {
                 if ($request->has($campo)) {
-                    $camposActualizar[$campo] = $datosValidados[$campo];
+                    $camposActualizar[$campo] = match ($campo) {
+                        'link' => $this->sanitizeSlug($datosValidados[$campo]),
+                        'video_url' => $this->sanitizeUrl($datosValidados[$campo]),
+                        'producto_id' => $this->sanitizeInteger($datosValidados[$campo]),
+                        default => $this->sanitizeText($datosValidados[$campo]),
+                    };
                 }
             }
 
@@ -561,8 +568,8 @@ class BlogController extends Controller
                 $blog->etiqueta()->updateOrCreate(
                     ['blog_id' => $blog->id],
                     [
-                        'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
-                        'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
+                        'meta_titulo' => $this->sanitizeText($datosValidados['meta_titulo'] ?? null),
+                        'meta_descripcion' => $this->sanitizeText($datosValidados['meta_descripcion'] ?? null),
                     ]
                 );
             } else if ($blog->etiqueta && (!isset($datosValidados['meta_titulo']) && !isset($datosValidados['meta_descripcion']))) {
@@ -585,7 +592,7 @@ class BlogController extends Controller
                     $ruta = $this->guardarImagen($imagen);
                     $blog->imagenes()->create([
                         "ruta_imagen" => $ruta,
-                        "text_alt" => $altTexts[$i] ?? null
+                        "text_alt" => $this->sanitizeText($altTexts[$i] ?? null)
                     ]);
                 }
             }
@@ -594,7 +601,7 @@ class BlogController extends Controller
                 $blog->parrafos()->delete();
                 foreach ($datosValidados["parrafos"] as $item) {
                     $blog->parrafos()->create([
-                        "parrafo" => $item
+                        "parrafo" => $this->sanitizeText($item)
                     ]);
                 }
             }

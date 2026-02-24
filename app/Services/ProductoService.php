@@ -9,11 +9,14 @@ use Illuminate\Support\Facades\Log;
 use App\Events\ProductoCreado;
 use App\Events\ProductoActualizado;
 use App\Events\ProductoEliminado;
+use App\Traits\SanitizesInput;
 
 
 
 class ProductoService
 {
+    use SanitizesInput;
+
     public function __construct(
         private ProductoImageService $imageService,
         private KeywordProcessorService $keywordService
@@ -40,10 +43,11 @@ class ProductoService
             $producto->productosRelacionados()->sync($datosValidados['relacionados'] ?? []);
 
             if (isset($datosValidados['imagenes'])) {
+                $textosAlt = $this->sanitizeArray($datosValidados['textos_alt'] ?? []);
                 $this->imageService->saveGalleryImages(
                     $producto,
                     $datosValidados['imagenes'],
-                    $datosValidados['textos_alt'] ?? []
+                    $textosAlt ?? []
                 );
             }
 
@@ -136,7 +140,7 @@ class ProductoService
                     if (isset($imagenesEditadasArchivos[$index]['file'])) {
                         $file = $imagenesEditadasArchivos[$index]['file'];
                         $id = $data['id'];
-                        $alt = $data['alt'] ?? '';
+                        $alt = $this->sanitizeText($data['alt'] ?? '');
 
                         $imagenDb = $producto->imagenes()->find($id);
                         
@@ -161,7 +165,7 @@ class ProductoService
                 if (isset($imgData['id']) && isset($imgData['alt'])) {
                     $producto->imagenes()
                         ->where('id', $imgData['id'])
-                        ->update(['texto_alt_SEO' => $imgData['alt']]);
+                        ->update(['texto_alt_SEO' => $this->sanitizeText($imgData['alt'])]);
                 }
             }
 
@@ -170,7 +174,7 @@ class ProductoService
                 $altTextsNuevos = $request->input('imagenes_nuevas_alt', []);
                 foreach ($imagenesNuevas as $index => $file) {
                     $ruta = $this->imageService->guardarImagen($file);
-                    $altText = $altTextsNuevos[$index] ?? "";
+                    $altText = $this->sanitizeText($altTextsNuevos[$index] ?? "");
                     
                     $producto->imagenes()->create([
                         'url_imagen' => $ruta,
@@ -248,6 +252,8 @@ class ProductoService
 
     private function createBaseProducto(array $datos): Producto
     {
+        $datos = $this->sanitizeProductoFields($datos);
+
         return Producto::create([
             'nombre' => $datos['nombre'] ?? null,
             'link' => $datos['link'] ?? null,
@@ -263,6 +269,8 @@ class ProductoService
 
     private function updateBaseProducto(Producto $producto, array $datos): void
     {
+        $datos = $this->sanitizeProductoFields($datos);
+
         $camposPermitidos = [
             'nombre', 'link', 'titulo', 'subtitulo', 
             'stock', 'precio', 'seccion', 'descripcion', 'video_url'
@@ -284,17 +292,17 @@ class ProductoService
         $keywords = $this->keywordService->processKeywordsFromJson($datos['keywords'] ?? null);
 
         $producto->etiqueta()->create([
-            'meta_titulo' => $request->etiqueta['meta_titulo'] ?? null,
-            'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
+            'meta_titulo' => $this->sanitizeText($request->etiqueta['meta_titulo'] ?? null),
+            'meta_descripcion' => $this->sanitizeText($request->etiqueta['meta_descripcion'] ?? null),
             'keywords' => $keywords,
-            'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
+            'popup_estilo' => $this->sanitizeText($request->etiqueta['popup_estilo'] ?? null),
             'popup3_sin_fondo' => filter_var(
                 $request->etiqueta['popup3_sin_fondo'] ?? false,
                 FILTER_VALIDATE_BOOLEAN
             ),
-             'titulo_popup_1' => $request->etiqueta['titulo_popup_1'] ?? null,
-            'titulo_popup_2' => $request->etiqueta['titulo_popup_2'] ?? null,
-            'titulo_popup_3' => $request->etiqueta['titulo_popup_3'] ?? null,
+             'titulo_popup_1' => $this->sanitizeText($request->etiqueta['titulo_popup_1'] ?? null),
+            'titulo_popup_2' => $this->sanitizeText($request->etiqueta['titulo_popup_2'] ?? null),
+            'titulo_popup_3' => $this->sanitizeText($request->etiqueta['titulo_popup_3'] ?? null),
         ]);
     }
 
@@ -305,17 +313,17 @@ class ProductoService
         $producto->etiqueta()->updateOrCreate(
             ['producto_id' => $producto->id],
             [
-                'meta_titulo' => $request->etiqueta['meta_titulo'] ?? null,
-                'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
+                'meta_titulo' => $this->sanitizeText($request->etiqueta['meta_titulo'] ?? null),
+                'meta_descripcion' => $this->sanitizeText($request->etiqueta['meta_descripcion'] ?? null),
                 'keywords' => $keywords,
-                'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
+                'popup_estilo' => $this->sanitizeText($request->etiqueta['popup_estilo'] ?? null),
                 'popup3_sin_fondo' => filter_var(
                     $request->etiqueta['popup3_sin_fondo'] ?? false,
                     FILTER_VALIDATE_BOOLEAN
                 ),
-                'titulo_popup_1' => $request->etiqueta['titulo_popup_1'] ?? null,
-                'titulo_popup_2' => $request->etiqueta['titulo_popup_2'] ?? null,
-                'titulo_popup_3' => $request->etiqueta['titulo_popup_3'] ?? null,
+                'titulo_popup_1' => $this->sanitizeText($request->etiqueta['titulo_popup_1'] ?? null),
+                'titulo_popup_2' => $this->sanitizeText($request->etiqueta['titulo_popup_2'] ?? null),
+                'titulo_popup_3' => $this->sanitizeText($request->etiqueta['titulo_popup_3'] ?? null),
             ]
         );
     }
@@ -329,13 +337,47 @@ class ProductoService
         ];
 
         foreach ($tiposImagenes as [$tipo, $imagenKey, $textoKey]) {
+            $texto = $this->sanitizeText($request->input($textoKey));
             $this->imageService->handleSpecialImage(
                 $producto,
                 $request->file($imagenKey),
                 $tipo,
-                $request->input($textoKey)
+                $texto
             );
         }
+    }
+
+    private function sanitizeProductoFields(array $datos): array
+    {
+        if (array_key_exists('nombre', $datos)) {
+            $datos['nombre'] = $this->sanitizeText($datos['nombre']);
+        }
+        if (array_key_exists('link', $datos)) {
+            $datos['link'] = $this->sanitizeSlug($datos['link']);
+        }
+        if (array_key_exists('titulo', $datos)) {
+            $datos['titulo'] = $this->sanitizeText($datos['titulo']);
+        }
+        if (array_key_exists('subtitulo', $datos)) {
+            $datos['subtitulo'] = $this->sanitizeText($datos['subtitulo']);
+        }
+        if (array_key_exists('stock', $datos)) {
+            $datos['stock'] = $this->sanitizeInteger($datos['stock']);
+        }
+        if (array_key_exists('precio', $datos)) {
+            $datos['precio'] = $this->sanitizeFloat($datos['precio']);
+        }
+        if (array_key_exists('seccion', $datos)) {
+            $datos['seccion'] = $this->sanitizeText($datos['seccion']);
+        }
+        if (array_key_exists('descripcion', $datos)) {
+            $datos['descripcion'] = $this->sanitizeHtml($datos['descripcion']);
+        }
+        if (array_key_exists('video_url', $datos)) {
+            $datos['video_url'] = $this->sanitizeUrl($datos['video_url']);
+        }
+
+        return $datos;
     }
 
     private function syncEspecificaciones(Producto $producto, ?string $especificacionesJson): void
