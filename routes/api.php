@@ -37,7 +37,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'role:ADMIN|VENTAS'])->group(function () {
         Route::controller(ClienteController::class)->prefix('clientes')->group(function () {
             Route::get('/paginate', 'paginate');
-            Route::get('/', 'index');
+            Route::get('/', 'getAdvancedList');
             Route::get('/{cliente}', 'show');
             Route::put('/{cliente}', 'update');
             Route::delete('/{cliente}', 'destroy');
