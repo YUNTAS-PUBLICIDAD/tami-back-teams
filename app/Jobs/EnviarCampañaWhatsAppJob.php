@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use App\Models\CampaignMessageLog;
 
 class EnviarCampañaWhatsAppJob implements ShouldQueue
 {
@@ -21,43 +22,61 @@ class EnviarCampañaWhatsAppJob implements ShouldQueue
         public string $celular,
         public string $mensaje,
         public ?string $imagenPath,
-        public string $nombre
+        public string $nombre,
+        public int $campanaId,
+        public int $clienteId
     ) {}
 
     public function handle(): void
-{
-    try {
-        $mensajeFinal = "Hola {$this->nombre}, {$this->mensaje}";
-
-        $imageUrl = $this->imagenPath
-            ? asset('storage/' . $this->imagenPath)
-            : null;
-
-        $url = config('services.whatsapp.base_url') . '/whatsapp/send-campaign';
-
-        $response = Http::post($url, [
-            'phone'   => $this->celular,
-            'message' => $mensajeFinal,
-            'image'   => $imageUrl,
+    {
+        // Crear registro inicial con status pending
+        $log = CampaignMessageLog::create([
+            'campana_id' => $this->campanaId,
+            'cliente_id' => $this->clienteId,
+            'phone' => $this->celular,
+            'status' => 'pending',
         ]);
 
-        // 👇 AGREGA ESTO para ver qué responde Node
-        Log::info('Respuesta de WhatsApp Node', [
-            'status'   => $response->status(),
-            'body'     => $response->body(),
-            'telefono' => $this->celular,
-        ]);
+        try {
+            $mensajeFinal = "Hola {$this->nombre}, {$this->mensaje}";
 
-        if (!$response->successful()) {
-            throw new \Exception('Error Node: ' . $response->body());
+            $imageUrl = $this->imagenPath
+                ? asset('storage/' . $this->imagenPath)
+                : null;
+
+            $url = config('services.whatsapp.base_url') . '/whatsapp/send-campaign';
+
+            $response = Http::post($url, [
+                'phone'   => $this->celular,
+                'message' => $mensajeFinal,
+                'image'   => $imageUrl,
+            ]);
+
+            Log::info('Respuesta de WhatsApp Node', [
+                'status'   => $response->status(),
+                'body'     => $response->body(),
+                'telefono' => $this->celular,
+            ]);
+
+            if (!$response->successful()) {
+                throw new \Exception('Error Node: ' . $response->body());
+            }
+
+            // Actualizar log como enviado
+            $log->update(['status' => 'sent']);
+
+        } catch (\Throwable $e) {
+            // Actualizar log como fallido
+            $log->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            Log::error('Error enviando campaña', [
+                'telefono' => $this->celular,
+                'error'    => $e->getMessage()
+            ]);
+            throw $e;
         }
-
-    } catch (\Throwable $e) {
-        Log::error('Error enviando campaña', [
-            'telefono' => $this->celular,
-            'error'    => $e->getMessage()
-        ]);
-        throw $e;
     }
-}
 }

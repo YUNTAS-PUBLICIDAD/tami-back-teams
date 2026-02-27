@@ -57,7 +57,9 @@ class CampañaController extends Controller
                         $cliente->celular,
                         $campaña->contenido_personalizado,
                         $campaña->imagen_path,
-                        $cliente->name
+                        $cliente->name,
+                        $campaña->id,
+                        $cliente->id
                     )->delay(now()->addSeconds($delay));
                     
                     $delay += 10;

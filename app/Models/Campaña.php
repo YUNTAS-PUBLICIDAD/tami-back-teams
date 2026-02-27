@@ -20,5 +20,9 @@ class Campaña extends Model
         return $this->belongsTo(Producto::class);
     }
 
-
+    // Relación: Una campaña tiene muchos logs de mensajes
+    public function messageLogs()
+    {
+        return $this->hasMany(CampaignMessageLog::class, 'campana_id');
+    }
 }

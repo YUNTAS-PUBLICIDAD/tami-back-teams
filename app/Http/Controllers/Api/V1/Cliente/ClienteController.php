@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Traits\SafeErrorTrait;
 use App\Models\ClienteSource;
 use App\Models\WhatsappMessageLog;
+use App\Models\CampaignMessageLog;
 
 class ClienteController extends Controller
 {
@@ -568,6 +569,12 @@ class ClienteController extends Controller
             $clientes = Cliente::with(['producto', 'source'])
                 ->withCount(['whatsappMessages as whatsapp_total_messages'])
                 ->withMax('whatsappMessages as whatsapp_ult_envio', 'created_at')
+                ->withCount(['campaignMessages as campaign_total_messages' => function($query) {
+                    $query->where('status', 'sent');
+                }])
+                ->withMax(['campaignMessages as campaign_ult_envio' => function($query) {
+                    $query->where('status', 'sent');
+                }], 'created_at')
                 ->paginate($perPage, ['*'], 'page', $page);
 
             // Mapear clientes para incluir estadísticas
@@ -584,6 +591,10 @@ class ClienteController extends Controller
                             'popup' => [
                                 'total_messages' => $cliente->whatsapp_total_messages,
                                 'ult_envio' => $cliente->whatsapp_ult_envio,
+                            ],
+                            'campaign' => [
+                                'total_messages' => $cliente->campaign_total_messages,
+                                'ult_envio' => $cliente->campaign_ult_envio,
                             ]
                         ]
                     ],
@@ -618,7 +629,7 @@ class ClienteController extends Controller
      */
     public function getClientStats($id)
     {
-        $cliente = Cliente::with(['producto', 'source', 'whatsappMessages'])->find($id);
+        $cliente = Cliente::with(['producto', 'source', 'whatsappMessages', 'campaignMessages'])->find($id);
 
         return [
             'id' => $cliente->id,
@@ -632,6 +643,10 @@ class ClienteController extends Controller
                     'popup' => [
                         'total_messages' => $cliente->whatsappMessages->count(),
                         'ult_envio' => $cliente->whatsappMessages->max('created_at'),
+                    ],
+                    'campaign' => [
+                        'total_messages' => $cliente->campaignMessages->count(),
+                        'ult_envio' => $cliente->campaignMessages->max('created_at'),
                     ]
                 ]
             ],
@@ -648,7 +663,11 @@ class ClienteController extends Controller
                 'popup' => [
                     'total_messages' => WhatsappMessageLog::count(),
                     'ult_envio' => WhatsappMessageLog::max('created_at'),
-                ]
+                ],
+                'campaign' => [
+                    'total_messages' => CampaignMessageLog::where('status', 'sent')->count(),
+                    'ult_envio' => CampaignMessageLog::where('status', 'sent')->max('created_at'),
+                ],
             ]
         ];
     }

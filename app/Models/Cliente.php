@@ -36,4 +36,9 @@ class Cliente extends Model
     {
         return $this->hasMany(WhatsappMessageLog::class, 'cliente_id');
     }
+
+    public function campaignMessages(): HasMany
+    {
+        return $this->hasMany(CampaignMessageLog::class, 'cliente_id');
+    }
 }
