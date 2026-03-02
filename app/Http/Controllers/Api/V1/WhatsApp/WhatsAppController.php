@@ -3,18 +3,38 @@
 namespace App\Http\Controllers\Api\V1\WhatsApp;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
+use App\Models\ClienteSource;
 use App\Models\Producto;
+use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use GuzzleHttp\Client;
+use App\Traits\SafeErrorTrait;
+use App\Services\ApiResponseService;
+use App\Http\Contains\HttpStatusCode;
 
 class WhatsAppController extends Controller
 {
+    use SafeErrorTrait;
+    protected ApiResponseService $apiResponse;
+
+    public function __construct(ApiResponseService $apiResponse)
+    {
+        $this->apiResponse = $apiResponse;
+    }
     // En WhatsAppController.php
 public function sendProductDetails(Request $request)
 {
+    $request->validate([
+        'link' => 'required|string|max:255',
+        'phone' => 'required|string|max:20',
+        'email' => 'nullable|email|max:191',
+    ]);
+
     $resultados = [];
     
     $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
@@ -22,6 +42,40 @@ public function sendProductDetails(Request $request)
                         ->first();
      if (!$producto) {
         return response()->json(['message' => 'Producto no encontrado'], 404);
+    }
+
+    // Buscar o crear cliente por email o celular
+    $cliente = null;
+    if ($request->email) {
+        $cliente = Cliente::where('email', $request->email)->first();
+    }
+    if (!$cliente && $request->phone) {
+        $cliente = Cliente::where('celular', $request->phone)->first();
+    }
+    
+    $sourceProductoDetalle = ClienteSource::where('name', 'Producto detalle')->first();
+    
+    if (!$cliente) {
+        // Crear nuevo cliente
+        $cliente = Cliente::create([
+            'name' => 'Cliente WhatsApp',
+            'email' => $request->email,
+            'celular' => $request->phone,
+            'producto_id' => $producto->id,
+            'source_id' => $sourceProductoDetalle?->id,
+        ]);
+    } else {
+        // Actualizar cliente existente si hay datos nuevos
+        $updateData = [];
+        if ($request->email && !$cliente->email) {
+            $updateData['email'] = $request->email;
+        }
+        if ($request->phone && !$cliente->celular) {
+            $updateData['celular'] = $request->phone;
+        }
+        if (!empty($updateData)) {
+            $cliente->update($updateData);
+        }
     }
 
     try {
@@ -33,7 +87,10 @@ public function sendProductDetails(Request $request)
             $imageUrl = $imagenParaEnviar->url_imagen;
         }
 
-        $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
+        $whatsappServiceUrl = config('services.whatsapp.base_url');
+        if (!$whatsappServiceUrl) {
+            throw new \Exception('Configuración de WhatsApp no encontrada.');
+        }
 
         $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
             'productName' => $producto->nombre,
@@ -41,17 +98,39 @@ public function sendProductDetails(Request $request)
             'phone'       => $request->phone,
             'email'       => $request->email,
             'imageData'   => $this->convertImageToBase64($imageUrl),
-            'productoId'  => $producto->id, // ✅ AGREGADO
+            'productoId'  => $producto->id,
         ]);
 
         if (!$response->successful()) {
-            Log::error('Error en la respuesta del servicio WhatsApp: ' . $response->body());
             throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
         }
 
+        // Registrar mensaje exitoso en BD
+        WhatsappMessageLog::create([
+            'producto_id' => $producto->id,
+            'cliente_id' => $cliente->id,
+            'phone' => $request->phone,
+            'email' => $request->email,
+            'status' => 'success',
+            'image_url' => $imageUrl,
+        ]);
+
         $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
     } catch (\Throwable $e) {
-        $resultados['whatsapp'] = '❌ Error al enviar WhatsApp: ' . $e->getMessage();
+        // Registrar mensaje fallido en BD
+        if (isset($producto)) {
+            WhatsappMessageLog::create([
+                'producto_id' => $producto->id,
+                'cliente_id' => $cliente?->id,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'image_url' => $imageUrl ?? null,
+            ]);
+        }
+
+        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de producto', 500);
     }
 
     return response()->json([
@@ -99,7 +178,10 @@ public function sendProductDetails(Request $request)
     public function requestQR()
     {
         try{
-            $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
+            $whatsappServiceUrl = config('services.whatsapp.url');
+            if (!$whatsappServiceUrl) {
+                return $this->apiResponse->errorResponse('Configuración de WhatsApp no encontrada.', HttpStatusCode::INTERNAL_SERVER_ERROR);
+            }
 
             $response = Http::post($whatsappServiceUrl . '/whatsapp/request-qr');
 
@@ -115,9 +197,10 @@ public function sendProductDetails(Request $request)
                 ], $response->status());
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'message' => 'Error requesting QR code: ' . $e->getMessage()
-            ], 500);
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'solicitar código QR de WhatsApp'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
         }
     }
     public function resetSession()

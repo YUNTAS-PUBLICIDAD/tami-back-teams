@@ -14,10 +14,14 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use App\Traits\SafeErrorTrait;
 use App\Models\ClienteSource;
+use App\Models\WhatsappMessageLog;
+use App\Models\CampaignMessageLog;
 
 class ClienteController extends Controller
 {
+    use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
 
     public function __construct(ApiResponseService $apiResponse)
@@ -345,9 +349,9 @@ class ClienteController extends Controller
                 HttpStatusCode::OK
             );
         } catch (\Exception $e) {
-            return response()->json(
-                ['error' => 'Error al obtener el cliente: ' . $e->getMessage()],
-                HttpStatusCode::INTERNAL_SERVER_ERROR->value
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'obtener clientes'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
     }
@@ -462,7 +466,10 @@ class ClienteController extends Controller
         }
         catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Error al actualizar el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'actualizar el cliente'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
         }
     }
 
@@ -547,5 +554,121 @@ class ClienteController extends Controller
         return response()->json([
             'data'=> $clientes->items()
         ]);
+    }
+
+    /**
+     * Obtener lista avanzada de clientes con estadísticas de Whatsapp enbebidas
+     */
+    public function getAdvancedList(Request $request)
+    {
+        try {
+            $perPage = $request->get('perPage', 1000);
+            $page = $request->get('page', 1);
+
+            // Obtener clientes con relaciones y estadísticas de WhatsApp
+            $clientes = Cliente::with(['producto', 'source'])
+                ->withCount(['whatsappMessages as whatsapp_total_messages'])
+                ->withMax('whatsappMessages as whatsapp_ult_envio', 'created_at')
+                ->withCount(['campaignMessages as campaign_total_messages' => function($query) {
+                    $query->where('status', 'sent');
+                }])
+                ->withMax(['campaignMessages as campaign_ult_envio' => function($query) {
+                    $query->where('status', 'sent');
+                }], 'created_at')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            // Mapear clientes para incluir estadísticas
+            $clientesWithStats = $clientes->through(function ($cliente) {
+                return [
+                    'id' => $cliente->id,
+                    'name' => $cliente->name,
+                    'email' => $cliente->email,
+                    'celular' => $cliente->celular,
+                    'producto' => $cliente->producto ? $cliente->producto->nombre : null,
+                    'source' => $cliente->source ? $cliente->source->name : null,
+                    'stats' => [
+                        'whatsapp' => [
+                            'popup' => [
+                                'total_messages' => $cliente->whatsapp_total_messages,
+                                'ult_envio' => $cliente->whatsapp_ult_envio,
+                            ],
+                            'campaign' => [
+                                'total_messages' => $cliente->campaign_total_messages,
+                                'ult_envio' => $cliente->campaign_ult_envio,
+                            ]
+                        ]
+                    ],
+                    'created_at' => $cliente->created_at,
+                ];
+            });
+
+            // obtener lista global de estadísticas de WhatsApp
+            $globalStats = $this->getGlobalStats();
+
+            return $this->apiResponse->successResponse(
+                [
+                    'data' => $clientesWithStats,
+                    'pagination' => [
+                        'total' => $clientes->total(),
+                        'per_page' => $clientes->perPage(),
+                        'current_page' => $clientes->currentPage(),
+                        'last_page' => $clientes->lastPage(),
+                    ],
+                    'totals' => $globalStats,
+                ],
+                'Clientes obtenidos exitosamente',
+                HttpStatusCode::OK
+            );
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al obtener los clientes: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
+        }
+    }
+
+    /**
+     * Obtener estadísticas detalladas de un cliente específico
+     */
+    public function getClientStats($id)
+    {
+        $cliente = Cliente::with(['producto', 'source', 'whatsappMessages', 'campaignMessages'])->find($id);
+
+        return [
+            'id' => $cliente->id,
+            'name' => $cliente->name,
+            'email' => $cliente->email,
+            'celular' => $cliente->celular,
+            'producto' => $cliente->producto ? $cliente->producto->nombre : null,
+            'source' => $cliente->source ? $cliente->source->name : null,
+            'stats' => [
+                'whatsapp' => [
+                    'popup' => [
+                        'total_messages' => $cliente->whatsappMessages->count(),
+                        'ult_envio' => $cliente->whatsappMessages->max('created_at'),
+                    ],
+                    'campaign' => [
+                        'total_messages' => $cliente->campaignMessages->count(),
+                        'ult_envio' => $cliente->campaignMessages->max('created_at'),
+                    ]
+                ]
+            ],
+        ];
+    }
+
+    /**
+     * Obtener estadísticas globales de mensajes WhatsApp
+     */
+    public function getGlobalStats()
+    {
+        return [
+            'whatsapp' => [
+                'popup' => [
+                    'total_messages' => WhatsappMessageLog::count(),
+                    'ult_envio' => WhatsappMessageLog::max('created_at'),
+                ],
+                'campaign' => [
+                    'total_messages' => CampaignMessageLog::where('status', 'sent')->count(),
+                    'ult_envio' => CampaignMessageLog::where('status', 'sent')->max('created_at'),
+                ],
+            ]
+        ];
     }
 }

@@ -10,6 +10,7 @@ use App\Mail\ProductInfoMail;
 use App\Mail\SimpleMail;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use App\Services\ApiResponseService;
 
 /**
  * @OA\Tag(
@@ -18,8 +19,17 @@ use Illuminate\Support\Facades\Log;
  * )
  */
 
+use App\Traits\SafeErrorTrait;
+
 class EmailController extends Controller
 {
+    use SafeErrorTrait;
+    protected ApiResponseService $apiResponse;
+
+    public function __construct(ApiResponseService $apiResponse)
+    {
+        $this->apiResponse = $apiResponse;
+    }
 
     /**
      * @OA\Post(
@@ -125,17 +135,10 @@ class EmailController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('Error al enviar correo de producto', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'email' => $request->email,
-                'link' => $request->link ?? 'N/A',
-            ]);
-
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Hubo un problema al enviar el correo. Intente más tarde.'
-            ], 500);
+            return $this->apiResponse->errorResponse(
+                $this->safeErrorMessage($e, 'enviar el correo'),
+                HttpStatusCode::INTERNAL_SERVER_ERROR
+            );
         }
     }
 
