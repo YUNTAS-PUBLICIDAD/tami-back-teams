@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -44,6 +45,15 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Endpoint no encontrado.',
                     'error' => 'Not Found'
                 ], 404);
+            }
+        });
+
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Error de validación.',
+                    'errors' => $e->errors(),
+                ], 422);
             }
         });
     })->create();

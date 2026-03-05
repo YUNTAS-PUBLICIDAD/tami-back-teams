@@ -24,8 +24,8 @@ class PostStoreBlog extends FormRequest
             'video_url' => 'required|url',
             'video_titulo' => 'required|string|max:2000',
 
-            'meta_titulo' => 'nullable|string|min:10|max:60',
-            'meta_descripcion' => 'nullable|string|min:40|max:160',
+            'meta_titulo' => 'nullable|string|min:10|max:70',
+            'meta_descripcion' => 'nullable|string|min:40|max:200',
 
             'miniatura' => 'file|image|max:3048',
             'imagenes' => 'nullable|array',
