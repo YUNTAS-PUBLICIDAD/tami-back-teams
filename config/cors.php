@@ -9,6 +9,7 @@ return [
         'https://tamimaquinarias.com',
         'http://localhost:4321',
         'http://127.0.0.1:4321',
+        'http://127.0.0.1:8000',
     ],
 
     'allowed_origins_patterns' => [],
