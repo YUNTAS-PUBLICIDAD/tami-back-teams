@@ -178,7 +178,7 @@ public function sendProductDetails(Request $request)
     public function requestQR()
     {
         try{
-            $whatsappServiceUrl = config('services.whatsapp.url');
+            $whatsappServiceUrl = config('services.whatsapp.base_url');
             if (!$whatsappServiceUrl) {
                 return $this->apiResponse->errorResponse('Configuración de WhatsApp no encontrada.', HttpStatusCode::INTERNAL_SERVER_ERROR);
             }
