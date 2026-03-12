@@ -82,9 +82,9 @@ class ProductoService
                 $this->updateEtiqueta($producto, $datosValidados, $request);
             }
 
-            // ==========================================
-            // MANEJO INTELIGENTE DE IMÁGENES DE GALERÍA
-            // ==========================================
+            // ============================================
+            // MANEJO INTELIGENTE DE IMÁGENES DE LA GALERÍA
+            // ============================================
 
             $imagenesNuevas = $request->file('imagenes_nuevas', []);
             $imagenesExistentes = $request->input('imagenes_existentes', []);
