@@ -12,7 +12,6 @@ class ProductoEtiqueta extends Model
     protected $table = 'producto_etiquetas';
     public $timestamps = false;
 
-
     protected $fillable = [
         'producto_id',
         'meta_titulo',
@@ -22,11 +21,14 @@ class ProductoEtiqueta extends Model
         'popup3_sin_fondo',
         'titulo_popup_1',
         'titulo_popup_2',
-        'titulo_popup_3'
+        'titulo_popup_3',
+
+        'popup_button_color',
+        'popup_text_color'
     ];
 
     protected $casts = [
-    'popup3_sin_fondo' => 'boolean', // 👈 CLAVE PARA QUE REACT LO RECIBA COMO true/false
+        'popup3_sin_fondo' => 'boolean',
     ];
 
     public function producto()
