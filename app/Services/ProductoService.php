@@ -280,9 +280,6 @@ class ProductoService
                 $request->etiqueta['popup3_sin_fondo'] ?? false,
                 FILTER_VALIDATE_BOOLEAN
             ),
-            'titulo_popup_1' => $request->etiqueta['titulo_popup_1'] ?? null,
-            'titulo_popup_2' => $request->etiqueta['titulo_popup_2'] ?? null,
-            'titulo_popup_3' => $request->etiqueta['titulo_popup_3'] ?? null,
             // NUEVOS CAMPOS
             'popup_button_color' => $request->etiqueta['popup_button_color'] ?? null,
             'popup_text_color' => $request->etiqueta['popup_text_color'] ?? null,
@@ -304,9 +301,6 @@ class ProductoService
                     $request->etiqueta['popup3_sin_fondo'] ?? false,
                     FILTER_VALIDATE_BOOLEAN
                 ),
-                'titulo_popup_1' => $request->etiqueta['titulo_popup_1'] ?? null,
-                'titulo_popup_2' => $request->etiqueta['titulo_popup_2'] ?? null,
-                'titulo_popup_3' => $request->etiqueta['titulo_popup_3'] ?? null,
                 // NUEVOS CAMPOS
                 'popup_button_color' => $request->etiqueta['popup_button_color'] ?? null,
                 'popup_text_color' => $request->etiqueta['popup_text_color'] ?? null,

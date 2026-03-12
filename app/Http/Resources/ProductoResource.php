@@ -56,10 +56,6 @@ class ProductoResource extends JsonResource
                 'popup_estilo' => $this->etiqueta->popup_estilo,
                 'popup3_sin_fondo' => $this->etiqueta->popup3_sin_fondo,
 
-                'titulo_popup_1' => $this->etiqueta->titulo_popup_1,
-                'titulo_popup_2' => $this->etiqueta->titulo_popup_2,
-                'titulo_popup_3' => $this->etiqueta->titulo_popup_3,
-
                 // NUEVOS CAMPOS
                 'popup_button_color' => $this->etiqueta->popup_button_color,
                 'popup_text_color' => $this->etiqueta->popup_text_color,

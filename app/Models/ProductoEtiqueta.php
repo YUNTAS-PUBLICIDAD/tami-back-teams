@@ -19,9 +19,6 @@ class ProductoEtiqueta extends Model
         'keywords',
         'popup_estilo',
         'popup3_sin_fondo',
-        'titulo_popup_1',
-        'titulo_popup_2',
-        'titulo_popup_3',
 
         'popup_button_color',
         'popup_text_color'
