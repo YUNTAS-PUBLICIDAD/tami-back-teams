@@ -550,6 +550,7 @@ class ClienteController extends Controller
             );
         }
         catch(\Exception $e){
+            DB::rollBack();
             return response()->json(['error' => 'Error al eliminar el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
     }
