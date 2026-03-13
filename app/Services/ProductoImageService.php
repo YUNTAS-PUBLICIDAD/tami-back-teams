@@ -23,15 +23,13 @@ class ProductoImageService
     {
         $imagenExistente = $producto->imagenes()->where('tipo', $tipo)->first();
 
-        $data = [];
         if ($tipo === 'email') {
             $data['asunto'] = $textValue ?? '';
+            $data['texto_alt_SEO'] = $textValue ?? '';
         } elseif ($tipo === 'whatsapp') {
-            
             $data['whatsapp_mensaje'] = $textValue ?? '';
-            
-        }
-         else {
+            $data['texto_alt_SEO'] = $textValue ?? '';
+        } else {
             $data['texto_alt_SEO'] = $textValue ?? '';
         }
 
@@ -41,13 +39,11 @@ class ProductoImageService
                 $this->deleteExistingImageByType($producto, $tipo);
             }
             return $this->saveImage($producto, $file, $tipo, $data);
-        
         } elseif ($imagenExistente) {
             $imagenExistente->update($data);
             return $imagenExistente;
-        
         } else {
-            return null; 
+            return null;
         }
     }
 
@@ -143,6 +139,8 @@ class ProductoImageService
 
     public function deleteImageFromStorage(string $path): void
     {
+        $path = str_replace('/storage/', '', $path);
+
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
