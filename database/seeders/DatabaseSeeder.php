@@ -6,36 +6,37 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
-    {
+  /**
+   * Seed the application's database.
+   */
+  public function run(): void
+  {
 
-        $this->call([
-            RoleSeeder::class,
-            PermissionSeeder::class,
-            AssignPermissionsToRolesSeeder::class,
-            UserSeeder::class,
-            
-            // Productos
-            ProductoSeeder::class,
-            // EspecificacionSeeder::class,
-            DimensionSeeder::class,
-            ProductoImagenSeeder::class,
-            ProductoRelacionadoSeeder::class,
+    $this->call([
+      RoleSeeder::class,
+      PermissionSeeder::class,
+      AssignPermissionsToRolesSeeder::class,
+      UserSeeder::class,
+      ClienteSourcesSeeder::class,
 
-            // Blog
-            BlogSeeder::class,
-            BlogImagenesSeeder::class,
-            BlogParrafosSeeder::class,
-            // DetalleBlogSeeder::class,
-            // ImagenBlogSeeder::class,
-            //VideoBlogSeeder::class,
+        // Productos
+      ProductoSeeder::class,
+        // EspecificacionSeeder::class,
+      DimensionSeeder::class,
+      ProductoImagenSeeder::class,
+      ProductoRelacionadoSeeder::class,
 
-            // Reclamos
-            Claims::class,
+        // Blog
+      BlogSeeder::class,
+      BlogImagenesSeeder::class,
+      BlogParrafosSeeder::class,
+        // DetalleBlogSeeder::class,
+        // ImagenBlogSeeder::class,
+        //VideoBlogSeeder::class,
 
-        ]);
-    }
+        // Reclamos
+      Claims::class,
+
+    ]);
+  }
 }
