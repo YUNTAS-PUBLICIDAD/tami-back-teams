@@ -21,7 +21,8 @@ class ProductoEtiqueta extends Model
         'popup3_sin_fondo',
 
         'popup_button_color',
-        'popup_text_color'
+        'popup_text_color',
+        'popup_button_text'
     ];
 
     protected $casts = [
