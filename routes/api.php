@@ -65,7 +65,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['throttle:public-forms'])->post('/product-link', 'sendEmailByProductLink');
     });
 
-    Route::controller(ProductoController::class)->prefix('productos')->group(function(){
+    Route::controller(ProductoController::class)->prefix('productos')->group(function () {
         // Rutas públicas
         Route::get('/', 'index');
         Route::get('/paginate', 'paginate');
@@ -84,9 +84,9 @@ Route::prefix('v1')->group(function () {
 
     Route::controller(WhatsAppController::class)->prefix('whatsapp')->group(function () {
         Route::middleware('throttle:public-forms')->post('/solicitar-info-producto', 'sendProductDetails');
-        
+        Route::post('/send-message', 'sendWelcomeMessage');
         // Rutas protegidas de WhatsApp Admin
-        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function() {
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
             Route::post('/request-qr', 'requestQR');
             Route::post('/reset', 'resetSession');
             Route::get('/template/product/{productoId}', 'showByProduct');
@@ -99,7 +99,7 @@ Route::prefix('v1')->group(function () {
 
     // ------------------- RECLAMOS (Público) -------------------
     Route::middleware('throttle:public-forms')->post('claims', [ClaimController::class, 'store']);
-    
+
     // Datos para formularios públicos
     Route::middleware('throttle:api')->get('claim-form-data', [ClaimController::class, 'formData']);
 
@@ -123,11 +123,11 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-        // Deploy Frontend (solo ADMIN)
-Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+    // Deploy Frontend (solo ADMIN)
+    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         Route::post(
             'frontend/deploy',
-           [FrontendDeployController::class, 'deploy']
+            [FrontendDeployController::class, 'deploy']
         );
     });
 
@@ -175,18 +175,18 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
 //         });
 //     });
 
-    // Route::controller(V2ProductoController::class)->prefix('productos')->group(function(){
-    //     Route::get('/', 'paginate');
-    //     Route::get('/all', 'index');
-    //     Route::get('/{id}', 'show');
+// Route::controller(V2ProductoController::class)->prefix('productos')->group(function(){
+//     Route::get('/', 'paginate');
+//     Route::get('/all', 'index');
+//     Route::get('/{id}', 'show');
 
-    //     Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'permission:ENVIAR'])->group(function () {});
+//     Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'permission:ENVIAR'])->group(function () {});
 
-    //     Route::post('/', 'store');
-    //     Route::put('/{id}', 'update');
-    //     Route::delete('/{id}', 'destroy');
-    //     Route::get('/link/{link}', 'showByLink');
-    // });
+//     Route::post('/', 'store');
+//     Route::put('/{id}', 'update');
+//     Route::delete('/{id}', 'destroy');
+//     Route::get('/link/{link}', 'showByLink');
+// });
 // });
 
 
@@ -208,7 +208,7 @@ Route::controller(PermissionController::class)->prefix("permisos")->group(functi
 Route::controller(RoleController::class)->prefix("roles")->group(function () {
     Route::middleware(["auth:sanctum", 'role:ADMIN'])->group(function () {
         Route::get('/', 'index');
-        Route::post('/', 'store');          
+        Route::post('/', 'store');
         Route::get('/{id}', 'show');
         Route::put('/{id}', 'update');
         Route::delete('/{id}', 'destroy');
