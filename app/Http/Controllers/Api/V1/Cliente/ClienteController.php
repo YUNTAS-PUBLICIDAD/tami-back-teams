@@ -18,6 +18,8 @@ use App\Traits\SafeErrorTrait;
 use App\Models\ClienteSource;
 use App\Models\WhatsappMessageLog;
 use App\Models\CampaignMessageLog;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ClienteController extends Controller
 {
@@ -98,10 +100,10 @@ class ClienteController extends Controller
 
     public function index()
     {
-        try{
+        try {
             $cliente = Cliente::with(['producto', 'source'])->get();
 
-            $showClient = $cliente->map(function ($cliente){
+            $showClient = $cliente->map(function ($cliente) {
                 return [
                     'id' => $cliente->id,
                     'name' => $cliente->name,
@@ -118,8 +120,7 @@ class ClienteController extends Controller
                 'Clientes obtenidos exitosamente',
                 HttpStatusCode::OK
             );
-        }
-        catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Error al obtener los clientes: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
 
@@ -187,15 +188,14 @@ class ClienteController extends Controller
         $datosValidados = $request->validated();
         DB::beginTransaction();
 
-        try
-        {
+        try {
             $shouldUpsert = false;
 
             if (isset($datosValidados['source_id'])) {
                 $source = ClienteSource::find($datosValidados['source_id']);
                 $shouldUpsert = $datosValidados['source_id'] == 2 || ($source && $source->name === 'Producto detalle');
             }
-            
+
             if ($shouldUpsert) {
                 // Buscar cliente existente por email o celular
                 $clienteExistente = Cliente::where('email', $datosValidados['email'])
@@ -214,29 +214,45 @@ class ClienteController extends Controller
 
                     DB::commit();
                     return $this->apiResponse->successResponse(
-                        $clienteExistente->fresh(), 
-                        'Cliente actualizado con éxito.', 
+                        $clienteExistente->fresh(),
+                        'Cliente actualizado con éxito.',
                         HttpStatusCode::OK
                     );
                 }
             }
 
             $cliente = Cliente::create(
-            [
-                'name' => $datosValidados['name'],
-                'email' => $datosValidados['email'],
-                'celular' => $datosValidados['celular'],
-                'source_id' => $datosValidados['source_id'],
-                'producto_id' => $datosValidados['producto_id'] ?? null,
-            ]
+                [
+                    'name' => $datosValidados['name'],
+                    'email' => $datosValidados['email'],
+                    'celular' => $datosValidados['celular'],
+                    'source_id' => $datosValidados['source_id'],
+                    'producto_id' => $datosValidados['producto_id'] ?? null,
+                ]
             );
+            
+            // TODO: Confirmar si 'Inicio' (source_id=1) también debe recibir beinvenida
+            /*
+            $esClientePublico = isset($datosValidados['source_id']) &&
+                $datosValidados['source_id'] != 3 &&
+                $source?->name !== 'Administración';
 
+            try {
+                if ($cliente->celular && $esClientePublico) {
+                    Http::post(config('services.whatsapp.base_url') . '/whatsapp/send-welcome', [
+                        'phone' => $cliente->celular,
+                        'name' => $cliente->name,
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo enviar mensaje de bienvenida WhatsApp: ' . $e->getMessage());
+            }
+            */
             //Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
 
             DB::commit();
             return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente creado con éxito.', HttpStatusCode::CREATED);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Error al crear el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
     }
@@ -436,15 +452,14 @@ class ClienteController extends Controller
         $datosValidados = $request->validated();
         DB::beginTransaction();
 
-        try
-        {
+        try {
             $cliente = Cliente::find($id);
             if ($cliente == false) {
                 return response()->json(['error' => 'Cliente no encontrado'], HttpStatusCode::NOT_FOUND->value);
             }
 
             $camposActualizar = [];
-            
+
             foreach (['name', 'email', 'celular'] as $campo) {
                 if (array_key_exists($campo, $datosValidados)) {
                     $camposActualizar[$campo] = $datosValidados[$campo];
@@ -463,8 +478,7 @@ class ClienteController extends Controller
 
             DB::commit();
             return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente actualizado con éxito.', HttpStatusCode::OK);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return $this->apiResponse->errorResponse(
                 $this->safeErrorMessage($e, 'actualizar el cliente'),
@@ -523,7 +537,7 @@ class ClienteController extends Controller
     {
         DB::beginTransaction();
 
-        try{
+        try {
             $cliente = Cliente::find($id);
             if ($cliente == false) {
                 return response()->json(['error' => 'Cliente no encontrado'], HttpStatusCode::NOT_FOUND->value);
@@ -538,8 +552,7 @@ class ClienteController extends Controller
                 'Cliente eliminado exitosamente',
                 HttpStatusCode::OK
             );
-        }
-        catch(\Exception $e){
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Error al eliminar el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
     }
@@ -552,7 +565,7 @@ class ClienteController extends Controller
         $clientes = Cliente::paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
-            'data'=> $clientes->items()
+            'data' => $clientes->items()
         ]);
     }
 
@@ -569,12 +582,16 @@ class ClienteController extends Controller
             $clientes = Cliente::with(['producto', 'source'])
                 ->withCount(['whatsappMessages as whatsapp_total_messages'])
                 ->withMax('whatsappMessages as whatsapp_ult_envio', 'created_at')
-                ->withCount(['campaignMessages as campaign_total_messages' => function($query) {
-                    $query->where('status', 'sent');
-                }])
-                ->withMax(['campaignMessages as campaign_ult_envio' => function($query) {
-                    $query->where('status', 'sent');
-                }], 'created_at')
+                ->withCount([
+                    'campaignMessages as campaign_total_messages' => function ($query) {
+                        $query->where('status', 'sent');
+                    }
+                ])
+                ->withMax([
+                    'campaignMessages as campaign_ult_envio' => function ($query) {
+                        $query->where('status', 'sent');
+                    }
+                ], 'created_at')
                 ->paginate($perPage, ['*'], 'page', $page);
 
             // Mapear clientes para incluir estadísticas
