@@ -59,6 +59,7 @@ class ProductoResource extends JsonResource
                 // NUEVOS CAMPOS
                 'popup_button_color' => $this->etiqueta->popup_button_color,
                 'popup_text_color' => $this->etiqueta->popup_text_color,
+                'popup_button_text' => $this->etiqueta->popup_button_text,
             ] : null,
 
             'created_at' => $this->created_at,

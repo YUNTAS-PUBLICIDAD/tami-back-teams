@@ -283,6 +283,7 @@ class ProductoService
             // NUEVOS CAMPOS
             'popup_button_color' => $request->etiqueta['popup_button_color'] ?? null,
             'popup_text_color' => $request->etiqueta['popup_text_color'] ?? null,
+            'popup_button_text' => $request->etiqueta['popup_button_text'] ?? null,
         ]);
     }
 
@@ -304,6 +305,7 @@ class ProductoService
                 // NUEVOS CAMPOS
                 'popup_button_color' => $request->etiqueta['popup_button_color'] ?? null,
                 'popup_text_color' => $request->etiqueta['popup_text_color'] ?? null,
+                'popup_button_text' => $request->etiqueta['popup_button_text'] ?? null,
             ]
         );
     }

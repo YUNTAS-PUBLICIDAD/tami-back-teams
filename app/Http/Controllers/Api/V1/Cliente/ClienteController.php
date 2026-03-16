@@ -251,8 +251,19 @@ class ClienteController extends Controller
             //Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
 
             DB::commit();
-            return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente creado con éxito.', HttpStatusCode::CREATED);
+            // Verificar que source sea Inicio
+            if ($datosValidados['source_id'] == 1) {
+                Mail::to($datosValidados['email'])
+                    ->send(new ClientRegistrationMail([
+                        'name' => $datosValidados['name'],
+                        'email' => $datosValidados['email'],
+                        'celular' => $datosValidados['celular'],
+                ]));
+            }
+            return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente creado con éxito', HttpStatusCode::CREATED);
         } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json(['error' => 'Error al crear el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
     }
@@ -552,7 +563,9 @@ class ClienteController extends Controller
                 'Cliente eliminado exitosamente',
                 HttpStatusCode::OK
             );
-        } catch (\Exception $e) {
+        }
+        catch(\Exception $e){
+            DB::rollBack();
             return response()->json(['error' => 'Error al eliminar el cliente: ' . $e->getMessage()], HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
     }
