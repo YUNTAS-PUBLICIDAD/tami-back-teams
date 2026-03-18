@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\HomePopup\UpdateHomePopupSettingRequest;
 use App\Models\HomePopupSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class HomePopupSettingController extends Controller
 {
@@ -25,6 +27,14 @@ class HomePopupSettingController extends Controller
         $setting = $this->getOrCreateSettings();
         $data = $request->validated();
 
+        if ($request->hasFile('popup_image')) {
+            $data['popup_image_url'] = $this->replaceImage(
+                $request->file('popup_image'),
+                $setting->popup_image_url
+            );
+        }
+
+        unset($data['popup_image']);
         $data['updated_by'] = Auth::id();
 
         $setting->update($data);
@@ -50,13 +60,6 @@ class HomePopupSettingController extends Controller
                 'button_text' => $setting->button_text,
                 'button_bg_color' => $setting->button_bg_color,
                 'button_text_color' => $setting->button_text_color,
-                'whatsapp_enabled' => $setting->whatsapp_enabled,
-                'whatsapp_message' => $setting->whatsapp_message,
-                'whatsapp_image_url' => $setting->whatsapp_image_url,
-                'email_enabled' => $setting->email_enabled,
-                'email_subject' => $setting->email_subject,
-                'email_message' => $setting->email_message,
-                'email_image_url' => $setting->email_image_url,
             ],
         ]);
     }
@@ -71,5 +74,19 @@ class HomePopupSettingController extends Controller
             'whatsapp_enabled' => false,
             'email_enabled' => false,
         ]);
+    }
+
+    private function replaceImage(UploadedFile $file, ?string $oldPublicUrl): string
+    {
+        if (!empty($oldPublicUrl)) {
+            $oldPath = str_replace('/storage/', '', $oldPublicUrl);
+            if (Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+
+        $storedPath = $file->store('home-popup', 'public');
+
+        return '/storage/' . $storedPath;
     }
 }
