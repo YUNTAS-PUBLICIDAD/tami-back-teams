@@ -54,6 +54,7 @@ class HomePopupSettingController extends Controller
             'status' => 'success',
             'data' => [
                 'enabled' => $setting->enabled,
+                'popup_start_delay_minutes' => $setting->popup_start_delay_minutes,
                 'title' => $setting->title,
                 'subtitle' => $setting->subtitle,
                 'popup_image_url' => $setting->popup_image_url,
@@ -68,6 +69,7 @@ class HomePopupSettingController extends Controller
     {
         return HomePopupSetting::firstOrCreate([], [
             'enabled' => false,
+            'popup_start_delay_minutes' => 1,
             'button_text' => '!REGISTRARME!',
             'button_bg_color' => '#00AFA0',
             'button_text_color' => '#FFFFFF',
