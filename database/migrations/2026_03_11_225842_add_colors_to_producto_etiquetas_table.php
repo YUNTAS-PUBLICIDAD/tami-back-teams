@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('producto_etiquetas', function (Blueprint $table) {
-            $table->string('popup_button_color')->nullable();
-            $table->string('popup_text_color')->nullable();
+            if (!Schema::hasColumn('producto_etiquetas', 'popup_button_color')) {
+                $table->string('popup_button_color')->nullable();
+            }
+            if (!Schema::hasColumn('producto_etiquetas', 'popup_text_color')) {
+                $table->string('popup_text_color')->nullable();
+            }
         });
     }
 
@@ -23,7 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('producto_etiquetas', function (Blueprint $table) {
-        $table->dropColumn(['popup_button_color','popup_text_color']);
-    });
+            if (Schema::hasColumn('producto_etiquetas', 'popup_button_color')) {
+                $table->dropColumn('popup_button_color');
+            }
+            if (Schema::hasColumn('producto_etiquetas', 'popup_text_color')) {
+                $table->dropColumn('popup_text_color');
+            }
+        });
     }
 };
