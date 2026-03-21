@@ -34,7 +34,14 @@ class HomePopupSettingController extends Controller
             );
         }
 
-        unset($data['popup_image']);
+        if ($request->hasFile('popup_image_2')) {
+            $data['popup_image_2_url'] = $this->replaceImage(
+                $request->file('popup_image_2'),
+                $setting->popup_image_2_url
+            );
+        }
+
+        unset($data['popup_image'], $data['popup_image_2']);
         $data['updated_by'] = Auth::id();
 
         $setting->update($data);
@@ -59,6 +66,7 @@ class HomePopupSettingController extends Controller
                 'title' => $setting->title,
                 'subtitle' => $setting->subtitle,
                 'popup_image_url' => $setting->popup_image_url,
+                'popup_image_2_url' => $setting->popup_image_2_url,
                 'button_text' => $setting->button_text,
                 'button_bg_color' => $setting->button_bg_color,
                 'button_text_color' => $setting->button_text_color,
