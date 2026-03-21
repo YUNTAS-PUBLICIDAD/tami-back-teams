@@ -16,6 +16,8 @@ class HomePopupSetting extends Model
         'title',
         'subtitle',
         'popup_image_url',
+        'popup_image2_url',
+        'popup_mobile_image_url',
         'button_text',
         'button_bg_color',
         'button_text_color',
