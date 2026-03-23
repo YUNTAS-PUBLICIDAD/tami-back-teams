@@ -44,36 +44,12 @@ class UpdateHomePopupSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Standard original fields
-            'title' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'subtitle' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'button_text' => ['sometimes', 'string', 'max:255'],
-            'enabled' => ['sometimes', 'boolean'],
-            'whatsapp_enabled' => ['sometimes', 'boolean'],
-            'email_enabled' => ['sometimes', 'boolean'],
-
-            // Textos, Tiempos y Colores (Frontend Payload)
-            'btnTextColor' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{3,6})$/'],
-            'btnBgColor' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{3,6})$/'],
-            'popupInicioDelay' => ['sometimes', 'numeric', 'min:1'],
-            'popupProductosDelay' => ['sometimes', 'numeric', 'min:1'],
-            'whatsappMessage' => ['sometimes', 'nullable', 'string'],
-            'emailTitle' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'emailBody' => ['sometimes', 'nullable', 'string'],
-
-            // Archivos de Imagen
-            'image1' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'image2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imageMobile' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'whatsappImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'emailImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            
-            // Deletion flags
-            'delete_image1' => 'sometimes|boolean',
-            'delete_image2' => 'sometimes|boolean',
-            'delete_imageMobile' => 'sometimes|boolean',
-            'delete_whatsappImage' => 'sometimes|boolean',
-            'delete_emailImage' => 'sometimes|boolean',
+            'popup_start_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
+            'product_popup_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
+            'button_bg_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'button_text_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'popup_image' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_image_2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 }

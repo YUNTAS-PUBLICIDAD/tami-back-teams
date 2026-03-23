@@ -90,6 +90,14 @@ class HomePopupSettingController extends Controller
             }
         }
 
+        if ($request->hasFile('popup_image_2')) {
+            $data['popup_image_2_url'] = $this->replaceImage(
+                $request->file('popup_image_2'),
+                $setting->popup_image_2_url
+            );
+        }
+
+        unset($data['popup_image'], $data['popup_image_2']);
         $data['updated_by'] = Auth::id();
 
         $setting->update($data);
@@ -113,9 +121,8 @@ class HomePopupSettingController extends Controller
                 'product_popup_delay_minutes' => $setting->product_popup_delay_minutes,
                 'title' => $setting->title,
                 'subtitle' => $setting->subtitle,
-                'popup_image_url' => $setting->popup_image_url ? url($setting->popup_image_url) : null,
-                'popup_image2_url' => $setting->popup_image2_url ? url($setting->popup_image2_url) : null,
-                'popup_mobile_image_url' => $setting->popup_mobile_image_url ? url($setting->popup_mobile_image_url) : null,
+                'popup_image_url' => $setting->popup_image_url,
+                'popup_image_2_url' => $setting->popup_image_2_url,
                 'button_text' => $setting->button_text,
                 'button_bg_color' => $setting->button_bg_color,
                 'button_text_color' => $setting->button_text_color,
