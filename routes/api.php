@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\Reclamos\ContactMessageController;
 
 use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
 use App\Http\Controllers\Api\V1\HomePopup\HomePopupSettingController;
+use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
 
 Route::prefix('v1')->group(function () {
