@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Reclamos\ClaimController;
 use App\Http\Controllers\Api\V1\Reclamos\ContactMessageController;
 
 use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
+use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
 
 Route::prefix('v1')->group(function () {
@@ -159,7 +160,9 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         });
 
 
-
+    // ------------------- CHATBOT -------------------
+    // Limitamos a 20 mensajes por minuto por usuario (IP) para evitar ataques de SPAM.
+    Route::middleware('throttle:20,1')->post('chat/responder', [\App\Http\Controllers\Api\V1\Chatbot\ChatbotController::class, 'responder']);
 
 });
 
