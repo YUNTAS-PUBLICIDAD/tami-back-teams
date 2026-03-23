@@ -8,6 +8,16 @@ class UpdateHomePopupSettingRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp") 
+        // en lugar de un archivo real (File), fallará la regla de validación 'file|image'.
+        // Para evitarlo, eliminamos la variable del request si no es un archivo válido.
+        $imageKeys = ['image1', 'image2', 'imageMobile', 'whatsappImage', 'emailImage'];
+        foreach ($imageKeys as $key) {
+            if ($this->has($key) && !$this->hasFile($key)) {
+                $this->request->remove($key);
+            }
+        }
+
         $aliases = [
             'popup_delay_minutes',
             'home_popup_time',
