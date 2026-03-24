@@ -11,7 +11,7 @@ class UpdateHomePopupSettingRequest extends FormRequest
         // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp") 
         // en lugar de un archivo real (File), fallará la regla de validación 'file|image'.
         // Para evitarlo, eliminamos la variable del request si no es un archivo válido.
-        $imageKeys = ['image1', 'image2', 'imageMobile', 'whatsappImage', 'emailImage'];
+        $imageKeys = ['image1', 'image2', 'imageMobile', 'imageMobile2', 'whatsappImage', 'emailImage'];
         foreach ($imageKeys as $key) {
             if ($this->has($key) && !$this->hasFile($key)) {
                 $this->request->remove($key);
@@ -50,6 +50,7 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'button_text_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'popup_image' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_image_2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 }

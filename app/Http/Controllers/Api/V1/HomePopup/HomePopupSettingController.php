@@ -19,7 +19,7 @@ class HomePopupSettingController extends Controller
         // Convert URLs to absolute
         $imageFields = [
             'popup_image_url', 'popup_image2_url', 'popup_mobile_image_url', 
-            'whatsapp_image_url', 'email_image_url'
+            'popup_mobile_image2_url', 'whatsapp_image_url', 'email_image_url'
         ];
         
         foreach ($imageFields as $field) {
@@ -70,6 +70,7 @@ class HomePopupSettingController extends Controller
             'image1' => 'popup_image_url',
             'image2' => 'popup_image2_url',
             'imageMobile' => 'popup_mobile_image_url',
+            'imageMobile2' => 'popup_mobile_image2_url',
             'whatsappImage' => 'whatsapp_image_url',
             'emailImage' => 'email_image_url',
         ];
@@ -123,6 +124,8 @@ class HomePopupSettingController extends Controller
                 'subtitle' => $setting->subtitle,
                 'popup_image_url' => $setting->popup_image_url,
                 'popup_image_2_url' => $setting->popup_image_2_url,
+                'popup_mobile_image_url' => $setting->popup_mobile_image_url,
+                'popup_mobile_image2_url' => $setting->popup_mobile_image2_url,
                 'button_text' => $setting->button_text,
                 'button_bg_color' => $setting->button_bg_color,
                 'button_text_color' => $setting->button_text_color,
