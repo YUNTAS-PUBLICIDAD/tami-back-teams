@@ -49,7 +49,7 @@ class ChatbotController extends Controller
         $mensajeUsuario = strtolower($request->input('mensaje', ''));
         
         // El número de WhatsApp al que redirigiremos
-        $numeroWhatsapp = "51999888777"; 
+        $numeroWhatsapp = "51978883199"; 
 
         // === LISTA DE RESPUESTAS DINÁMICAS (Para que no parezca bot) ===
         $respuestasSaludo = [

@@ -23,8 +23,8 @@ use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
 Route::prefix('v1')->group(function () {
 
-    Route::controller(HomePopupSettingController::class)->group(function () {
-        Route::middleware('throttle:api')->get('/home-popup-settings', 'showPublic');
+    Route::controller(HomePopupSettingController::class)->prefix('popup-settings')->group(function () {
+        Route::middleware('throttle:api')->get('/public', 'showPublic');
     });
 
     Route::controller(AuthController::class)->prefix('auth')->group(function () {
