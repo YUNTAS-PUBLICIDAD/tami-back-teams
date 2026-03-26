@@ -19,7 +19,7 @@ class HomePopupSettingController extends Controller
         // Convert URLs to absolute
         $imageFields = [
             'popup_image_url', 'popup_image2_url', 'popup_mobile_image_url', 
-            'whatsapp_image_url', 'email_image_url'
+            'popup_mobile_image2_url', 'whatsapp_image_url', 'email_image_url'
         ];
         
         foreach ($imageFields as $field) {
@@ -108,6 +108,7 @@ class HomePopupSettingController extends Controller
             'image2' => 'popup_image2_url',
             'popup_image_2' => 'popup_image2_url',
             'imageMobile' => 'popup_mobile_image_url',
+            'imageMobile2' => 'popup_mobile_image2_url',
             'popup_mobile_image' => 'popup_mobile_image_url',
             'whatsappImage' => 'whatsapp_image_url',
             'whatsapp_image' => 'whatsapp_image_url',
@@ -154,6 +155,10 @@ class HomePopupSettingController extends Controller
                 'popupProductosDelay' => $setting->product_popup_delay_minutes,
                 'title' => $setting->title,
                 'subtitle' => $setting->subtitle,
+                'popup_image_url' => $setting->popup_image_url,
+                'popup_image_2_url' => $setting->popup_image_2_url,
+                'popup_mobile_image_url' => $setting->popup_mobile_image_url,
+                'popup_mobile_image2_url' => $setting->popup_mobile_image2_url,
                 'popup_image_url' => $setting->popup_image_url ? url($setting->popup_image_url) : null,
                 'popup_image_2_url' => $setting->popup_image_2_url ? url($setting->popup_image_2_url) : null,
                 'button_text' => $setting->button_text,

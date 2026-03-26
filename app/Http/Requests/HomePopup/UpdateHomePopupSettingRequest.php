@@ -19,7 +19,7 @@ class UpdateHomePopupSettingRequest extends FormRequest
         // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp") 
         // en lugar de un archivo real (File), fallará la regla de validación 'file|image'.
         // Para evitarlo, eliminamos la variable del request si no es un archivo válido.
-        $imageKeys = ['image1', 'image2', 'imageMobile', 'whatsappImage', 'emailImage'];
+        $imageKeys = ['image1', 'image2', 'imageMobile', 'imageMobile2', 'whatsappImage', 'emailImage'];
         foreach ($imageKeys as $key) {
             if ($this->has($key) && !$this->hasFile($key)) {
                 $this->request->remove($key);
@@ -65,11 +65,11 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'emailBody' => ['sometimes', 'nullable', 'string'],
             'popup_start_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'product_popup_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
-            'image1' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'image2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imageMobile' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'whatsappImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'emailImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'button_bg_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'button_text_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'popup_image' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_image_2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 }
