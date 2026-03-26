@@ -8,6 +8,7 @@ use App\Models\ClienteSource;
 use App\Models\Producto;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappTemplate;
+use App\Models\HomePopupSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -135,6 +136,124 @@ public function sendProductDetails(Request $request)
 
     return response()->json([
         'message'   => 'Proceso finalizado con los siguientes resultados:',
+        'resultados' => $resultados
+    ], 200);
+}
+
+    public function sendPopUpDetails(Request $request)
+    {
+        $request->validate([
+            'name' => 'nullable|string|max:100',
+            'celular' => 'required|string|max:20',
+            'email' => 'nullable|email|max:191',
+        ]);
+
+    $resultados = [];
+    
+    // Obtener la configuración del popup
+    $setting = HomePopupSetting::first();
+    if (!$setting) {
+        return response()->json(['message' => 'No hay configuración de popup cargada.'], 400);
+    }
+
+    // Si el usuario envió sus datos desde el popup, asumimos que quiere la info. 
+    // Solo validamos que exista un mensaje configurado.
+    if (empty($setting->whatsapp_message)) {
+        return response()->json(['message' => 'No hay un mensaje configurado para enviar.'], 400);
+    }
+
+    // Buscar o crear la fuente "Popup de Inicio"
+    $source = ClienteSource::firstOrCreate(['name' => 'Popup de Inicio']);
+
+    // Buscar o crear cliente
+    $cliente = null;
+    if ($request->email) {
+        $cliente = Cliente::where('email', $request->email)->first();
+    }
+    if (!$cliente && $request->celular) {
+        $cliente = Cliente::where('celular', $request->celular)->first();
+    }
+    
+    if (!$cliente) {
+        $cliente = Cliente::create([
+            'name' => $request->name ?? 'Cliente Popup',
+            'email' => $request->email,
+            'celular' => $request->celular,
+            'source_id' => $source->id,
+        ]);
+    } else if ($request->name && $cliente->name === 'Cliente Popup') {
+        $cliente->update(['name' => $request->name]);
+    } else {
+        $updateData = [];
+        if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
+        if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
+        if (!empty($updateData)) $cliente->update($updateData);
+    }
+
+    try {
+        $whatsappServiceUrl = config('services.whatsapp.base_url');
+        if (!$whatsappServiceUrl) {
+            throw new \Exception('Configuración de WhatsApp no encontrada.');
+        }
+
+        // Usamos el endpoint /whatsapp/send-campaign que está confirmado que funciona
+        $url = $whatsappServiceUrl . '/whatsapp/send-campaign';
+        
+        $imageUrl = $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null;
+        $message = $setting->whatsapp_message;
+
+        $nombreCliente = $request->name ?? ($cliente->name !== 'Cliente Popup' ? $cliente->name : null);
+        if ($nombreCliente) {
+            $message = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $message;
+        }
+
+        $payload = [
+            'phone'   => $request->celular,
+            'message' => $message,
+            'image'   => $imageUrl,
+        ];
+
+        Log::info('Enviando WhatsApp de popup', [
+            'url' => $url,
+            'payload' => $payload
+        ]);
+
+        // Agregamos un timeout de 10 segundos para no bloquear el proceso si el servicio falla
+        $response = Http::timeout(10)->post($url, $payload);
+
+        if (!$response->successful()) {
+            throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
+        }
+
+        // Registrar mensaje exitoso
+        WhatsappMessageLog::create([
+            'cliente_id' => $cliente->id,
+            'phone' => $request->celular,
+            'email' => $request->email,
+            'status' => 'success',
+            'image_url' => $imageUrl,
+        ]);
+
+        $resultados['whatsapp'] = 'Mensaje de WhatsApp del popup enviado correctamente ✅';
+    } catch (\Throwable $e) {
+        Log::error('Error en sendPopUpDetails', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        WhatsappMessageLog::create([
+            'cliente_id' => $cliente?->id,
+            'phone' => $request->celular,
+            'email' => $request->email,
+            'status' => 'failed',
+            'error_message' => $e->getMessage(),
+            'image_url' => $imageUrl ?? null,
+        ]);
+
+        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de popup', 500);
+    }
+
+    return response()->json([
+        'message'   => 'Proceso de popup finalizado',
         'resultados' => $resultados
     ], 200);
 }
