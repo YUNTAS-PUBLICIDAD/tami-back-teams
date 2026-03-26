@@ -3,9 +3,17 @@
 namespace App\Http\Requests\HomePopup;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class UpdateHomePopupSettingRequest extends FormRequest
 {
+    protected function failedValidation(Validator $validator)
+    {
+        \Log::error('Validation Failed in Popup Settings:', $validator->errors()->toArray());
+        parent::failedValidation($validator);
+    }
+
     protected function prepareForValidation(): void
     {
         // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp") 
@@ -44,12 +52,24 @@ class UpdateHomePopupSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'enabled' => ['sometimes', 'boolean'],
+            'title' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'subtitle' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'button_text' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'button_bg_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'button_text_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'whatsapp_enabled' => ['sometimes', 'boolean'],
+            'whatsappMessage' => ['sometimes', 'nullable', 'string'],
+            'email_enabled' => ['sometimes', 'boolean'],
+            'emailTitle' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'emailBody' => ['sometimes', 'nullable', 'string'],
             'popup_start_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'product_popup_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
-            'button_bg_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
-            'button_text_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
-            'popup_image' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_image_2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'image1' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'image2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'whatsappImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'emailImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 }

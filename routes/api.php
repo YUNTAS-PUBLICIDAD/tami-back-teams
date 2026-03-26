@@ -95,6 +95,7 @@ Route::prefix('v1')->group(function () {
 
     Route::controller(WhatsAppController::class)->prefix('whatsapp')->group(function () {
         Route::middleware('throttle:public-forms')->post('/solicitar-info-producto', 'sendProductDetails');
+        Route::middleware('throttle:public-forms')->post('/popup-submission', 'sendPopUpDetails');
 
         // Rutas protegidas de WhatsApp Admin
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function() {
