@@ -65,11 +65,14 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'emailBody' => ['sometimes', 'nullable', 'string'],
             'popup_start_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
             'product_popup_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
-            'button_bg_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
-            'button_text_color' => ['sometimes', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'image1' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'image2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'whatsappImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'emailImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_image' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_image_2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imageMobile2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 }

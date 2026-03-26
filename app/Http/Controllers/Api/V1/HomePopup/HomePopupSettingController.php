@@ -44,6 +44,7 @@ class HomePopupSettingController extends Controller
         $responseData['image1'] = $setting->popup_image_url;
         $responseData['image2'] = $setting->popup_image2_url;
         $responseData['imageMobile'] = $setting->popup_mobile_image_url;
+        $responseData['imageMobile2'] = $setting->popup_mobile_image2_url;
 
         return response()->json([
             'status' => 'success',
@@ -155,12 +156,10 @@ class HomePopupSettingController extends Controller
                 'popupProductosDelay' => $setting->product_popup_delay_minutes,
                 'title' => $setting->title,
                 'subtitle' => $setting->subtitle,
-                'popup_image_url' => $setting->popup_image_url,
-                'popup_image_2_url' => $setting->popup_image_2_url,
-                'popup_mobile_image_url' => $setting->popup_mobile_image_url,
-                'popup_mobile_image2_url' => $setting->popup_mobile_image2_url,
                 'popup_image_url' => $setting->popup_image_url ? url($setting->popup_image_url) : null,
                 'popup_image_2_url' => $setting->popup_image_2_url ? url($setting->popup_image_2_url) : null,
+                'popup_mobile_image_url' => $setting->popup_mobile_image_url ? url($setting->popup_mobile_image_url) : null,
+                'popup_mobile_image2_url' => $setting->popup_mobile_image2_url ? url($setting->popup_mobile_image2_url) : null,
                 'button_text' => $setting->button_text,
                 'btnBgColor' => $setting->button_bg_color,
                 'btnTextColor' => $setting->button_text_color,
