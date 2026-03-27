@@ -17,6 +17,8 @@ use GuzzleHttp\Client;
 use App\Traits\SafeErrorTrait;
 use App\Services\ApiResponseService;
 use App\Http\Contains\HttpStatusCode;
+use App\Mail\ClientRegistrationMail;
+use Illuminate\Support\Facades\Mail;
 
 class WhatsAppController extends Controller
 {
@@ -191,71 +193,24 @@ public function sendProductDetails(Request $request)
     }
 
     try {
-        $whatsappServiceUrl = config('services.whatsapp.base_url');
-        if (!$whatsappServiceUrl) {
-            throw new \Exception('Configuración de WhatsApp no encontrada.');
-        }
+        // Despachar el trabajo en segundo plano para no bloquear la respuesta al usuario
+        // Usamos afterResponse para que se ejecute inmediatamente después de enviar la respuesta 200 al navegador
+        \App\Jobs\ProcessPopUpSubmissionJob::dispatch(
+            $cliente, 
+            $setting, 
+            $request->only(['name', 'celular', 'email'])
+        )->afterResponse();
 
-        // Usamos el endpoint /whatsapp/send-campaign que está confirmado que funciona
-        $url = $whatsappServiceUrl . '/whatsapp/send-campaign';
-        
-        $imageUrl = $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null;
-        $message = $setting->whatsapp_message;
-
-        $nombreCliente = $request->name ?? ($cliente->name !== 'Cliente Popup' ? $cliente->name : null);
-        if ($nombreCliente) {
-            $message = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $message;
-        }
-
-        $payload = [
-            'phone'   => $request->celular,
-            'message' => $message,
-            'image'   => $imageUrl,
-        ];
-
-        Log::info('Enviando WhatsApp de popup', [
-            'url' => $url,
-            'payload' => $payload
-        ]);
-
-        // Agregamos un timeout de 10 segundos para no bloquear el proceso si el servicio falla
-        $response = Http::timeout(10)->post($url, $payload);
-
-        if (!$response->successful()) {
-            throw new \Exception('Error en la respuesta del servicio WhatsApp: ' . $response->body());
-        }
-
-        // Registrar mensaje exitoso
-        WhatsappMessageLog::create([
-            'cliente_id' => $cliente->id,
-            'phone' => $request->celular,
-            'email' => $request->email,
-            'status' => 'success',
-            'image_url' => $imageUrl,
-        ]);
-
-        $resultados['whatsapp'] = 'Mensaje de WhatsApp del popup enviado correctamente ✅';
+        return response()->json([
+            'message'   => 'Proceso de popup iniciado correctamente',
+            'resultados' => [
+                'info' => 'Tu solicitud está siendo procesada. Recibirás la información en unos segundos ✅'
+            ]
+        ], 200);
     } catch (\Throwable $e) {
-        Log::error('Error en sendPopUpDetails', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        WhatsappMessageLog::create([
-            'cliente_id' => $cliente?->id,
-            'phone' => $request->celular,
-            'email' => $request->email,
-            'status' => 'failed',
-            'error_message' => $e->getMessage(),
-            'image_url' => $imageUrl ?? null,
-        ]);
-
-        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de popup', 500);
+        Log::error('Error al despachar job de popup: ' . $e->getMessage());
+        return response()->json(['message' => 'Error al procesar la solicitud.'], 500);
     }
-
-    return response()->json([
-        'message'   => 'Proceso de popup finalizado',
-        'resultados' => $resultados
-    ], 200);
 }
 
     public function convertImageToBase64($pathOrUrl) 
