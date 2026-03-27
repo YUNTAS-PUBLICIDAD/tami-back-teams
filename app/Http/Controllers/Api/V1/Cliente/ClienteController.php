@@ -15,6 +15,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Traits\SafeErrorTrait;
+use App\Models\HomePopupSetting;
 use App\Models\ClienteSource;
 use App\Models\WhatsappMessageLog;
 use App\Models\CampaignMessageLog;
@@ -231,18 +232,39 @@ class ClienteController extends Controller
             ]
             );
 
-            //Mail::to($request->email)->send(new ClientRegistrationMail($request->only('name', 'email', 'celular')));
-
             DB::commit();
-            // Verificar que source sea Inicio
-            if ($datosValidados['source_id'] == 1) {
-                /* Mail::to($datosValidados['email'])
-                    ->send(new ClientRegistrationMail([
-                        'name' => $datosValidados['name'],
-                        'email' => $datosValidados['email'],
-                        'celular' => $datosValidados['celular'],
-                ])); */
+
+            // Enviar correo de bienvenida si se proporcionó email
+            if ($request->email) {
+                try {
+                    $setting = HomePopupSetting::first();
+                    $mailData = [
+                        'name' => $request->name,
+                        'email' => $request->email,
+                        'celular' => $request->celular,
+                    ];
+
+                    if ($setting) {
+                        $mailData['subject'] = $setting->email_subject;
+                        $mailData['message'] = $setting->email_message;
+                        $mailData['image_url'] = $setting->email_image_url ? url($setting->email_image_url) : null;
+                        
+                        // Agregar ruta absoluta para embeber la imagen (CID)
+                        if ($setting->email_image_url) {
+                            $filePath = public_path($setting->email_image_url);
+                            if (file_exists($filePath)) {
+                                $mailData['image_path'] = $filePath;
+                            }
+                        }
+                    }
+
+                    Mail::to($request->email)->send(new ClientRegistrationMail($mailData));
+                } catch (\Exception $e) {
+                    \Log::error('Error al enviar correo de registro: ' . $e->getMessage());
+                    // No cortamos el flujo si falla el correo
+                }
             }
+
             return $this->apiResponse->successResponse($cliente->fresh(), 'Cliente creado con éxito', HttpStatusCode::CREATED);
         } catch (\Exception $e) {
             DB::rollBack();

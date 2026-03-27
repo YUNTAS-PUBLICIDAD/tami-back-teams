@@ -23,7 +23,7 @@ class ClientRegistrationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '¡Registro Exitoso de Cliente en Tami!',
+            subject: $this->data['subject'] ?? '¡Bienvenido a Tami!',
         );
     }
 
