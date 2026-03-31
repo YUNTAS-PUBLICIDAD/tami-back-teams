@@ -8,6 +8,7 @@ use App\Models\ClienteSource;
 use App\Models\Producto;
 use App\Models\WhatsappMessageLog;
 use App\Models\WhatsappTemplate;
+use App\Models\HomePopupSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -16,6 +17,8 @@ use GuzzleHttp\Client;
 use App\Traits\SafeErrorTrait;
 use App\Services\ApiResponseService;
 use App\Http\Contains\HttpStatusCode;
+use App\Mail\ClientRegistrationMail;
+use Illuminate\Support\Facades\Mail;
 
 class WhatsAppController extends Controller
 {
@@ -137,6 +140,77 @@ public function sendProductDetails(Request $request)
         'message'   => 'Proceso finalizado con los siguientes resultados:',
         'resultados' => $resultados
     ], 200);
+}
+
+    public function sendPopUpDetails(Request $request)
+    {
+        $request->validate([
+            'name' => 'nullable|string|max:100',
+            'celular' => 'required|string|max:20',
+            'email' => 'nullable|email|max:191',
+        ]);
+
+    $resultados = [];
+    
+    // Obtener la configuración del popup
+    $setting = HomePopupSetting::first();
+    if (!$setting) {
+        return response()->json(['message' => 'No hay configuración de popup cargada.'], 400);
+    }
+
+    // Si el usuario envió sus datos desde el popup, asumimos que quiere la info. 
+    // Solo validamos que exista un mensaje configurado.
+    if (empty($setting->whatsapp_message)) {
+        return response()->json(['message' => 'No hay un mensaje configurado para enviar.'], 400);
+    }
+
+    // Buscar o crear la fuente "Popup de Inicio"
+    $source = ClienteSource::firstOrCreate(['name' => 'Popup de Inicio']);
+
+    // Buscar o crear cliente
+    $cliente = null;
+    if ($request->email) {
+        $cliente = Cliente::where('email', $request->email)->first();
+    }
+    if (!$cliente && $request->celular) {
+        $cliente = Cliente::where('celular', $request->celular)->first();
+    }
+    
+    if (!$cliente) {
+        $cliente = Cliente::create([
+            'name' => $request->name ?? 'Cliente Popup',
+            'email' => $request->email,
+            'celular' => $request->celular,
+            'source_id' => $source->id,
+        ]);
+    } else if ($request->name && $cliente->name === 'Cliente Popup') {
+        $cliente->update(['name' => $request->name]);
+    } else {
+        $updateData = [];
+        if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
+        if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
+        if (!empty($updateData)) $cliente->update($updateData);
+    }
+
+    try {
+        // Despachar el trabajo en segundo plano para no bloquear la respuesta al usuario
+        // Usamos afterResponse para que se ejecute inmediatamente después de enviar la respuesta 200 al navegador
+        \App\Jobs\ProcessPopUpSubmissionJob::dispatch(
+            $cliente, 
+            $setting, 
+            $request->only(['name', 'celular', 'email'])
+        )->afterResponse();
+
+        return response()->json([
+            'message'   => 'Proceso de popup iniciado correctamente',
+            'resultados' => [
+                'info' => 'Tu solicitud está siendo procesada. Recibirás la información en unos segundos ✅'
+            ]
+        ], 200);
+    } catch (\Throwable $e) {
+        Log::error('Error al despachar job de popup: ' . $e->getMessage());
+        return response()->json(['message' => 'Error al procesar la solicitud.'], 500);
+    }
 }
 
     public function convertImageToBase64($pathOrUrl) 

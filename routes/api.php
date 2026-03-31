@@ -17,9 +17,15 @@ use App\Http\Controllers\Api\V1\Reclamos\ClaimController;
 use App\Http\Controllers\Api\V1\Reclamos\ContactMessageController;
 
 use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
+use App\Http\Controllers\Api\V1\HomePopup\HomePopupSettingController;
+use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
 
 Route::prefix('v1')->group(function () {
+
+    Route::controller(HomePopupSettingController::class)->prefix('popup-settings')->group(function () {
+        Route::middleware('throttle:api')->get('/public', 'showPublic');
+    });
 
     Route::controller(AuthController::class)->prefix('auth')->group(function () {
         Route::middleware('throttle:login')->post('/login', 'login');
@@ -29,6 +35,11 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         Route::apiResource('users', UserController::class);
+
+        Route::controller(HomePopupSettingController::class)->prefix('admin/popup-settings')->group(function () {
+            Route::get('/', 'showAdmin');
+            Route::match(['POST', 'PUT', 'PATCH'], '/', 'update');
+        });
     });
 
     // Crear cliente (Público)
@@ -84,7 +95,8 @@ Route::prefix('v1')->group(function () {
 
     Route::controller(WhatsAppController::class)->prefix('whatsapp')->group(function () {
         Route::middleware('throttle:public-forms')->post('/solicitar-info-producto', 'sendProductDetails');
-        
+        Route::middleware('throttle:public-forms')->post('/popup-submission', 'sendPopUpDetails');
+
         // Rutas protegidas de WhatsApp Admin
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function() {
             Route::post('/request-qr', 'requestQR');
@@ -99,7 +111,7 @@ Route::prefix('v1')->group(function () {
 
     // ------------------- RECLAMOS (Público) -------------------
     Route::middleware('throttle:public-forms')->post('claims', [ClaimController::class, 'store']);
-    
+
     // Datos para formularios públicos
     Route::middleware('throttle:api')->get('claim-form-data', [ClaimController::class, 'formData']);
 
@@ -159,7 +171,9 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         });
 
 
-
+    // ------------------- CHATBOT -------------------
+    // Limitamos a 20 mensajes por minuto por usuario (IP) para evitar ataques de SPAM.
+    Route::middleware('throttle:20,1')->post('chat/responder', [\App\Http\Controllers\Api\V1\Chatbot\ChatbotController::class, 'responder']);
 
 });
 
@@ -208,7 +222,7 @@ Route::controller(PermissionController::class)->prefix("permisos")->group(functi
 Route::controller(RoleController::class)->prefix("roles")->group(function () {
     Route::middleware(["auth:sanctum", 'role:ADMIN'])->group(function () {
         Route::get('/', 'index');
-        Route::post('/', 'store');          
+        Route::post('/', 'store');
         Route::get('/{id}', 'show');
         Route::put('/{id}', 'update');
         Route::delete('/{id}', 'destroy');
