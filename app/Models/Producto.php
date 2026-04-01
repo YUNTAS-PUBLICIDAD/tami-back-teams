@@ -40,6 +40,10 @@ class Producto extends Model
     {
         return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'popup');
     }
+    public function imagenPopup2()
+    {
+        return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'popup2');
+    }
       public function imagenWhatsapp()
     {
         return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'whatsapp');
