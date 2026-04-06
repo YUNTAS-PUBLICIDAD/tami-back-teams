@@ -67,6 +67,8 @@ class V2UpdateProductoRequest extends FormRequest
         // Imagen popup
         'imagen_popup' => 'nullable|file|image|max:3048',
         'texto_alt_popup' => 'nullable|string|max:255',
+        'imagen_popup2' => 'nullable|file|image|max:3048',
+        'texto_alt_popup2' => 'nullable|string|max:255',
         //Imagen email
 
         'imagen_email' => 'nullable|file|image|max:3048',

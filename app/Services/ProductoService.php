@@ -314,6 +314,7 @@ class ProductoService
     {
         $tiposImagenes = [
             ['popup', 'imagen_popup', 'texto_alt_popup'],
+            ['popup2', 'imagen_popup2', 'texto_alt_popup2'],
             ['email', 'imagen_email', 'asunto'],
             ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp'],
         ];
