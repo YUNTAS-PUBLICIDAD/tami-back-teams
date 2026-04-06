@@ -77,12 +77,14 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::controller(ProductoController::class)->prefix('productos')->group(function () {
-        // Rutas públicas
-        Route::get('/', 'index');
-        Route::get('/paginate', 'paginate');
-        Route::get('/{id}', 'show');
-        Route::get('/{id}/related', 'related');
-        Route::get('/link/{link}', 'showByLink');
+        // Rutas públicas con Rate Limit (60/min)
+        Route::middleware('throttle:api')->group(function () {
+            Route::get('/', 'index');
+            Route::get('/paginate', 'paginate');
+            Route::get('/{id}', 'show');
+            Route::get('/{id}/related', 'related');
+            Route::get('/link/{link}', 'showByLink');
+        });
 
         // Rutas protegidas (Solo ADMIN)
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
