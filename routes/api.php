@@ -76,7 +76,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['throttle:public-forms'])->post('/product-link', 'sendEmailByProductLink');
     });
 
-    Route::controller(ProductoController::class)->prefix('productos')->group(function(){
+    Route::controller(ProductoController::class)->prefix('productos')->group(function () {
         // Rutas públicas
         Route::get('/', 'index');
         Route::get('/paginate', 'paginate');
@@ -98,7 +98,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('throttle:public-forms')->post('/popup-submission', 'sendPopUpDetails');
 
         // Rutas protegidas de WhatsApp Admin
-        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function() {
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
             Route::post('/request-qr', 'requestQR');
             Route::post('/reset', 'resetSession');
             Route::get('/template/product/{productoId}', 'showByProduct');
@@ -135,11 +135,11 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-        // Deploy Frontend (solo ADMIN)
-Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+    // Deploy Frontend (solo ADMIN)
+    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
         Route::post(
             'frontend/deploy',
-           [FrontendDeployController::class, 'deploy']
+            [FrontendDeployController::class, 'deploy']
         );
     });
 
@@ -152,23 +152,21 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
 
 
     // Rutas para campañas de WhatsApp
-// ------------------- CAMPAÑAS WHATSAPP -------------------
+    // ------------------- CAMPAÑAS WHATSAPP (Solo ADMIN) -------------------
+    Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+        Route::controller(CampañaController::class)
+            ->prefix('whatsapp/campañas')
+            ->group(function () {
+                // activar campaña
+                Route::post('/activar', 'activar');
 
+                // opcional: listar campañas
+                Route::get('/', 'index');
 
-    Route::controller(CampañaController::class)
-        ->prefix('whatsapp/campañas')
-        ->group(function () {
-
-            // activar campaña
-            Route::post('/activar', 'activar');
-
-            // opcional: listar campañas
-            Route::get('/', 'index');
-
-            // opcional: ver campaña
-            Route::get('/{id}', 'show');
-
-        });
+                // opcional: ver campaña
+                Route::get('/{id}', 'show');
+            });
+    });
 
 
     // ------------------- CHATBOT -------------------
@@ -189,18 +187,18 @@ Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
 //         });
 //     });
 
-    // Route::controller(V2ProductoController::class)->prefix('productos')->group(function(){
-    //     Route::get('/', 'paginate');
-    //     Route::get('/all', 'index');
-    //     Route::get('/{id}', 'show');
+// Route::controller(V2ProductoController::class)->prefix('productos')->group(function(){
+//     Route::get('/', 'paginate');
+//     Route::get('/all', 'index');
+//     Route::get('/{id}', 'show');
 
-    //     Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'permission:ENVIAR'])->group(function () {});
+//     Route::middleware(['auth:sanctum', 'role:ADMIN|USER', 'permission:ENVIAR'])->group(function () {});
 
-    //     Route::post('/', 'store');
-    //     Route::put('/{id}', 'update');
-    //     Route::delete('/{id}', 'destroy');
-    //     Route::get('/link/{link}', 'showByLink');
-    // });
+//     Route::post('/', 'store');
+//     Route::put('/{id}', 'update');
+//     Route::delete('/{id}', 'destroy');
+//     Route::get('/link/{link}', 'showByLink');
+// });
 // });
 
 
