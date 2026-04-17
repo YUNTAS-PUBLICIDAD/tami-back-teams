@@ -22,6 +22,22 @@
             </div>
         @endif
 
+        @php
+            $btnText = $data['email_btn_text'] ?? '¡REGISTRARME!';
+            $btnLink = $data['email_btn_link'] ?? '#';
+            $btnBgColor = $data['email_btn_bg_color'] ?? '#00AFA0';
+            $btnTextColor = $data['email_btn_text_color'] ?? '#FFFFFF';
+        @endphp
+        
+        @if($btnText && $btnLink && $btnLink !== '#')
+            <div style="margin-top: 30px; text-align: center;">
+                <a href="{{ $btnLink }}" style="display: inline-block; padding: 12px 30px; background-color: {{ $btnBgColor }}; color: {{ $btnTextColor }}; text-decoration: none; border-radius: 6px; font-weight: bold; font-family: sans-serif; font-size: 16px;">
+                    {{ $btnText }}
+                </a>
+            </div>
+        @endif
+        <div style="display:none; white-space:nowrap; font:15px courier; line-height:0;">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</div>
+
     </main>
     <footer style="margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px; color: #6b7280; font-size: 0.875rem;">
         <p>Si tienes alguna pregunta, no dudes en <a href="mailto:yuntasproducciones@gmail.com" style="color: #14b8a6; text-decoration: none;">contactarnos</a>.</p>

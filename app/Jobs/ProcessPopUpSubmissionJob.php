@@ -80,6 +80,11 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
                     'message' => $setting->email_message,
                     'image_url' => $setting->email_image_url ? url($setting->email_image_url) : null,
                     'image_path' => $setting->email_image_url ? public_path($setting->email_image_url) : null,
+                    // Nuevos campos del botón
+                    'email_btn_text' => $setting->email_btn_text ?: '¡REGISTRARME!',
+                    'email_btn_link' => $setting->email_btn_link ?: url('/'),
+                    'email_btn_bg_color' => $setting->email_btn_bg_color ?: '#00AFA0',
+                    'email_btn_text_color' => $setting->email_btn_text_color ?: '#FFFFFF',
                 ];
 
                 \Illuminate\Support\Facades\Mail::to($requestData['email'])->send(new \App\Mail\ClientRegistrationMail($mailData));
