@@ -38,6 +38,11 @@ class HomePopupSettingController extends Controller
         $responseData['emailTitle'] = $setting->email_subject;
         $responseData['emailBody'] = $setting->email_message;
         
+        $responseData['emailBtnText'] = $setting->email_btn_text;
+        $responseData['emailBtnLink'] = $setting->email_btn_link;
+        $responseData['emailBtnBgColor'] = $setting->email_btn_bg_color;
+        $responseData['emailBtnTextColor'] = $setting->email_btn_text_color;
+        
         // Alias para imágenes
         $responseData['whatsappImage'] = $setting->whatsapp_image_url;
         $responseData['emailImage'] = $setting->email_image_url;
@@ -94,6 +99,14 @@ class HomePopupSettingController extends Controller
             'emailTitle' => 'email_subject',
             'email_message' => 'email_message',
             'emailBody' => 'email_message',
+            'email_btn_text' => 'email_btn_text',
+            'emailBtnText' => 'email_btn_text',
+            'email_btn_link' => 'email_btn_link',
+            'emailBtnLink' => 'email_btn_link',
+            'email_btn_bg_color' => 'email_btn_bg_color',
+            'emailBtnBgColor' => 'email_btn_bg_color',
+            'email_btn_text_color' => 'email_btn_text_color',
+            'emailBtnTextColor' => 'email_btn_text_color',
         ];
 
         foreach ($textMapping as $frontKey => $dbColumn) {
@@ -171,6 +184,10 @@ class HomePopupSettingController extends Controller
                 'emailTitle' => $setting->email_subject,
                 'emailBody' => $setting->email_message,
                 'emailImage' => $setting->email_image_url ? url($setting->email_image_url) : null,
+                'emailBtnText' => $setting->email_btn_text,
+                'emailBtnLink' => $setting->email_btn_link,
+                'emailBtnBgColor' => $setting->email_btn_bg_color,
+                'emailBtnTextColor' => $setting->email_btn_text_color,
             ],
         ]);
     }
@@ -186,6 +203,9 @@ class HomePopupSettingController extends Controller
             'button_text_color' => '#FFFFFF',
             'whatsapp_enabled' => false,
             'email_enabled' => false,
+            'email_btn_text' => '¡REGISTRARME!',
+            'email_btn_bg_color' => '#00AFA0',
+            'email_btn_text_color' => '#FFFFFF',
         ]);
     }
 
