@@ -25,8 +25,8 @@ trait FormatsTextTrait
         $text = str_replace(['<br>', '<br/>', '<br />'], "\n", $text);
         
         // Agregar saltos de línea antes y después de bloques para que no se peguen
-        $text = preg_replace('/<(?:p|div|section|article)[^>]*>/i', "\n", $text);
-        $text = preg_replace('/<\/(?:p|div|section|article)>/i', "\n", $text);
+        $text = preg_replace('/<(?:p|div|section|article|ul|ol)[^>]*>/i', "\n", $text);
+        $text = preg_replace('/<\/(?:p|div|section|article|ul|ol)>/i', "\n", $text);
 
         // 3. Manejar listas de forma más inteligente para mantener números/viñetas
         // Procesamos listas ordenadas (<ol>) para poner números
