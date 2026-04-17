@@ -24,31 +24,38 @@ trait FormatsTextTrait
         // 2. Manejar saltos de línea y bloques
         $text = str_replace(['<br>', '<br/>', '<br />'], "\n", $text);
         
-        // Agregar saltos de línea antes y después de bloques para que no se peguen
-        $text = preg_replace('/<(?:p|div|section|article|ul|ol)[^>]*>/i', "\n", $text);
-        $text = preg_replace('/<\/(?:p|div|section|article|ul|ol)>/i', "\n", $text);
+        // Agregar un solo salto de línea antes de bloques para que no se peguen, pero evitar duplicar al cerrar
+        $text = preg_replace('/<(?:p|div|section|article)[^>]*>/i', "\n", $text);
+        $text = preg_replace('/<\/(?:p|div|section|article)>/i', "", $text);
 
         // 3. Manejar listas de forma más inteligente para mantener números/viñetas
         // Procesamos listas ordenadas (<ol>) para poner números
         $text = preg_replace_callback('/<ol[^>]*>(.*?)<\/ol>/is', function($matches) {
-            $items = $matches[1];
+            // Limpiar saltos de línea del HTML original para evitar espacios dobles
+            $items = str_replace(["\r", "\n"], "", $matches[1]);
             $count = 1;
-            return preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function($itemMatches) use (&$count) {
+            $res = preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function($itemMatches) use (&$count) {
                 return "\n" . ($count++) . ". " . trim(strip_tags($itemMatches[1]));
             }, $items);
+            return "\n" . trim($res) . "\n";
         }, $text);
 
         // Procesamos listas no ordenadas (<ul>) para poner viñetas elegantes (•)
         $text = preg_replace_callback('/<ul[^>]*>(.*?)<\/ul>/is', function($matches) {
-            $items = $matches[1];
-            return preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function($itemMatches) {
+            // Limpiar saltos de línea del HTML original para evitar espacios dobles
+            $items = str_replace(["\r", "\n"], "", $matches[1]);
+            $res = preg_replace_callback('/<li[^>]*>(.*?)<\/li>/is', function($itemMatches) {
                 return "\n• " . trim(strip_tags($itemMatches[1]));
             }, $items);
+            return "\n" . trim($res) . "\n";
         }, $text);
 
         // Limpieza de cualquier li que haya quedado suelto (fuera de ul/ol)
         $text = preg_replace('/<li[^>]*>\s*/i', "\n• ", $text);
         $text = str_replace('</li>', "", $text);
+
+        // Asegurar que ul/ol no queden con etiquetas sueltas si falló el callback
+        $text = preg_replace('/<\/?(?:ul|ol)[^>]*>/i', "\n", $text);
 
         // 4. Formateo de WhatsApp: Negrita (*), Cursiva (_), Tachado (~)
         // Agregamos espacios alrededor para asegurar que WhatsApp reconozca el formato si está pegado a otras palabras
@@ -80,13 +87,14 @@ trait FormatsTextTrait
             $trimmed = trim($line);
             if ($trimmed !== '') {
                 $cleanLines[] = $trimmed;
-            } else if (!empty($cleanLines) && end($cleanLines) !== "") {
-                // Permitir un solo salto de línea vacío para separar párrafos
-                $cleanLines[] = "";
             }
         }
         
         $text = implode("\n", $cleanLines);
+        // Colapsar múltiples saltos de línea a uno solo por defecto para estilo compacto
+        // Si el usuario puso un doble espacio real en el HTML, p. ej. con <br><br>, lo respetamos después de esto?
+        // No, el usuario quiere "sin espacios".
+        $text = preg_replace('/\n{2,}/', "\n", $text);
         $text = trim($text);
 
         return $text;
