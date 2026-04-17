@@ -8,9 +8,9 @@
     <main>
         <h1>{{ $data['name'] ? "¡Bienvenido, " . $data['name'] . "!" : "¡Bienvenido!" }}</h1>
         
-        <div style="margin-bottom: 20px; line-height: 1.6; color: #374151;">
-            {!! nl2br(e($data['message'] ?? 'Gracias por registrarte en Tami. Estamos encantados de tenerte con nosotros.')) !!}
-        </div>
+    <div style="margin-bottom: 20px; line-height: 1.6; color: #374151;">
+        {!! $data['message'] ?? 'Gracias por registrarte en Tami. Estamos encantados de tenerte con nosotros.' !!}
+    </div>
 
         @if(!empty($data['image_path']) && file_exists($data['image_path']))
             <div style="margin-top: 20px; text-align: center;">

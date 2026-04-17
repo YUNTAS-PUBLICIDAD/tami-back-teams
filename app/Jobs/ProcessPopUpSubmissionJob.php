@@ -23,6 +23,8 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
         $this->requestData = $requestData;
     }
 
+    use \App\Traits\FormatsTextTrait;
+
     /**
      * Execute the job.
      */
@@ -38,12 +40,14 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
             if ($whatsappServiceUrl && !empty($setting->whatsapp_message)) {
                 $url = $whatsappServiceUrl . '/whatsapp/send-campaign';
                 $imageUrl = $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null;
-                $message = $setting->whatsapp_message;
+                $messageRaw = $setting->whatsapp_message;
 
                 $nombreCliente = $requestData['name'] ?? ($cliente->name !== 'Cliente Popup' ? $cliente->name : null);
                 if ($nombreCliente) {
-                    $message = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $message;
+                    $messageRaw = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $messageRaw;
                 }
+
+                $message = $this->formatHtmlForWhatsapp($messageRaw);
 
                 $payload = [
                     'phone'   => $requestData['celular'],

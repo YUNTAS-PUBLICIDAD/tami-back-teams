@@ -13,7 +13,7 @@ use App\Models\CampaignMessageLog;
 
 class EnviarCampañaWhatsAppJob implements ShouldQueue
 {
-    use Queueable, Dispatchable, InteractsWithQueue, SerializesModels;
+    use Queueable, Dispatchable, InteractsWithQueue, SerializesModels, \App\Traits\FormatsTextTrait;
 
     public int $tries = 3;
     public int $timeout = 30;
@@ -38,7 +38,8 @@ class EnviarCampañaWhatsAppJob implements ShouldQueue
         ]);
 
         try {
-            $mensajeFinal = "Hola {$this->nombre}, {$this->mensaje}";
+            $mensajeBase = "Hola {$this->nombre}, {$this->mensaje}";
+            $mensajeFinal = $this->formatHtmlForWhatsapp($mensajeBase);
 
             $imageUrl = $this->imagenPath
                 ? asset('storage/' . $this->imagenPath)
