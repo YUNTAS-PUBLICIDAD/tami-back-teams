@@ -51,30 +51,34 @@ trait FormatsTextTrait
         $text = str_replace('</li>', "", $text);
 
         // 4. Formateo de WhatsApp: Negrita (*), Cursiva (_), Tachado (~)
+        // Agregamos espacios alrededor para asegurar que WhatsApp reconozca el formato si está pegado a otras palabras
         $text = preg_replace_callback('/<(?:b|strong)[^>]*>(.*?)<\/(?:b|strong)>/is', function($matches) {
-            $content = trim($matches[1]);
-            return empty($content) ? '' : "*{$content}*";
+            $content = trim(strip_tags($matches[1]));
+            return empty($content) ? '' : " *{$content}* ";
         }, $text);
 
         $text = preg_replace_callback('/<(?:i|em)[^>]*>(.*?)<\/(?:i|em)>/is', function($matches) {
-            $content = trim($matches[1]);
-            return empty($content) ? '' : "_{$content}_";
+            $content = trim(strip_tags($matches[1]));
+            return empty($content) ? '' : " _{$content}_ ";
         }, $text);
 
         $text = preg_replace_callback('/<(?:s|strike|del)[^>]*>(.*?)<\/(?:s|strike|del)>/is', function($matches) {
-            $content = trim($matches[1]);
-            return empty($content) ? '' : "~{$content}~";
+            $content = trim(strip_tags($matches[1]));
+            return empty($content) ? '' : " ~{$content}~ ";
         }, $text);
 
         // 5. Limpiar cualquier otra etiqueta HTML restante
         $text = strip_tags($text);
 
         // 6. Normalización final de saltos de línea y espacios
+        // Colapsar múltiples espacios (pero no saltos de línea)
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        
         $lines = explode("\n", $text);
         $cleanLines = [];
         foreach ($lines as $line) {
             $trimmed = trim($line);
-            if (!empty($trimmed)) {
+            if ($trimmed !== '') {
                 $cleanLines[] = $trimmed;
             } else if (!empty($cleanLines) && end($cleanLines) !== "") {
                 // Permitir un solo salto de línea vacío para separar párrafos
