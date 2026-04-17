@@ -27,6 +27,10 @@ class HomePopupSetting extends Model
         'email_subject',
         'email_message',
         'email_image_url',
+        'email_btn_text',
+        'email_btn_link',
+        'email_btn_bg_color',
+        'email_btn_text_color',
         'popup_mobile_image2_url',
         'updated_by',
     ];
