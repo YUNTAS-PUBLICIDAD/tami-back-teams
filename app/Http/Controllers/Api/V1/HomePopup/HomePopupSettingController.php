@@ -32,11 +32,12 @@ class HomePopupSettingController extends Controller
         $responseData = $setting->toArray();
         $responseData['btnTextColor'] = $setting->button_text_color;
         $responseData['btnBgColor'] = $setting->button_bg_color;
-        $responseData['popupInicioDelay'] = $setting->popup_start_delay_minutes;
-        $responseData['popupProductosDelay'] = $setting->product_popup_delay_minutes;
+        $responseData['popupInicioDelay'] = $setting->popup_start_delay_seconds;
+        $responseData['popupProductosDelay'] = $setting->product_popup_delay_seconds;
         $responseData['whatsappMessage'] = $setting->whatsapp_message;
         $responseData['emailTitle'] = $setting->email_subject;
         $responseData['emailBody'] = $setting->email_message;
+        $responseData['buttonText'] = $setting->button_text;
         
         $responseData['emailBtnText'] = $setting->email_btn_text;
         $responseData['emailBtnLink'] = $setting->email_btn_link;
@@ -89,10 +90,12 @@ class HomePopupSettingController extends Controller
             'btnBgColor' => 'button_bg_color',
             'button_text_color' => 'button_text_color',
             'btnTextColor' => 'button_text_color',
-            'popup_start_delay_minutes' => 'popup_start_delay_minutes',
-            'popupInicioDelay' => 'popup_start_delay_minutes',
-            'product_popup_delay_minutes' => 'product_popup_delay_minutes',
-            'popupProductosDelay' => 'product_popup_delay_minutes',
+            'popup_start_delay_seconds' => 'popup_start_delay_seconds',
+            'popupInicioDelay' => 'popup_start_delay_seconds',
+            'popup_start_delay_minutes' => 'popup_start_delay_seconds',
+            'product_popup_delay_seconds' => 'product_popup_delay_seconds',
+            'popupProductosDelay' => 'product_popup_delay_seconds',
+            'product_popup_delay_minutes' => 'product_popup_delay_seconds',
             'whatsapp_message' => 'whatsapp_message',
             'whatsappMessage' => 'whatsapp_message',
             'email_subject' => 'email_subject',
@@ -165,8 +168,8 @@ class HomePopupSettingController extends Controller
             'status' => 'success',
             'data' => [
                 'enabled' => $setting->enabled,
-                'popupInicioDelay' => $setting->popup_start_delay_minutes,
-                'popupProductosDelay' => $setting->product_popup_delay_minutes,
+                'popupInicioDelay' => $setting->popup_start_delay_seconds,
+                'popupProductosDelay' => $setting->product_popup_delay_seconds,
                 'title' => $setting->title,
                 'subtitle' => $setting->subtitle,
                 'popup_image_url' => $setting->popup_image_url ? url($setting->popup_image_url) : null,
@@ -174,6 +177,7 @@ class HomePopupSettingController extends Controller
                 'popup_mobile_image_url' => $setting->popup_mobile_image_url ? url($setting->popup_mobile_image_url) : null,
                 'popup_mobile_image2_url' => $setting->popup_mobile_image2_url ? url($setting->popup_mobile_image2_url) : null,
                 'button_text' => $setting->button_text,
+                'buttonText' => $setting->button_text,
                 'btnBgColor' => $setting->button_bg_color,
                 'btnTextColor' => $setting->button_text_color,
                 'whatsapp_enabled' => $setting->whatsapp_enabled,
@@ -196,8 +200,8 @@ class HomePopupSettingController extends Controller
     {
         return HomePopupSetting::firstOrCreate([], [
             'enabled' => false,
-            'popup_start_delay_minutes' => 1,
-            'product_popup_delay_minutes' => 1,
+            'popup_start_delay_seconds' => 60,
+            'product_popup_delay_seconds' => 60,
             'button_text' => '!REGISTRARME!',
             'button_bg_color' => '#00AFA0',
             'button_text_color' => '#FFFFFF',
