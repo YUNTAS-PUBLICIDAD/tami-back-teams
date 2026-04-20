@@ -11,8 +11,8 @@ class HomePopupSetting extends Model
 
     protected $fillable = [
         'enabled',
-        'popup_start_delay_minutes',
-        'product_popup_delay_minutes',
+        'popup_start_delay_seconds',
+        'product_popup_delay_seconds',
         'title',
         'subtitle',
         'popup_image_url',
@@ -37,8 +37,8 @@ class HomePopupSetting extends Model
 
     protected $casts = [
         'enabled' => 'boolean',
-        'popup_start_delay_minutes' => 'integer',
-        'product_popup_delay_minutes' => 'integer',
+        'popup_start_delay_seconds' => 'integer',
+        'product_popup_delay_seconds' => 'integer',
         'whatsapp_enabled' => 'boolean',
         'email_enabled' => 'boolean',
     ];
