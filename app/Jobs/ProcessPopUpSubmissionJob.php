@@ -23,6 +23,8 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
         $this->requestData = $requestData;
     }
 
+    use \App\Traits\FormatsTextTrait;
+
     /**
      * Execute the job.
      */
@@ -38,12 +40,14 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
             if ($whatsappServiceUrl && !empty($setting->whatsapp_message)) {
                 $url = $whatsappServiceUrl . '/whatsapp/send-campaign';
                 $imageUrl = $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null;
-                $message = $setting->whatsapp_message;
+                $messageRaw = $setting->whatsapp_message;
 
                 $nombreCliente = $requestData['name'] ?? ($cliente->name !== 'Cliente Popup' ? $cliente->name : null);
                 if ($nombreCliente) {
-                    $message = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $message;
+                    $messageRaw = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $messageRaw;
                 }
+
+                $message = $this->formatHtmlForWhatsapp($messageRaw);
 
                 $payload = [
                     'phone'   => $requestData['celular'],
@@ -76,6 +80,11 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
                     'message' => $setting->email_message,
                     'image_url' => $setting->email_image_url ? url($setting->email_image_url) : null,
                     'image_path' => $setting->email_image_url ? public_path($setting->email_image_url) : null,
+                    // Nuevos campos del botón
+                    'email_btn_text' => $setting->email_btn_text ?: '¡REGISTRARME!',
+                    'email_btn_link' => $setting->email_btn_link ?: url('/'),
+                    'email_btn_bg_color' => $setting->email_btn_bg_color ?: '#00AFA0',
+                    'email_btn_text_color' => $setting->email_btn_text_color ?: '#FFFFFF',
                 ];
 
                 \Illuminate\Support\Facades\Mail::to($requestData['email'])->send(new \App\Mail\ClientRegistrationMail($mailData));

@@ -32,15 +32,24 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'home_popup_delay_minutes',
             'popup_time_minutes',
             'start_popup_delay_minutes',
+            'popup_start_delay_minutes',
+            'popupInicioDelay',
+            'popup_delay_seconds',
         ];
 
         foreach ($aliases as $alias) {
-            if ($this->has($alias) && !$this->has('popup_start_delay_minutes')) {
+            if ($this->has($alias) && !$this->has('popup_start_delay_seconds')) {
                 $this->merge([
-                    'popup_start_delay_minutes' => $this->input($alias),
+                    'popup_start_delay_seconds' => $this->input($alias),
                 ]);
                 break;
             }
+        }
+
+        if ($this->has('popupProductosDelay') && !$this->has('product_popup_delay_seconds')) {
+            $this->merge([
+                'product_popup_delay_seconds' => $this->input('popupProductosDelay'),
+            ]);
         }
     }
 
@@ -56,23 +65,35 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'title' => ['sometimes', 'nullable', 'string', 'max:150'],
             'subtitle' => ['sometimes', 'nullable', 'string', 'max:255'],
             'button_text' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'buttonText' => ['sometimes', 'nullable', 'string', 'max:50'],
             'button_bg_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'btnBgColor' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'button_text_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'btnTextColor' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'whatsapp_enabled' => ['sometimes', 'boolean'],
             'whatsappMessage' => ['sometimes', 'nullable', 'string'],
             'email_enabled' => ['sometimes', 'boolean'],
             'emailTitle' => ['sometimes', 'nullable', 'string', 'max:200'],
             'emailBody' => ['sometimes', 'nullable', 'string'],
-            'popup_start_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
-            'product_popup_delay_minutes' => ['sometimes', 'integer', 'min:1', 'max:10'],
-            'image1' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'image2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imageMobile' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imageMobile2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'whatsappImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'emailImage' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_image' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_image_2' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'email_btn_text' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'email_btn_link' => ['sometimes', 'nullable', 'url', 'max:255'],
+            'email_btn_bg_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'email_btn_text_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'popup_start_delay_seconds' => ['sometimes', 'integer', 'min:1', 'max:3600'],
+            'product_popup_delay_seconds' => ['sometimes', 'integer', 'min:1', 'max:3600'],
+            'popup_start_delay_minutes' => ['sometimes', 'integer'],
+            'product_popup_delay_minutes' => ['sometimes', 'integer'],
+            'image1' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imageMobile2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'whatsappImage' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'emailImage' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_image_2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_mobile_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_mobile_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }
 }

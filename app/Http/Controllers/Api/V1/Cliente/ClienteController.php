@@ -249,6 +249,12 @@ class ClienteController extends Controller
                         $mailData['message'] = $setting->email_message;
                         $mailData['image_url'] = $setting->email_image_url ? url($setting->email_image_url) : null;
                         
+                        // Configuraciones del botón de correo desde la DB con fallbacks
+                        $mailData['email_btn_text'] = $setting->email_btn_text ?: '¡REGISTRARME!';
+                        $mailData['email_btn_link'] = $setting->email_btn_link ?: url('/');
+                        $mailData['email_btn_bg_color'] = $setting->email_btn_bg_color ?: '#00AFA0';
+                        $mailData['email_btn_text_color'] = $setting->email_btn_text_color ?: '#FFFFFF';
+                        
                         // Agregar ruta absoluta para embeber la imagen (CID)
                         if ($setting->email_image_url) {
                             $filePath = public_path($setting->email_image_url);

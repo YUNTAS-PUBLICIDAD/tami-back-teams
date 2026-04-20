@@ -11,12 +11,13 @@ class HomePopupSetting extends Model
 
     protected $fillable = [
         'enabled',
-        'popup_start_delay_minutes',
-        'product_popup_delay_minutes',
+        'popup_start_delay_seconds',
+        'product_popup_delay_seconds',
         'title',
         'subtitle',
         'popup_image_url',
         'popup_image_2_url',
+        'popup_mobile_image_url',
         'button_text',
         'button_bg_color',
         'button_text_color',
@@ -27,14 +28,18 @@ class HomePopupSetting extends Model
         'email_subject',
         'email_message',
         'email_image_url',
+        'email_btn_text',
+        'email_btn_link',
+        'email_btn_bg_color',
+        'email_btn_text_color',
         'popup_mobile_image2_url',
         'updated_by',
     ];
 
     protected $casts = [
         'enabled' => 'boolean',
-        'popup_start_delay_minutes' => 'integer',
-        'product_popup_delay_minutes' => 'integer',
+        'popup_start_delay_seconds' => 'integer',
+        'product_popup_delay_seconds' => 'integer',
         'whatsapp_enabled' => 'boolean',
         'email_enabled' => 'boolean',
     ];
