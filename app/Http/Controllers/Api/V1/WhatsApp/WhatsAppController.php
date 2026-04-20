@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Mail;
 
 class WhatsAppController extends Controller
 {
+    use \App\Traits\FormatsTextTrait;
     use SafeErrorTrait;
     protected ApiResponseService $apiResponse;
 
@@ -97,7 +98,7 @@ public function sendProductDetails(Request $request)
 
         $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
             'productName' => $producto->nombre,
-            'description' => $producto->descripcion,
+            'description' => $this->formatHtmlForWhatsapp($producto->descripcion),
             'phone'       => $request->phone,
             'email'       => $request->email,
             'imageData'   => $this->convertImageToBase64($imageUrl),
