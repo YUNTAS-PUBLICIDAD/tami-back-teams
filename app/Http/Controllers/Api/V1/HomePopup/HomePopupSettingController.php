@@ -15,46 +15,9 @@ class HomePopupSettingController extends Controller
     public function showAdmin(): JsonResponse
     {
         $setting = $this->getOrCreateSettings();
-        
-        // Convert URLs to absolute
-        $imageFields = [
-            'popup_image_url', 'popup_image2_url', 'popup_mobile_image_url', 
-            'popup_mobile_image2_url', 'whatsapp_image_url', 'email_image_url'
-        ];
-        
-        foreach ($imageFields as $field) {
-            if ($setting->$field) {
-                $setting->$field = url($setting->$field);
-            }
-        }
-
-        // Mapear para que el frontend (React/Vue) reciba las mismas llaves que envía
-        $responseData = $setting->toArray();
-        $responseData['btnTextColor'] = $setting->button_text_color;
-        $responseData['btnBgColor'] = $setting->button_bg_color;
-        $responseData['popupInicioDelay'] = $setting->popup_start_delay_seconds;
-        $responseData['popupProductosDelay'] = $setting->product_popup_delay_seconds;
-        $responseData['whatsappMessage'] = $setting->whatsapp_message;
-        $responseData['emailTitle'] = $setting->email_subject;
-        $responseData['emailBody'] = $setting->email_message;
-        $responseData['buttonText'] = $setting->button_text;
-        
-        $responseData['emailBtnText'] = $setting->email_btn_text;
-        $responseData['emailBtnLink'] = $setting->email_btn_link;
-        $responseData['emailBtnBgColor'] = $setting->email_btn_bg_color;
-        $responseData['emailBtnTextColor'] = $setting->email_btn_text_color;
-        
-        // Alias para imágenes
-        $responseData['whatsappImage'] = $setting->whatsapp_image_url;
-        $responseData['emailImage'] = $setting->email_image_url;
-        $responseData['image1'] = $setting->popup_image_url;
-        $responseData['image2'] = $setting->popup_image2_url;
-        $responseData['imageMobile'] = $setting->popup_mobile_image_url;
-        $responseData['imageMobile2'] = $setting->popup_mobile_image2_url;
-
         return response()->json([
             'status' => 'success',
-            'data' => $responseData,
+            'data' => $this->formatResponse($setting),
         ]);
     }
 
@@ -118,45 +81,56 @@ class HomePopupSettingController extends Controller
             }
         }
 
-        // Mapeo de imágenes
+        // Mapeo de imágenes mejorado para soportar múltiples variantes de nombres de columnas
         $imageFields = [
-            'image1' => 'popup_image_url',
-            'popup_image' => 'popup_image_url',
-            'image2' => 'popup_image2_url',
-            'popup_image_2' => 'popup_image2_url',
-            'imageMobile' => 'popup_mobile_image_url',
-            'imageMobile2' => 'popup_mobile_image2_url',
-            'popup_mobile_image' => 'popup_mobile_image_url',
-            'whatsappImage' => 'whatsapp_image_url',
-            'whatsapp_image' => 'whatsapp_image_url',
-            'emailImage' => 'email_image_url',
-            'email_image' => 'email_image_url',
+            'image1'              => ['popup_image_url'],
+            'popup_image'         => ['popup_image_url'],
+            'image2'              => ['popup_image_2_url', 'popup_image2_url'],
+            'popup_image_2'       => ['popup_image_2_url', 'popup_image2_url'],
+            'popup_image2'        => ['popup_image_2_url', 'popup_image2_url'],
+            'imageMobile'         => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
+            'popup_mobile_image'  => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
+            'imageMobile2'        => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
+            'popup_mobile_image2' => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
+            'whatsappImage'       => ['whatsapp_image_url'],
+            'whatsapp_image'      => ['whatsapp_image_url'],
+            'emailImage'          => ['email_image_url'],
+            'email_image'         => ['email_image_url'],
         ];
 
-        foreach ($imageFields as $fileInput => $dbColumn) {
+        foreach ($imageFields as $fileInput => $dbColumns) {
+            $mainColumn = $dbColumns[0];
+            
             if ($request->hasFile($fileInput)) {
-                $data[$dbColumn] = $this->replaceImage(
+                $path = $this->replaceImage(
                     $request->file($fileInput),
-                    $setting->$dbColumn
+                    $setting->$mainColumn
                 );
-            } elseif ($request->boolean('delete_' . $fileInput)) {
-                if (!empty($setting->$dbColumn)) {
-                    $this->deleteImage($setting->$dbColumn);
+                
+                foreach ($dbColumns as $col) {
+                    $data[$col] = $path;
                 }
-                $data[$dbColumn] = null;
+            } elseif ($request->boolean('delete_' . $fileInput)) {
+                if (!empty($setting->$mainColumn)) {
+                    $this->deleteImage($setting->$mainColumn);
+                }
+                foreach ($dbColumns as $col) {
+                    $data[$col] = null;
+                }
             }
         }
 
+        $data['enabled'] = true;
         $data['updated_by'] = Auth::id();
 
-        \Log::info('Datos a actualizar en BD', $data);
+        \Log::info('--- FINAL SAVE DATA ---', $data);
 
         $setting->update($data);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Configuración de popup actualizada correctamente.',
-            'data' => $setting->fresh(),
+            'data' => $this->formatResponse($setting->fresh()),
         ]);
     }
 
@@ -166,40 +140,14 @@ class HomePopupSettingController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'enabled' => $setting->enabled,
-                'popupInicioDelay' => $setting->popup_start_delay_seconds,
-                'popupProductosDelay' => $setting->product_popup_delay_seconds,
-                'title' => $setting->title,
-                'subtitle' => $setting->subtitle,
-                'popup_image_url' => $setting->popup_image_url ? url($setting->popup_image_url) : null,
-                'popup_image_2_url' => $setting->popup_image_2_url ? url($setting->popup_image_2_url) : null,
-                'popup_mobile_image_url' => $setting->popup_mobile_image_url ? url($setting->popup_mobile_image_url) : null,
-                'popup_mobile_image2_url' => $setting->popup_mobile_image2_url ? url($setting->popup_mobile_image2_url) : null,
-                'button_text' => $setting->button_text,
-                'buttonText' => $setting->button_text,
-                'btnBgColor' => $setting->button_bg_color,
-                'btnTextColor' => $setting->button_text_color,
-                'whatsapp_enabled' => $setting->whatsapp_enabled,
-                'whatsappMessage' => $setting->whatsapp_message,
-                'whatsapp_image_url' => $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null,
-                'whatsappImage' => $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null,
-                'email_enabled' => $setting->email_enabled,
-                'emailTitle' => $setting->email_subject,
-                'emailBody' => $setting->email_message,
-                'emailImage' => $setting->email_image_url ? url($setting->email_image_url) : null,
-                'emailBtnText' => $setting->email_btn_text,
-                'emailBtnLink' => $setting->email_btn_link,
-                'emailBtnBgColor' => $setting->email_btn_bg_color,
-                'emailBtnTextColor' => $setting->email_btn_text_color,
-            ],
+            'data' => $this->formatResponse($setting),
         ]);
     }
 
     private function getOrCreateSettings(): HomePopupSetting
     {
         return HomePopupSetting::firstOrCreate([], [
-            'enabled' => false,
+            'enabled' => true,
             'popup_start_delay_seconds' => 60,
             'product_popup_delay_seconds' => 60,
             'button_text' => '!REGISTRARME!',
@@ -230,5 +178,54 @@ class HomePopupSettingController extends Controller
                 Storage::disk('public')->delete($oldPath);
             }
         }
+    }
+
+    private function formatResponse(HomePopupSetting $setting): array
+    {
+        // Obtener lista exacta de columnas de la tabla para convertirlas a absolutas
+        $schemaColumns = [
+            'popup_image_url', 'popup_image_2_url', 'popup_image2_url',
+            'popup_mobile_image_url', 'popup_mobile_image2_url', 'popup_mobile_image_1_url', 'popup_mobile_image_2_url',
+            'whatsapp_image_url', 'email_image_url'
+        ];
+        
+        $data = $setting->toArray();
+
+        foreach ($schemaColumns as $field) {
+            if (isset($data[$field]) && !empty($data[$field])) {
+                $data[$field] = url($data[$field]);
+            }
+        }
+
+        // Unificar Aliases para el Frontend (Priorizando versiones con datos)
+        $data['image1'] = $data['popup_image_url'] ?? null;
+        $data['image2'] = $data['popup_image_2_url'] ?? $data['popup_image2_url'] ?? null;
+        $data['imageMobile'] = $data['popup_mobile_image_url'] ?? $data['popup_mobile_image_1_url'] ?? null;
+        $data['imageMobile2'] = $data['popup_mobile_image2_url'] ?? $data['popup_mobile_image_2_url'] ?? null;
+        
+        $data['whatsappImage'] = $data['whatsapp_image_url'] ?? null;
+        $data['emailImage'] = $data['email_image_url'] ?? null;
+
+        // Variables de diseño y texto
+        $data['btnTextColor'] = $setting->button_text_color;
+        $data['btnBgColor'] = $setting->button_bg_color;
+        $data['buttonText'] = $setting->button_text;
+        
+        $data['popupInicioDelay'] = $setting->popup_start_delay_seconds;
+        $data['popupProductosDelay'] = $setting->product_popup_delay_seconds;
+        
+        // El frontend busca popup_start_delay_minutes en usePopupLogic.ts
+        $data['popup_start_delay_minutes'] = $setting->popup_start_delay_seconds;
+        
+        $data['whatsappMessage'] = $setting->whatsapp_message;
+        $data['emailTitle'] = $setting->email_subject;
+        $data['emailBody'] = $setting->email_message;
+        
+        $data['emailBtnText'] = $setting->email_btn_text;
+        $data['emailBtnLink'] = $setting->email_btn_link;
+        $data['emailBtnBgColor'] = $setting->email_btn_bg_color;
+        $data['emailBtnTextColor'] = $setting->email_btn_text_color;
+
+        return $data;
     }
 }
