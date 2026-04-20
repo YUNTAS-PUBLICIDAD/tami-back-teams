@@ -18,7 +18,7 @@ class HomePopupSettingController extends Controller
         
         // Convert URLs to absolute
         $imageFields = [
-            'popup_image_url', 'popup_image2_url', 'popup_mobile_image_url', 
+            'popup_image_url', 'popup_image_2_url', 'popup_mobile_image_url', 
             'popup_mobile_image2_url', 'whatsapp_image_url', 'email_image_url'
         ];
         
@@ -44,11 +44,10 @@ class HomePopupSettingController extends Controller
         $responseData['emailBtnBgColor'] = $setting->email_btn_bg_color;
         $responseData['emailBtnTextColor'] = $setting->email_btn_text_color;
         
-        // Alias para imágenes
         $responseData['whatsappImage'] = $setting->whatsapp_image_url;
         $responseData['emailImage'] = $setting->email_image_url;
         $responseData['image1'] = $setting->popup_image_url;
-        $responseData['image2'] = $setting->popup_image2_url;
+        $responseData['image2'] = $setting->popup_image_2_url;
         $responseData['imageMobile'] = $setting->popup_mobile_image_url;
         $responseData['imageMobile2'] = $setting->popup_mobile_image2_url;
 
@@ -122,8 +121,8 @@ class HomePopupSettingController extends Controller
         $imageFields = [
             'image1' => 'popup_image_url',
             'popup_image' => 'popup_image_url',
-            'image2' => 'popup_image2_url',
-            'popup_image_2' => 'popup_image2_url',
+            'image2' => 'popup_image_2_url',
+            'popup_image_2' => 'popup_image_2_url',
             'imageMobile' => 'popup_mobile_image_url',
             'imageMobile2' => 'popup_mobile_image2_url',
             'popup_mobile_image' => 'popup_mobile_image_url',
