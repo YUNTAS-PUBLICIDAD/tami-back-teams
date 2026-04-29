@@ -25,6 +25,7 @@ class Blog extends Model
         'video_url',
         'video_titulo',
         'miniatura',
+        'created_at',
     ];
 
     public $timestamps = true;

@@ -15,6 +15,7 @@ class ProductoImagenResource extends JsonResource
             'texto_alt_SEO' => $this->texto_alt_SEO,
             'asunto' => $this->asunto,
             'whatsapp_mensaje' => $this->whatsapp_mensaje,
+            'email_mensaje' => $this->email_mensaje,
             'tipo' => $this->tipo ?? 'galeria',
         ];
     }

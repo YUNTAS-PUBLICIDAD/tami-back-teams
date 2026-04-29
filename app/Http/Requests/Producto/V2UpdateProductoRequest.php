@@ -73,6 +73,7 @@ class V2UpdateProductoRequest extends FormRequest
 
         'imagen_email' => 'nullable|file|image|max:3048',
         'asunto' => 'nullable|string|max:255',
+        'mensaje_email' => 'nullable|string',
         
         // Imagen Whatsapp 
         'imagen_whatsapp' => 'nullable|file|image|max:3048',

@@ -8,6 +8,13 @@
 <body style="margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f5f5;">
     <div style="max-width:600px; margin:20px auto; background:#ffffff; overflow:hidden; text-align:center;">
         
+        <!-- Mensaje HTML (si existe) -->
+        @if(!empty($product['mensaje_html']))
+        <div style="padding: 20px; text-align: left; font-size: 16px; color: #333;">
+            {!! $product['mensaje_html'] !!}
+        </div>
+        @endif
+
         <!-- Imagen completa del email (diseño personalizado del producto) -->
         <img src="{{ $product['main_image'] ?? asset('email/default-product.webp') }}"
             alt="{{ $product['name'] ?? 'Producto Tami' }}" 
