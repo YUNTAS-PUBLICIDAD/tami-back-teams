@@ -23,6 +23,7 @@ class PostStoreBlog extends FormRequest
             'subtitulo2' => 'required|string|max:255',
             'video_url' => 'required|url',
             'video_titulo' => 'required|string|max:2000',
+            'created_at' => 'nullable|date',
 
             'meta_titulo' => 'nullable|string|min:10|max:70',
             'meta_descripcion' => 'nullable|string|min:40|max:200',

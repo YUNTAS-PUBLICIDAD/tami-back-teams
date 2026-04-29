@@ -41,6 +41,7 @@ class UpdateBlog extends FormRequest
             'subtitulo2' => ['required', 'string', 'max:255'],
             'video_url' => ['required', 'url'],
             'video_titulo' => ['required', 'string', 'max:255'],
+            'created_at' => ['nullable', 'date'],
 
             'meta_titulo' => 'nullable|string|min:10|max:60',
             'meta_descripcion' => 'nullable|string|min:40|max:160',
