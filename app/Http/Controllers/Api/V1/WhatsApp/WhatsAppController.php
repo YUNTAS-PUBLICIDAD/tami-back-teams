@@ -96,9 +96,13 @@ public function sendProductDetails(Request $request)
             throw new \Exception('Configuración de WhatsApp no encontrada.');
         }
 
+        // Priorizar whatsapp_mensaje personalizado de la imagen tipo 'whatsapp'
+        $mensajeWhatsapp = $producto->imagenWhatsapp?->whatsapp_mensaje;
+        $descripcionFinal = !empty($mensajeWhatsapp) ? $mensajeWhatsapp : $producto->descripcion;
+
         $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
             'productName' => $producto->nombre,
-            'description' => $this->formatHtmlForWhatsapp($producto->descripcion),
+            'description' => $this->formatHtmlForWhatsapp($descripcionFinal),
             'phone'       => $request->phone,
             'email'       => $request->email,
             'imageData'   => $this->convertImageToBase64($imageUrl),
@@ -145,10 +149,15 @@ public function sendProductDetails(Request $request)
 
     public function sendPopUpDetails(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('sendPopUpDetails request:', $request->all());
+        \Illuminate\Support\Facades\Log::info('Referer: ' . $request->header('referer'));
+
         $request->validate([
             'name' => 'nullable|string|max:100',
             'celular' => 'required|string|max:20',
             'email' => 'nullable|email|max:191',
+            'link' => 'nullable|string|max:255',
+            'producto_id' => 'nullable|exists:productos,id',
         ]);
 
     $resultados = [];
@@ -159,14 +168,59 @@ public function sendProductDetails(Request $request)
         return response()->json(['message' => 'No hay configuración de popup cargada.'], 400);
     }
 
+    // Intentar obtener el link del referer si no viene en el body
+    $referer = $request->header('referer');
+    if (!$request->producto_id && !$request->link && $referer) {
+        if (preg_match('/\/productos?\/([^\/\?]+)/', $referer, $matches)) {
+            $request->merge(['link' => $matches[1]]);
+        } elseif (preg_match('/\/[^\/]+\/([^\/\?]+)/', $referer, $matches)) { // Fallback para otras rutas si el slug está al final
+            // Solo para probar, pero mejor ser conservador
+        }
+    }
+
+    // Verificar si es un popup de producto
+    $producto = null;
+    if ($request->producto_id) {
+        $producto = Producto::with(['imagenes', 'whatsappTemplate', 'etiqueta'])->find($request->producto_id);
+    } elseif ($request->link) {
+        $producto = Producto::with(['imagenes', 'whatsappTemplate', 'etiqueta'])->where('link', $request->link)->first();
+    }
+
+    if ($producto) {
+        $imagenEmail = $producto->imagenes->where('tipo', 'email')->first();
+        $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
+        
+        $customSetting = new \stdClass();
+        $customSetting->whatsapp_message = $producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message;
+        $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : null;
+        
+        $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
+        
+        $emailMensaje = ($imagenEmail && $imagenEmail->email_mensaje) ? $imagenEmail->email_mensaje : $setting->email_message;
+        if ($request->name) {
+            $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
+        }
+        $customSetting->email_message = $emailMensaje;
+        $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : null;
+
+        // Para popups de producto, desactivamos el botón de correo según solicitud
+        $customSetting->email_btn_text = null;
+        $customSetting->email_btn_link = '#';
+        $customSetting->email_btn_bg_color = null;
+        $customSetting->email_btn_text_color = null;
+
+        $setting = $customSetting;
+    }
+
     // Si el usuario envió sus datos desde el popup, asumimos que quiere la info. 
     // Solo validamos que exista un mensaje configurado.
     if (empty($setting->whatsapp_message)) {
         return response()->json(['message' => 'No hay un mensaje configurado para enviar.'], 400);
     }
 
-    // Buscar o crear la fuente "Popup de Inicio"
-    $source = ClienteSource::firstOrCreate(['name' => 'Popup de Inicio']);
+    // Buscar o crear la fuente
+    $sourceName = $producto ? 'Producto detalle' : 'Popup de Inicio';
+    $source = ClienteSource::firstOrCreate(['name' => $sourceName]);
 
     // Buscar o crear cliente
     $cliente = null;
@@ -183,13 +237,19 @@ public function sendProductDetails(Request $request)
             'email' => $request->email,
             'celular' => $request->celular,
             'source_id' => $source->id,
+            'producto_id' => $producto ? $producto->id : null,
         ]);
-    } else if ($request->name && $cliente->name === 'Cliente Popup') {
-        $cliente->update(['name' => $request->name]);
     } else {
+        if ($request->name && $cliente->name === 'Cliente Popup') {
+            $cliente->update(['name' => $request->name]);
+        }
+        
         $updateData = [];
         if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
         if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
+        if ($producto && !$cliente->producto_id) $updateData['producto_id'] = $producto->id;
+        if ($source && $cliente->source_id !== $source->id) $updateData['source_id'] = $source->id;
+        
         if (!empty($updateData)) $cliente->update($updateData);
     }
 

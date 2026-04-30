@@ -15,6 +15,7 @@ class ProductoImagen extends Model
         'producto_id',
         'asunto',
         'whatsapp_mensaje',
+        'email_mensaje',
     ];
 
     /**

@@ -237,34 +237,90 @@ class ClienteController extends Controller
             // Enviar correo de bienvenida si se proporcionó email
             if ($request->email) {
                 try {
-                    $setting = HomePopupSetting::first();
-                    $mailData = [
-                        'name' => $request->name,
-                        'email' => $request->email,
-                        'celular' => $request->celular,
-                    ];
+                    $enviadoProducto = false;
 
-                    if ($setting) {
-                        $mailData['subject'] = $setting->email_subject;
-                        $mailData['message'] = $setting->email_message;
-                        $mailData['image_url'] = $setting->email_image_url ? url($setting->email_image_url) : null;
-                        
-                        // Configuraciones del botón de correo desde la DB con fallbacks
-                        $mailData['email_btn_text'] = $setting->email_btn_text ?: '¡REGISTRARME!';
-                        $mailData['email_btn_link'] = $setting->email_btn_link ?: url('/');
-                        $mailData['email_btn_bg_color'] = $setting->email_btn_bg_color ?: '#00AFA0';
-                        $mailData['email_btn_text_color'] = $setting->email_btn_text_color ?: '#FFFFFF';
-                        
-                        // Agregar ruta absoluta para embeber la imagen (CID)
-                        if ($setting->email_image_url) {
-                            $filePath = public_path($setting->email_image_url);
-                            if (file_exists($filePath)) {
-                                $mailData['image_path'] = $filePath;
+                    if (!empty($datosValidados['producto_id'])) {
+                        $producto = \App\Models\Producto::with(['imagenes'])->find($datosValidados['producto_id']);
+                        if ($producto) {
+                            $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
+                            if ($imagenEmail) {
+                                $asunto = $imagenEmail->asunto ?? 'Información sobre ' . $producto->nombre;    
+                                $mensaje = $imagenEmail->email_mensaje ?? '';
+                                $mensaje = str_replace('{{nombre}}', $request->name, $mensaje);
+
+                                $productData = [
+                                    'name' => $producto->nombre,
+                                    'main_image' => !empty($imagenEmail->url_imagen) 
+                                        ? url($imagenEmail->url_imagen) 
+                                        : asset('email/default-product.webp'),
+                                    'video_url' => $producto->video_url ?? null,
+                                    'client_name' => $request->name,
+                                    'mensaje_html' => $mensaje,
+                                ];
+
+                                Mail::to($request->email)->send(
+                                    new \App\Mail\ProductInfoMail(['product' => $productData], 'emails.product-generic', $asunto)
+                                );
+                                $enviadoProducto = true;
                             }
                         }
                     }
 
-                    Mail::to($request->email)->send(new ClientRegistrationMail($mailData));
+                    if (!$enviadoProducto && !empty($datosValidados['producto_id'])) {
+                        $producto = \App\Models\Producto::find($datosValidados['producto_id']);
+                        if ($producto) {
+                            // Fallback para productos: enviar información básica en lugar del Home Popup
+                            $imagenPrincipal = $producto->imagenes()->where('tipo', 'galeria')->first() 
+                                            ?? $producto->imagenes()->first();
+                            
+                            $productData = [
+                                'name' => $producto->nombre,
+                                'main_image' => $imagenPrincipal 
+                                    ? url($imagenPrincipal->url_imagen) 
+                                    : asset('email/default-product.webp'),
+                                'video_url' => $producto->video_url ?? null,
+                                'client_name' => $request->name,
+                                'mensaje_html' => "Información sobre {$producto->nombre}<br><br>Precio: S/ {$producto->precio}<br><br>Puedes ver más detalles aquí: <a href='" . url('/productos/' . $producto->link) . "'>Ver producto</a>",
+                            ];
+
+                            Mail::to($request->email)->send(
+                                new \App\Mail\ProductInfoMail(['product' => $productData], 'emails.product-generic', 'Información sobre ' . $producto->nombre)
+                            );
+                            $enviadoProducto = true;
+                        }
+                    }
+
+                    if (!$enviadoProducto) {
+                        // Solo si NO es un producto (o no se pudo obtener la info), usamos la configuración global
+                        $setting = HomePopupSetting::first();
+                        $mailData = [
+                            'name' => $request->name,
+                            'email' => $request->email,
+                            'celular' => $request->celular,
+                        ];
+
+                        if ($setting) {
+                            $mailData['subject'] = $setting->email_subject;
+                            $mailData['message'] = $setting->email_message;
+                            $mailData['image_url'] = $setting->email_image_url ? url($setting->email_image_url) : null;
+                            
+                            // Configuraciones del botón de correo desde la DB con fallbacks
+                            $mailData['email_btn_text'] = $setting->email_btn_text ?: '¡REGISTRARME!';
+                            $mailData['email_btn_link'] = $setting->email_btn_link ?: url('/');
+                            $mailData['email_btn_bg_color'] = $setting->email_btn_bg_color ?: '#00AFA0';
+                            $mailData['email_btn_text_color'] = $setting->email_btn_text_color ?: '#FFFFFF';
+                            
+                            // Agregar ruta absoluta para embeber la imagen (CID)
+                            if ($setting->email_image_url) {
+                                $filePath = public_path($setting->email_image_url);
+                                if (file_exists($filePath)) {
+                                    $mailData['image_path'] = $filePath;
+                                }
+                            }
+                        }
+
+                        Mail::to($request->email)->send(new ClientRegistrationMail($mailData));
+                    }
                 } catch (\Exception $e) {
                     \Log::error('Error al enviar correo de registro: ' . $e->getMessage());
                     // No cortamos el flujo si falla el correo

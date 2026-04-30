@@ -105,33 +105,12 @@ class EmailController extends Controller
             'link' => 'required|string',
         ]);
         
-
         try {
-            // Obtener el producto por su link
-            $producto = \App\Models\Producto::with(['imagenes'])
-                ->where('link', $request->link)
-                ->firstOrFail();
-
-            // Obtener la imagen de email (tipo='email') - Esta imagen contiene todo el diseño
-            $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
-            $asunto = $imagenEmail->asunto ?? 'Información sobre ' . $producto->nombre;    
-            // Preparar los datos para el email
-            $productData = [
-                'name' => $producto->nombre,
-                'main_image' => $imagenEmail 
-                    ? url($imagenEmail->url_imagen)
-                    : asset('email/default-product.webp'),
-                'video_url' => $producto->video_url ?? null,
-                'client_name' => $request->name,
-            ];
-
-            Mail::to($request->email)->send(
-                new ProductInfoMail(['product' => $productData], 'emails.product-generic', $asunto)
-            );
-
+            // El envío de correo ahora está unificado en ClienteController@store.
+            // Retornamos success para no romper el frontend que hace 2 llamadas.
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Correo enviado correctamente'
+                'message' => 'Correo gestionado por ClienteController'
             ], 200);
 
         } catch (\Exception $e) {

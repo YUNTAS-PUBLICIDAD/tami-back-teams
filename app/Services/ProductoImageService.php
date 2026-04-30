@@ -19,15 +19,16 @@ class ProductoImageService
      * @param string|null $altText Texto alternativo para SEO
      * @return ProductoImagen|null
      */
-    public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $textValue = null): ?ProductoImagen
+    public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $textValue = null, array $extraData = []): ?ProductoImagen
     {
         $imagenExistente = $producto->imagenes()->where('tipo', $tipo)->first();
 
+        $data = $extraData; // Initialize with extraData
         if ($tipo === 'email') {
             $data['asunto'] = $textValue ?? '';
             $data['texto_alt_SEO'] = $textValue ?? '';
         } elseif ($tipo === 'whatsapp') {
-            $data['whatsapp_mensaje'] = $textValue ?? '';
+            $data['whatsapp_mensaje'] = $extraData['whatsapp_mensaje'] ?? ($textValue ?? '');
             $data['texto_alt_SEO'] = $textValue ?? '';
         } else {
             $data['texto_alt_SEO'] = $textValue ?? '';
@@ -42,6 +43,10 @@ class ProductoImageService
         } elseif ($imagenExistente) {
             $imagenExistente->update($data);
             return $imagenExistente;
+        } elseif (!empty($textValue) || !empty($data['email_mensaje']) || !empty($data['whatsapp_mensaje'])) {
+            $data['url_imagen'] = '';
+            $data['tipo'] = $tipo;
+            return $producto->imagenes()->create($data);
         } else {
             return null;
         }

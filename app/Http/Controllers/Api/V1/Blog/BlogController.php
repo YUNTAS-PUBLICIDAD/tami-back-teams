@@ -209,6 +209,13 @@ class BlogController extends Controller
      *                         type="string",
      *                         example="El uso de protector solar es fundamental para prevenir el envejecimiento prematuro."
      *                     )
+     *                 ),
+     *                 @OA\Property(
+     *                     property="created_at",
+     *                     type="string",
+     *                     format="date-time",
+     *                     description="Fecha de creación manual (opcional)",
+     *                     example="2025-08-13T15:00:00Z"
      *                 )
      *             )
      *         )
@@ -236,7 +243,7 @@ class BlogController extends Controller
             $imagenPrincipal = $request->file("miniatura");
             $rutaImagenPrincipal = $this->guardarImagen($imagenPrincipal);
 
-            $blog = Blog::create([
+            $blogData = [
                 "titulo" => $datosValidados["titulo"],
                 "producto_id" => $datosValidados["producto_id"],
                 "link" => $datosValidados["link"],
@@ -245,7 +252,13 @@ class BlogController extends Controller
                 "video_url" => $datosValidados["video_url"],
                 "video_titulo" => $datosValidados["video_titulo"],
                 "miniatura" => $rutaImagenPrincipal,
-            ]);
+            ];
+
+            if (isset($datosValidados['created_at'])) {
+                $blogData['created_at'] = $datosValidados['created_at'];
+            }
+
+            $blog = Blog::create($blogData);
 
             if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
                 $blog->etiqueta()->create([
@@ -474,6 +487,7 @@ class BlogController extends Controller
      *                 @OA\Property(property="video_titulo", type="string", example="Guía completa de cuidado de la piel en invierno"),
      *                 @OA\Property(property="meta_titulo", type="string", example="Consejos para cuidar tu piel en invierno"),
      *                 @OA\Property(property="meta_descripcion", type="string", example="Descubre cómo proteger tu piel del frío y mantenerla saludable."),
+     *                 @OA\Property(property="created_at", type="string", format="date-time", example="2025-08-13T15:00:00Z", description="Fecha de creación manual (opcional)"),
      *
      *                 @OA\Property(
      *                     property="miniatura",
@@ -534,7 +548,8 @@ class BlogController extends Controller
                 "subtitulo1",
                 "subtitulo2",
                 "video_url",
-                "video_titulo"
+                "video_titulo",
+                "created_at"
             ] as $campo) {
                 if ($request->has($campo)) {
                     $camposActualizar[$campo] = $datosValidados[$campo];
