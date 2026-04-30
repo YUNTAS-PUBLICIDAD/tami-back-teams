@@ -266,7 +266,32 @@ class ClienteController extends Controller
                         }
                     }
 
+                    if (!$enviadoProducto && !empty($datosValidados['producto_id'])) {
+                        $producto = \App\Models\Producto::find($datosValidados['producto_id']);
+                        if ($producto) {
+                            // Fallback para productos: enviar información básica en lugar del Home Popup
+                            $imagenPrincipal = $producto->imagenes()->where('tipo', 'galeria')->first() 
+                                            ?? $producto->imagenes()->first();
+                            
+                            $productData = [
+                                'name' => $producto->nombre,
+                                'main_image' => $imagenPrincipal 
+                                    ? url($imagenPrincipal->url_imagen) 
+                                    : asset('email/default-product.webp'),
+                                'video_url' => $producto->video_url ?? null,
+                                'client_name' => $request->name,
+                                'mensaje_html' => "Información sobre {$producto->nombre}<br><br>Precio: S/ {$producto->precio}<br><br>Puedes ver más detalles aquí: <a href='" . url('/productos/' . $producto->link) . "'>Ver producto</a>",
+                            ];
+
+                            Mail::to($request->email)->send(
+                                new \App\Mail\ProductInfoMail(['product' => $productData], 'emails.product-generic', 'Información sobre ' . $producto->nombre)
+                            );
+                            $enviadoProducto = true;
+                        }
+                    }
+
                     if (!$enviadoProducto) {
+                        // Solo si NO es un producto (o no se pudo obtener la info), usamos la configuración global
                         $setting = HomePopupSetting::first();
                         $mailData = [
                             'name' => $request->name,

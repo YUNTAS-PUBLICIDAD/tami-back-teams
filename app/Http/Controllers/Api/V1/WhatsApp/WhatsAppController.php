@@ -96,9 +96,13 @@ public function sendProductDetails(Request $request)
             throw new \Exception('Configuración de WhatsApp no encontrada.');
         }
 
+        // Priorizar whatsapp_mensaje personalizado de la imagen tipo 'whatsapp'
+        $mensajeWhatsapp = $producto->imagenWhatsapp?->whatsapp_mensaje;
+        $descripcionFinal = !empty($mensajeWhatsapp) ? $mensajeWhatsapp : $producto->descripcion;
+
         $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
             'productName' => $producto->nombre,
-            'description' => $this->formatHtmlForWhatsapp($producto->descripcion),
+            'description' => $this->formatHtmlForWhatsapp($descripcionFinal),
             'phone'       => $request->phone,
             'email'       => $request->email,
             'imageData'   => $this->convertImageToBase64($imageUrl),
