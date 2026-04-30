@@ -28,7 +28,7 @@ class ProductoImageService
             $data['asunto'] = $textValue ?? '';
             $data['texto_alt_SEO'] = $textValue ?? '';
         } elseif ($tipo === 'whatsapp') {
-            $data['whatsapp_mensaje'] = $textValue ?? '';
+            $data['whatsapp_mensaje'] = $extraData['whatsapp_mensaje'] ?? ($textValue ?? '');
             $data['texto_alt_SEO'] = $textValue ?? '';
         } else {
             $data['texto_alt_SEO'] = $textValue ?? '';
