@@ -120,7 +120,7 @@ class ProductoImageService
         }
     }
 
-    private function deleteExistingImageByType(Producto $producto, string $tipo): void
+    public function deleteExistingImageByType(Producto $producto, string $tipo): void
     {
         $imagenAnterior = $producto->imagenes()->where('tipo', $tipo)->first();
 

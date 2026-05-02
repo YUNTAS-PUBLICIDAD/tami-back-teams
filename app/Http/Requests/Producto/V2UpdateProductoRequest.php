@@ -69,6 +69,12 @@ class V2UpdateProductoRequest extends FormRequest
         'texto_alt_popup' => 'nullable|string|max:255',
         'imagen_popup2' => 'nullable|file|image|max:3048',
         'texto_alt_popup2' => 'nullable|string|max:255',
+        
+        // Imagen popup mobile
+        'imagen_popup_mobile' => 'nullable|file|image|max:3048',
+        'texto_alt_popup_mobile' => 'nullable|string|max:255',
+        'imagen_popup_mobile2' => 'nullable|file|image|max:3048',
+        'texto_alt_popup_mobile2' => 'nullable|string|max:255',
         //Imagen email
 
         'imagen_email' => 'nullable|file|image|max:3048',
@@ -80,10 +86,18 @@ class V2UpdateProductoRequest extends FormRequest
         'texto_alt_whatsapp' => 'nullable|string|max:2000',
         'mensaje_whatsapp' => 'nullable|string',
         
-        // URL del video
         'video_url' => 'nullable|url|max:500',
         'relacionados' => 'nullable|array',
         'relacionados.*' => 'integer|exists:productos,id',
+
+        // Flags de eliminación de imágenes
+        'delete_imagen_popup' => 'nullable|string|in:0,1',
+        'delete_imagen_popup2' => 'nullable|string|in:0,1',
+        'delete_imagen_popup_2' => 'nullable|string|in:0,1',
+        'delete_imagen_popup_mobile' => 'nullable|string|in:0,1',
+        'delete_imagen_popup_mobile2' => 'nullable|string|in:0,1',
+        'delete_emailImage' => 'nullable|string|in:0,1',
+        'delete_whatsappImage' => 'nullable|string|in:0,1',
     ];
  }
 }
