@@ -315,11 +315,25 @@ class ProductoService
         $tiposImagenes = [
             ['popup', 'imagen_popup', 'texto_alt_popup', []],
             ['popup2', 'imagen_popup2', 'texto_alt_popup2', []],
+            ['popup_mobile', 'imagen_popup_mobile', 'texto_alt_popup_mobile', []],
+            ['popup_mobile2', 'imagen_popup_mobile2', 'texto_alt_popup_mobile2', []],
             ['email', 'imagen_email', 'asunto', ['email_mensaje' => $request->input('mensaje_email')]],
             ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp', ['whatsapp_mensaje' => $request->input('mensaje_whatsapp')]],
         ];
 
         foreach ($tiposImagenes as [$tipo, $imagenKey, $textoKey, $extraData]) {
+            // Check for explicit deletion flag
+            if ($request->input("delete_$imagenKey") === "1" || $request->input("delete_$tipo") === "1") {
+                $this->imageService->deleteExistingImageByType($producto, $tipo);
+                
+                // If it's a type with extra text data (like WhatsApp/Email), we might want to keep the text
+                // but handleSpecialImage usually handles that. If we just want to delete the IMAGE:
+                if ($tipo === 'whatsapp' || $tipo === 'email') {
+                     $this->imageService->handleSpecialImage($producto, null, $tipo, $request->input($textoKey), $extraData);
+                }
+                continue;
+            }
+
             $this->imageService->handleSpecialImage(
                 $producto,
                 $request->file($imagenKey),
