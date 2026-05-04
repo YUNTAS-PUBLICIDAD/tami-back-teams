@@ -80,6 +80,10 @@ class V2UpdateProductoRequest extends FormRequest
         'imagen_email' => 'nullable|file|image|max:3048',
         'asunto' => 'nullable|string|max:255',
         'mensaje_email' => 'nullable|string',
+        'email_btn_text' => 'nullable|string|max:100',
+        'email_btn_link' => 'nullable|url|max:255',
+        'email_btn_bg_color' => 'nullable|string|regex:/^#([A-Fa-f0-9]{6})$/',
+        'email_btn_text_color' => 'nullable|string|regex:/^#([A-Fa-f0-9]{6})$/',
         
         // Imagen Whatsapp 
         'imagen_whatsapp' => 'nullable|file|image|max:3048',
