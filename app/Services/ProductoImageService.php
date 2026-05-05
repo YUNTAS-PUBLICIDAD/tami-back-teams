@@ -26,12 +26,12 @@ class ProductoImageService
         $data = $extraData; // Initialize with extraData
         if ($tipo === 'email') {
             $data['asunto'] = $textValue ?? '';
-            $data['texto_alt_SEO'] = $textValue ?? '';
+            $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
         } elseif ($tipo === 'whatsapp') {
             $data['whatsapp_mensaje'] = $extraData['whatsapp_mensaje'] ?? ($textValue ?? '');
-            $data['texto_alt_SEO'] = $textValue ?? '';
+            $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
         } else {
-            $data['texto_alt_SEO'] = $textValue ?? '';
+            $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
         }
 
 
