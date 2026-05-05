@@ -16,6 +16,10 @@ class ProductoImagen extends Model
         'asunto',
         'whatsapp_mensaje',
         'email_mensaje',
+        'email_btn_text',
+        'email_btn_link',
+        'email_btn_bg_color',
+        'email_btn_text_color',
     ];
 
     /**

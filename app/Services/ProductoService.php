@@ -317,7 +317,13 @@ class ProductoService
             ['popup2', 'imagen_popup2', 'texto_alt_popup2', []],
             ['popup_mobile', 'imagen_popup_mobile', 'texto_alt_popup_mobile', []],
             ['popup_mobile2', 'imagen_popup_mobile2', 'texto_alt_popup_mobile2', []],
-            ['email', 'imagen_email', 'asunto', ['email_mensaje' => $request->input('mensaje_email')]],
+            ['email', 'imagen_email', 'asunto', [
+                'email_mensaje' => $request->input('mensaje_email'),
+                'email_btn_text' => $request->input('email_btn_text'),
+                'email_btn_link' => $request->input('email_btn_link'),
+                'email_btn_bg_color' => $request->input('email_btn_bg_color'),
+                'email_btn_text_color' => $request->input('email_btn_text_color'),
+            ]],
             ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp', ['whatsapp_mensaje' => $request->input('mensaje_whatsapp')]],
         ];
 
