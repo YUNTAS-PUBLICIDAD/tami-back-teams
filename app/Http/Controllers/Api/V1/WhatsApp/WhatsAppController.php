@@ -191,7 +191,9 @@ public function sendProductDetails(Request $request)
         $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
         
         $customSetting = new \stdClass();
-        $customSetting->whatsapp_message = $producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message;
+        $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje)) 
+            ? $imagenWhatsapp->whatsapp_mensaje 
+            : ($producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message);
         $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : null;
         
         $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
@@ -203,12 +205,12 @@ public function sendProductDetails(Request $request)
         $customSetting->email_message = $emailMensaje;
         $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : null;
 
-        // Para popups de producto, desactivamos el botón de correo según solicitud
-        $customSetting->email_btn_text = null;
-        $customSetting->email_btn_link = '#';
-        $customSetting->email_btn_bg_color = null;
-        $customSetting->email_btn_text_color = null;
-
+        // Usar la configuración del botón del producto si está disponible, de lo contrario usar la global
+        $customSetting->email_btn_text = ($imagenEmail && $imagenEmail->email_btn_text) ? $imagenEmail->email_btn_text : $setting->email_btn_text;
+        $customSetting->email_btn_link = ($imagenEmail && $imagenEmail->email_btn_link) ? $imagenEmail->email_btn_link : $setting->email_btn_link;
+        $customSetting->email_btn_bg_color = ($imagenEmail && $imagenEmail->email_btn_bg_color) ? $imagenEmail->email_btn_bg_color : $setting->email_btn_bg_color;
+        $customSetting->email_btn_text_color = ($imagenEmail && $imagenEmail->email_btn_text_color) ? $imagenEmail->email_btn_text_color : $setting->email_btn_text_color;
+ 
         $setting = $customSetting;
     }
 

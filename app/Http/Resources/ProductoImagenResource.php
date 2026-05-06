@@ -16,6 +16,10 @@ class ProductoImagenResource extends JsonResource
             'asunto' => $this->asunto,
             'whatsapp_mensaje' => $this->whatsapp_mensaje,
             'email_mensaje' => $this->email_mensaje,
+            'email_btn_text' => $this->email_btn_text,
+            'email_btn_link' => $this->email_btn_link,
+            'email_btn_bg_color' => $this->email_btn_bg_color,
+            'email_btn_text_color' => $this->email_btn_text_color,
             'tipo' => $this->tipo ?? 'galeria',
         ];
     }
