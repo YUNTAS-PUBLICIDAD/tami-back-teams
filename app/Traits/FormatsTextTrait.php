@@ -58,20 +58,32 @@ trait FormatsTextTrait
         $text = preg_replace('/<\/?(?:ul|ol)[^>]*>/i', "\n", $text);
 
         // 4. Formateo de WhatsApp: Negrita (*), Cursiva (_), Tachado (~)
-        // Agregamos espacios alrededor para asegurar que WhatsApp reconozca el formato si está pegado a otras palabras
-        $text = preg_replace_callback('/<(?:b|strong)[^>]*>(.*?)<\/(?:b|strong)>/is', function($matches) {
-            $content = trim(strip_tags($matches[1]));
-            return empty($content) ? '' : " *{$content}* ";
+        // Procesar cada línea por separado para evitar romper el formato si el usuario selecciona múltiples líneas
+        $formatMultiline = function($content, $char) {
+            $content = strip_tags($content);
+            $lines = explode("\n", $content);
+            $res = [];
+            foreach ($lines as $line) {
+                $trimmed = trim($line);
+                if ($trimmed !== '') {
+                    $res[] = "{$char}{$trimmed}{$char}";
+                } else {
+                    $res[] = '';
+                }
+            }
+            return " " . implode("\n", $res) . " ";
+        };
+
+        $text = preg_replace_callback('/<(?:b|strong)\b[^>]*>(.*?)<\/(?:b|strong)>/is', function($matches) use ($formatMultiline) {
+            return $formatMultiline($matches[1], '*');
         }, $text);
 
-        $text = preg_replace_callback('/<(?:i|em)[^>]*>(.*?)<\/(?:i|em)>/is', function($matches) {
-            $content = trim(strip_tags($matches[1]));
-            return empty($content) ? '' : " _{$content}_ ";
+        $text = preg_replace_callback('/<(?:i|em)\b[^>]*>(.*?)<\/(?:i|em)>/is', function($matches) use ($formatMultiline) {
+            return $formatMultiline($matches[1], '_');
         }, $text);
 
-        $text = preg_replace_callback('/<(?:s|strike|del)[^>]*>(.*?)<\/(?:s|strike|del)>/is', function($matches) {
-            $content = trim(strip_tags($matches[1]));
-            return empty($content) ? '' : " ~{$content}~ ";
+        $text = preg_replace_callback('/<(?:s|strike|del)\b[^>]*>(.*?)<\/(?:s|strike|del)>/is', function($matches) use ($formatMultiline) {
+            return $formatMultiline($matches[1], '~');
         }, $text);
 
         // 5. Limpiar cualquier otra etiqueta HTML restante
