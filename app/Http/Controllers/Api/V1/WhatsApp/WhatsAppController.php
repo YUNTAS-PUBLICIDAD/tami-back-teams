@@ -191,7 +191,9 @@ public function sendProductDetails(Request $request)
         $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
         
         $customSetting = new \stdClass();
-        $customSetting->whatsapp_message = $producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message;
+        $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje)) 
+            ? $imagenWhatsapp->whatsapp_mensaje 
+            : ($producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message);
         $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : null;
         
         $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
