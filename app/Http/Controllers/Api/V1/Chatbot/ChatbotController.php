@@ -42,7 +42,7 @@ class ChatbotController extends Controller
             'deco_detalle'          => $this->pasoDecoDetalle($mensaje, $context),
             'deco_precio'           => $this->pasoDecoPrecio($mensaje, $context),
 
-            // Negocio — 
+            // Negocio
             'neg_lista'             => $this->pasoNegLista($mensaje),
 
             // Asesor
@@ -85,53 +85,32 @@ class ChatbotController extends Controller
 
     // FLUJO NEGOCIO
 
-
     private function iniciarFlujoNegocio(): \Illuminate\Http\JsonResponse
     {
         return response()->json([
             'tipo'      => 'opciones',
             'respuesta' => 'Perfecto 👍 Estos son nuestros productos disponibles:',
-            'opciones'  => $this->obtenerTodosLosProductos(),
+            'opciones'  => $this->obtenerProductosPorSeccion('Negocio'),
             'context'   => ['paso' => 'neg_lista'],
         ]);
     }
 
-    private function obtenerTodosLosProductos(): array
-    {
-        
-        $productos = Producto::orderBy('id', 'desc')->take(8)->get();
-
-        if ($productos->isEmpty()) {
-            return [
-                ['label' => '⚙️ Maquinaria industrial',   'valor' => 'maquinaria industrial'],
-                ['label' => '🥤 Selladoras',               'valor' => 'selladora'],
-                ['label' => '✨ Decoración LED',            'valor' => 'decoracion led'],
-            ];
-        }
-
-        return $productos->map(fn($p) => [
-            'label' => $p->nombre,
-            'valor' => $p->nombre,
-        ])->toArray();
-    }
-
     private function pasoNegLista(string $mensaje): \Illuminate\Http\JsonResponse
     {
-        // Busca el producto seleccionado en la BD
-        $producto = Producto::where('nombre', 'LIKE', '%' . $mensaje . '%')->first();
+        $producto = Producto::where('seccion', 'Negocio')
+            ->where('nombre', 'LIKE', '%' . $mensaje . '%')
+            ->first();
 
         if (!$producto) {
             return response()->json([
                 'tipo'      => 'opciones',
                 'respuesta' => 'No encontré ese producto 🤔. Por favor elige una de las opciones:',
-                'opciones'  => $this->obtenerTodosLosProductos(),
+                'opciones'  => $this->obtenerProductosPorSeccion('Negocio'),
                 'context'   => ['paso' => 'neg_lista'],
             ]);
         }
 
-        $imagen = $producto->imagenes()->first();
-
-        // Construye descripción dinámica con los datos reales del producto
+        $imagen      = $producto->imagenes()->first();
         $descripcion = $producto->descripcion
             ? Str::limit($producto->descripcion, 200)
             : 'Producto de alta calidad ideal para tu negocio.';
@@ -157,27 +136,28 @@ class ChatbotController extends Controller
 
 
     // FLUJO MAQUINARIA
- 
 
     private function iniciarFlujoMaquinaria(): \Illuminate\Http\JsonResponse
     {
         return response()->json([
             'tipo'      => 'opciones',
             'respuesta' => 'Perfecto 👍 Estas son nuestras máquinas disponibles:',
-            'opciones'  => $this->obtenerMaquinas(),
+            'opciones'  => $this->obtenerProductosPorSeccion('Maquinaria'),
             'context'   => ['paso' => 'maq_lista'],
         ]);
     }
 
     private function pasoMaqLista(string $mensaje): \Illuminate\Http\JsonResponse
     {
-        $producto = Producto::where('nombre', 'LIKE', '%' . $mensaje . '%')->first();
+        $producto = Producto::where('seccion', 'Maquinaria')
+            ->where('nombre', 'LIKE', '%' . $mensaje . '%')
+            ->first();
 
         if (!$producto) {
             return response()->json([
                 'tipo'      => 'opciones',
                 'respuesta' => 'No encontré esa máquina 🤔. Por favor elige una de las opciones:',
-                'opciones'  => $this->obtenerMaquinas(),
+                'opciones'  => $this->obtenerProductosPorSeccion('Maquinaria'),
                 'context'   => ['paso' => 'maq_lista'],
             ]);
         }
@@ -239,57 +219,32 @@ class ChatbotController extends Controller
         $textoWa  = urlencode("Hola, soy {$mensaje}. Estoy interesado en: {$producto}. Ciudad: {$ciudad}.");
 
         return response()->json([
-        'tipo'          => 'fin_flujo',
-        'respuesta'     => "¡Gracias! 🙌\n\nPara recibir tu cotización completa, haz clic en el botón verde y un asesor te atenderá por WhatsApp 👇",
-        'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
-        'context'       => null,
-    ]);
+            'tipo'          => 'fin_flujo',
+            'respuesta'     => "¡Gracias! 🙌\n\nPara recibir tu cotización completa, haz clic en el botón verde y un asesor te atenderá por WhatsApp 👇",
+            'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
+            'context'       => null,
+        ]);
     }
 
-    // FLUJO DECORACIÓN
 
+    // FLUJO DECORACIÓN
 
     private function iniciarFlujoDecoracion(): \Illuminate\Http\JsonResponse
     {
         return response()->json([
             'tipo'      => 'opciones',
             'respuesta' => "¡Me encanta esa elección! ✨ La decoración realmente cambia todo el ambiente de un negocio 😍\n\nTenemos opciones súper bonitas y modernas 💡\n\nMira, te dejo aquí lo que puedes elegir:",
-            'opciones'  => $this->obtenerDecoracion(),
+            'opciones'  => $this->obtenerProductosPorSeccion('Decoración'),
             'context'   => ['paso' => 'deco_lista'],
         ]);
     }
 
-    private function obtenerDecoracion(): array
-    {
-        $productos = Producto::where('seccion', 'LIKE', '%deco%')
-            ->orWhere('seccion', 'LIKE', '%led%')
-            ->orWhere('nombre', 'LIKE', '%silla%')
-            ->orWhere('nombre', 'LIKE', '%mesa%')
-            ->orWhere('nombre', 'LIKE', '%led%')
-            ->take(6)
-            ->get();
-
-        if ($productos->isEmpty()) {
-            return [
-                ['label' => '🪑 Sillas cuadradas o de cubo',   'valor' => 'silla_cubo'],
-                ['label' => '💡 Mesa LED bar alta',             'valor' => 'mesa_led'],
-                ['label' => '🪑 Silla LED bar alta',            'valor' => 'silla_led'],
-                ['label' => '💡 Mesa LED bar alta cuadrada',    'valor' => 'mesa_led_cuadrada'],
-            ];
-        }
-
-        return $productos->map(fn($p) => [
-            'label' => $p->nombre,
-            'valor' => $p->nombre,
-        ])->toArray();
-    }
-
     private function pasoDecoLista(string $mensaje): \Illuminate\Http\JsonResponse
     {
-        // Primero intenta encontrar en BD
-        $producto = Producto::where('nombre', 'LIKE', '%' . $mensaje . '%')->first();
+        $producto = Producto::where('seccion', 'Decoración')
+            ->where('nombre', 'LIKE', '%' . $mensaje . '%')
+            ->first();
 
-        // Fallback para opciones fijas
         $detallesFijos = [
             'silla_cubo'        => ['nombre' => 'Silla cuadrada o de cubo',  'desc' => "✔️ Diseño moderno y resistente\n✔️ Ideal para locales comerciales\n✔️ Disponible en varios colores"],
             'mesa_led'          => ['nombre' => 'Mesa LED bar alta',          'desc' => "✔️ Batería recargable (10–12 horas)\n✔️ Cambia de colores\n✔️ Resistente al agua"],
@@ -307,7 +262,7 @@ class ChatbotController extends Controller
             return response()->json([
                 'tipo'      => 'opciones',
                 'respuesta' => 'Por favor elige una de las opciones disponibles 😊',
-                'opciones'  => $this->obtenerDecoracion(),
+                'opciones'  => $this->obtenerProductosPorSeccion('Decoración'),
                 'context'   => ['paso' => 'deco_lista'],
             ]);
         }
@@ -345,12 +300,13 @@ class ChatbotController extends Controller
         $textoWa  = urlencode("Hola, quisiera el precio y más detalles de: {$producto}");
 
         return response()->json([
-        'tipo'          => 'fin_flujo',
-        'respuesta'     => "¡Perfecto! 🙌 Haz clic en el botón verde para recibir el precio y todos los detalles de *{$producto}* por WhatsApp 👇",
-        'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
-        'context'       => null,
-    ]);
+            'tipo'          => 'fin_flujo',
+            'respuesta'     => "¡Perfecto! 🙌 Haz clic en el botón verde para recibir el precio y todos los detalles de *{$producto}* por WhatsApp 👇",
+            'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
+            'context'       => null,
+        ]);
     }
+
 
     // FLUJO ASESOR
 
@@ -360,7 +316,7 @@ class ChatbotController extends Controller
             'tipo'      => 'opciones',
             'respuesta' => "¡Perfecto! 🙌 Te ayudaré con una atención más personalizada.\n\nPara orientarte mejor, cuéntame 👇\n¿Qué tipo de negocio tienes?",
             'opciones'  => [
-                ['label' => '🧋 Bebidas (jugos, bubble tea, café)',  'valor' => 'bebidas'],
+                ['label' => '🧋 Bebidas (jugos, bubble tea, café)',   'valor' => 'bebidas'],
                 ['label' => '🍔 Comida (snacks, fast food, postres)', 'valor' => 'comida'],
                 ['label' => '🛍️ Retail / tienda',                    'valor' => 'retail'],
                 ['label' => '🎁 Regalos / personalizados',            'valor' => 'regalos'],
@@ -416,31 +372,27 @@ class ChatbotController extends Controller
         $textoWa  = urlencode("Hola, tengo un negocio de {$tipo} en {$mensaje} y me interesa: {$producto}. ¿Me pueden asesorar?");
 
         return response()->json([
-        'tipo'          => 'fin_flujo',
-        'respuesta'     => "¡Gracias por la información! 😊\n\nHaz clic en el botón verde para conectarte con un asesor especializado en {$tipo} 👇",
-        'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
-        'context'       => null,
-    ]);
+            'tipo'          => 'fin_flujo',
+            'respuesta'     => "¡Gracias por la información! 😊\n\nHaz clic en el botón verde para conectarte con un asesor especializado en {$tipo} 👇",
+            'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
+            'context'       => null,
+        ]);
     }
+
+
 
     // HELPERS
 
 
-    private function obtenerMaquinas(): array
+    private function obtenerProductosPorSeccion(string $seccion, int $limite = 8): array
     {
-        $productos = Producto::where('seccion', 'LIKE', '%maquin%')
-            ->orWhere('nombre', 'LIKE', '%selladora%')
-            ->orWhere('nombre', 'LIKE', '%embalaje%')
-            ->orWhere('nombre', 'LIKE', '%codificadora%')
-            ->take(6)
+        $productos = Producto::where('seccion', $seccion)
+            ->orderBy('id', 'desc')
+            ->take($limite)
             ->get();
 
         if ($productos->isEmpty()) {
-            return [
-                ['label' => '📦 Máquina de embalaje de té',        'valor' => 'embalaje de té'],
-                ['label' => '🥤 Selladora de vasos manual',         'valor' => 'selladora de vasos'],
-                ['label' => '💧 Selladora de bolsas para líquidos', 'valor' => 'selladora de bolsas'],
-            ];
+            return [['label' => '👨‍💼 Hablar con un asesor', 'valor' => 'asesor']];
         }
 
         return $productos->map(fn($p) => [
@@ -469,15 +421,13 @@ class ChatbotController extends Controller
                 );
             }
         } catch (\Throwable $e) {
-            // Loguear el error para revisión, pero no interrumpir el flujo del chatbot
             \Illuminate\Support\Facades\Log::error("Error al guardar lead desde chatbot: " . $e->getMessage());
         }
     }
 
+
     // CHATBOT LIBRE
-
-
-    private function contienePalabraClave($mensaje, $palabrasClave): bool
+    private function contienePalabraClave(string $mensaje, array $palabrasClave): bool
     {
         $mensajeLimpio   = strtolower(trim($mensaje));
         $palabrasMensaje = explode(' ', $mensajeLimpio);
@@ -513,7 +463,6 @@ class ChatbotController extends Controller
         if ($this->contienePalabraClave($mensajeUsuario, ['hola', 'ola', 'buenas', 'buenos dias', 'buen dia', 'holi']))
             return $this->respuestaBienvenida();
 
-        // Búsqueda de producto en BD
         $palabrasIgnoradas    = ['de','con','para','hola','ola','buenas','tienen','stock','del','quiero','busco','algo','mi','negocio','cuanto','cuesta','precio','que','como','cuando','donde','por','favor','necesito','saber','sobre','el','la','los','las','un','una','sin'];
         $palabrasBusqueda     = array_diff(explode(' ', $mensajeUsuario), $palabrasIgnoradas);
         $producto             = null;
