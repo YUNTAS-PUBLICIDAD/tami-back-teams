@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\ProductoImagen;
 use App\Models\Dimension;
-use App\Http\Controllers\Api\V1\Blog\BlogController;
 use App\Models\WhatsappTemplate;
 
 class Producto extends Model
@@ -15,6 +14,9 @@ class Producto extends Model
         'nombre',
         'link',
         'titulo',
+        'detalle_titulo_tamano',
+        'detalle_titulo_color',
+        'detalle_titulo_estilo',
         'subtitulo',
         'stock',
         'precio',
