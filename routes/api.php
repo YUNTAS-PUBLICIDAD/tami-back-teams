@@ -89,8 +89,7 @@ Route::prefix('v1')->group(function () {
         // Rutas protegidas (Solo ADMIN)
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
             Route::post('/', 'store');
-            Route::put('/{id}', 'update');
-            Route::patch('/{id}', 'update');
+            Route::match(['POST', 'PUT', 'PATCH'], '/{id}', 'update');
             Route::delete('/{id}', 'destroy');
         });
     });

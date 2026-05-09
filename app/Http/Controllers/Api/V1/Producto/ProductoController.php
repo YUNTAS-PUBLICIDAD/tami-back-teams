@@ -233,9 +233,9 @@ class ProductoController extends Controller
     {
         try {
             $datosValidados = $request->validated();
-            
+
             $producto = $this->productoService->createProducto($datosValidados, $request);
-            
+
             return $this->successMessage(
                 'Producto insertado exitosamente',
                 HttpStatusCode::CREATED->value
@@ -508,15 +508,21 @@ class ProductoController extends Controller
      */
     public function update(V2UpdateProductoRequest $request, string $id)
     {
-        Log::info('PATCH Producto Request received:', ['request_all' => $request->all(), 'id' => $id]);
-        
+        Log::info('UPDATE Producto Request received', [
+            'method' => $request->method(),
+            'request_all' => $request->all(),
+            'id' => $id
+        ]);
+
         try {
             $producto = Producto::findOrFail($id);
             $datosValidados = $request->validated();
             Log::info('Validated data:', ['datos_validados' => $datosValidados]);
-            
+
             $this->productoService->updateProducto($producto, $datosValidados, $request);
-            
+
+            Log::info('Producto actualizado exitosamente', ['id' => $id]);
+
             return $this->successMessage(
                 'Producto actualizado exitosamente',
                 HttpStatusCode::OK->value
@@ -524,6 +530,10 @@ class ProductoController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return $this->notFound('Producto');
         } catch (\Exception $e) {
+            Log::error('Error actualizando producto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return $this->handleException($e, 'actualizar el producto', true);
         }
     }
@@ -568,7 +578,7 @@ class ProductoController extends Controller
         try {
             $producto = Producto::findOrFail($id);
             $this->productoService->deleteProductoCompleto($producto);
-            
+
             return $this->successMessage(
                 'Producto eliminado exitosamente',
                 HttpStatusCode::OK->value

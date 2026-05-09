@@ -3,6 +3,9 @@
 namespace App\Http\Requests\Producto;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Log;
 
 class V2StoreProductoRequest extends FormRequest
 {
@@ -14,11 +17,45 @@ class V2StoreProductoRequest extends FormRequest
         return true;
     }
 
+    protected function failedValidation(Validator $validator): void
+    {
+        Log::error('V2StoreProductoRequest validation failed', [
+            'errors' => $validator->errors()->toArray(),
+            'input' => $this->all()
+        ]);
+
+        throw new HttpResponseException(
+            response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+                'message' => 'Validation failed'
+            ], 422)
+        );
+    }
+
     /**
      * Convert values before validation.
      */
     protected function prepareForValidation()
     {
+        $style = $this->input('detalle_titulo_estilo')
+            ?? $this->input('titulo_detalle_estilo')
+            ?? $this->input('title_style');
+
+        if (is_string($style)) {
+            $style = str_replace(['+', ' '], '_', mb_strtolower(trim($style)));
+        }
+
+        $this->merge([
+            'detalle_titulo_tamano' => $this->input('detalle_titulo_tamano')
+                ?? $this->input('titulo_detalle_tamano')
+                ?? $this->input('title_size'),
+            'detalle_titulo_color' => $this->input('detalle_titulo_color')
+                ?? $this->input('titulo_detalle_color')
+                ?? $this->input('title_color'),
+            'detalle_titulo_estilo' => $style,
+        ]);
+
         if ($this->has('relacionados') && is_array($this->relacionados)) {
             $this->merge([
                 'relacionados' => array_map('intval', $this->relacionados)
@@ -38,6 +75,9 @@ class V2StoreProductoRequest extends FormRequest
             'nombre' => "required|string|max:255|unique:productos,nombre",
             'link' => 'required|string|unique:productos,link|max:255',
             'subtitulo' => "nullable|string|max:255",
+            'detalle_titulo_tamano' => 'nullable|integer|min:8|max:200',
+            'detalle_titulo_color' => 'nullable|string|regex:/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/',
+            'detalle_titulo_estilo' => 'nullable|string|in:normal,negrita,cursiva,negrita_cursiva,subrayado',
             'stock' => "nullable|integer|max:1000|min:0",
             'precio' => "nullable|numeric|max:100000|min:0",
             'seccion' => "nullable|string|max:255",
@@ -77,7 +117,7 @@ class V2StoreProductoRequest extends FormRequest
             'email_btn_link' => 'nullable|url|max:255',
             'email_btn_bg_color' => 'nullable|string|regex:/^#([A-Fa-f0-9]{6})$/',
             'email_btn_text_color' => 'nullable|string|regex:/^#([A-Fa-f0-9]{6})$/',
-            
+
             // Imagen Whatsapp
             'imagen_whatsapp' => "nullable|file|image|max:3048",
             'texto_alt_whatsapp' => "nullable|string|max:2000",

@@ -91,18 +91,8 @@ class ChatbotController extends Controller
             'Consulta direcciones de las oficinas o plazos de entrega que te correspondan simplemente enviándonos la información en nuestro canal de WhatApp oficial 💬:'
         ];
 
-        $respuestasHumano = [
-            '👨‍💻 ¡Por supuesto! Uno de nuestros expertos humanos está listo para atenderte en WhatsApp ahora mismo. Haz clic aquí:',
-            '¡Entendido! Te voy a transferir con uno de nuestros asesores de atención al cliente para que te ayude personalmente:',
-            'Claro que sí, un humano te atenderá encantado. Solo toca el botón de aquí abajo para ir a WhatsApp:',
-            'A veces hablar con alguien es mejor. 🧑‍💼 Nuestro equipo está en línea y esperando tu mensaje:',
-            '¡Ya mismo! Te pongo en contacto directo con uno de nuestros ejecutivos de ventas por WhatsApp:',
-            '¡Con gusto! Estoy trasladando este caso. Solo necesitas dar un clic abajo para continuar tu llamada o chat de asistencia con alguien de Tami.',
-            'Entiendo perfecto, hay consultas que ameritan intervención de una persona. Entra a nuestra línea directa para conectarte al instante 🚀',
-            'Derivando con especialista... ⚙️ Entra al siguiente número de atención al cliente, un humano estará tomando asiento esperándote:',
-            'Tienes razón, conversemos frente a frente en este canal de WhatsApp. 👇 Allí uno de los chicos despeja todos tus cuestionamientos.',
-            '¡Genial! Alguien capacitado podrá resolver esta observación mejor que un bot 🤖. Anda para allá 👇 y te brindaran los detalles.'
-        ];
+            // Negocio
+            'neg_lista'             => $this->pasoNegLista($mensaje),
 
         $respuestasDefecto = [
             'Actualmente solo puedo ayudarte a buscar artículos de nuestro catálogo. Para consultas de precios, stock u otras dudas, nuestro equipo humano te atenderá encantado. 👇',
@@ -186,141 +176,184 @@ class ChatbotController extends Controller
             "Nuestro enfoque comercial es ayudarte a crecer. Contamos con soluciones industriales y de decoración empresarial. ¿Qué buscas?"
         ];
 
-        $respuestasHogar = [
-            "✨ Para decoración de locales y negocios contamos con:\n• Paneles decorativos (WPC, PVC)\n• Iluminación LED\n• Adornos modernos\n¿Deseas ver modelos para tu negocio?",
-            "Nuestra línea de decoración comercial resalta la imagen de cualquier local. 🏪 Tenemos paneles y acabados increíbles. Escríbenos:",
-            "¡Dale vida a tus espacios! Contamos con iluminación y recubrimientos decorativos de larga duración. ✨ Consulta aquí:",
-            "Si buscas paneles decorativos o iluminación moderna para tu negocio, estás en el lugar correcto. Mira las opciones arriba 👆",
-            "Transforma la estética de tu local con la decoración de Tami. Pide el folleto de paneles y adornos a un asesor:"
+    private function iniciarFlujoNegocio(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'opciones',
+            'respuesta' => 'Perfecto 👍 Estos son nuestros productos disponibles:',
+            'opciones'  => $this->obtenerProductosPorSeccion('Negocio'),
+            'context'   => ['paso' => 'neg_lista'],
+        ]);
+    }
+
+    private function pasoNegLista(string $mensaje): \Illuminate\Http\JsonResponse
+    {
+        $producto = Producto::where('seccion', 'Negocio')
+            ->where('nombre', 'LIKE', '%' . $mensaje . '%')
+            ->first();
+
+        if (!$producto) {
+            return response()->json([
+                'tipo'      => 'opciones',
+                'respuesta' => 'No encontré ese producto 🤔. Por favor elige una de las opciones:',
+                'opciones'  => $this->obtenerProductosPorSeccion('Negocio'),
+                'context'   => ['paso' => 'neg_lista'],
+            ]);
+        }
+
+        $imagen      = $producto->imagenes()->first();
+        $descripcion = $producto->descripcion
+            ? Str::limit($producto->descripcion, 200)
+            : 'Producto de alta calidad ideal para tu negocio.';
+
+        return response()->json([
+            'tipo'      => 'opciones',
+            'respuesta' => "¡Excelente elección! 👍\n\n{$descripcion}\n\n✔ Ideal para uso comercial\n✔ Alta calidad\n✔ Envíos a todo el Perú\n\nTe puedo enviar el precio actualizado y más detalles.\n\n👉 ¿Es para uso personal o negocio?",
+            'producto'  => [
+                'nombre' => $producto->nombre,
+                'imagen' => $imagen ? $imagen->url_imagen : null,
+            ],
+            'opciones'  => [
+                ['label' => '🏠 Uso personal', 'valor' => 'personal'],
+                ['label' => '🏢 Negocio',       'valor' => 'negocio_uso'],
+            ],
+            'context'   => [
+                'paso'     => 'maq_uso',
+                'flujo'    => 'negocio',
+                'producto' => $producto->nombre,
+            ],
+        ]);
+    }
+
+
+    // FLUJO MAQUINARIA
+
+    private function iniciarFlujoMaquinaria(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'opciones',
+            'respuesta' => 'Perfecto 👍 Estas son nuestras máquinas disponibles:',
+            'opciones'  => $this->obtenerProductosPorSeccion('Maquinaria'),
+            'context'   => ['paso' => 'maq_lista'],
+        ]);
+    }
+
+    private function pasoMaqLista(string $mensaje): \Illuminate\Http\JsonResponse
+    {
+        $producto = Producto::where('seccion', 'Maquinaria')
+            ->where('nombre', 'LIKE', '%' . $mensaje . '%')
+            ->first();
+
+            return response()->json([
+                'tipo'      => 'opciones',
+                'respuesta' => 'No encontré esa máquina 🤔. Por favor elige una de las opciones:',
+                'opciones'  => $this->obtenerProductosPorSeccion('Maquinaria'),
+                'context'   => ['paso' => 'maq_lista'],
+            ]);
+        }
+
+        $imagen      = $producto->imagenes()->first();
+        $descripcion = $producto->descripcion
+            ? Str::limit($producto->descripcion, 200)
+            : 'Máquina de alta calidad para uso comercial.';
+
+        return response()->json([
+            'tipo'      => 'opciones',
+            'respuesta' => "Excelente elección 👍\n\n{$descripcion}\n\n✔ Ideal para producción continua\n✔ Fácil operación\n✔ Uso comercial\n\nTe puedo enviar el precio actualizado y más detalles técnicos.\n\n👉 ¿Es para uso personal o negocio?",
+            'producto'  => [
+                'nombre' => $producto->nombre,
+                'imagen' => $imagen ? $imagen->url_imagen : null,
+            ],
+            'opciones'  => [
+                ['label' => '🏠 Uso personal', 'valor' => 'personal'],
+                ['label' => '🏢 Negocio',       'valor' => 'negocio'],
+            ],
+            'context'   => [
+                'paso'     => 'maq_uso',
+                'flujo'    => 'maquinaria',
+                'producto' => $producto->nombre,
+            ],
+        ]);
+    }
+
+    private function pasoMaqUso(string $mensaje, array $context): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'texto',
+            'respuesta' => "Perfecto 👌\n¿En qué ciudad te encuentras? (para cotizar envío también)",
+            'context'   => array_merge($context, [
+                'paso' => 'maq_ciudad',
+                'uso'  => $mensaje,
+            ]),
+        ]);
+    }
+
+    private function pasoMaqCiudad(string $mensaje, array $context): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'texto',
+            'respuesta' => "Genial 👍 Te envío la información completa con precio y envío.\n👉 ¿Me compartes tu nombre y número de WhatsApp?",
+            'context'   => array_merge($context, [
+                'paso'   => 'maq_datos_contacto',
+                'ciudad' => $mensaje,
+            ]),
+        ]);
+    }
+
+    private function pasoMaqDatosContacto(string $mensaje, array $context): \Illuminate\Http\JsonResponse
+    {
+        $this->guardarLeadCliente($mensaje, $context);
+
+        $producto = $context['producto'] ?? 'el producto';
+        $ciudad   = $context['ciudad']   ?? '';
+        $textoWa  = urlencode("Hola, soy {$mensaje}. Estoy interesado en: {$producto}. Ciudad: {$ciudad}.");
+
+        return response()->json([
+            'tipo'          => 'fin_flujo',
+            'respuesta'     => "¡Gracias! 🙌\n\nPara recibir tu cotización completa, haz clic en el botón verde y un asesor te atenderá por WhatsApp 👇",
+            'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
+            'context'       => null,
+        ]);
+    }
+
+
+    // FLUJO DECORACIÓN
+
+    private function iniciarFlujoDecoracion(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'opciones',
+            'respuesta' => "¡Me encanta esa elección! ✨ La decoración realmente cambia todo el ambiente de un negocio 😍\n\nTenemos opciones súper bonitas y modernas 💡\n\nMira, te dejo aquí lo que puedes elegir:",
+            'opciones'  => $this->obtenerProductosPorSeccion('Decoración'),
+            'context'   => ['paso' => 'deco_lista'],
+        ]);
+    }
+
+    private function pasoDecoLista(string $mensaje): \Illuminate\Http\JsonResponse
+    {
+        $producto = Producto::where('seccion', 'Decoración')
+            ->where('nombre', 'LIKE', '%' . $mensaje . '%')
+            ->first();
+
+        $detallesFijos = [
+            'silla_cubo'        => ['nombre' => 'Silla cuadrada o de cubo',  'desc' => "✔️ Diseño moderno y resistente\n✔️ Ideal para locales comerciales\n✔️ Disponible en varios colores"],
+            'mesa_led'          => ['nombre' => 'Mesa LED bar alta',          'desc' => "✔️ Batería recargable (10–12 horas)\n✔️ Cambia de colores\n✔️ Resistente al agua"],
+            'silla_led'         => ['nombre' => 'Silla LED bar alta',         'desc' => "✔️ Batería recargable (10–12 horas)\n✔️ Cambia de colores\n✔️ Resistente al agua"],
+            'mesa_led_cuadrada' => ['nombre' => 'Mesa LED bar alta cuadrada', 'desc' => "✔️ Batería recargable (10–12 horas)\n✔️ Cambia de colores\n✔️ Resistente al agua"],
         ];
 
-        // --- 1️⃣ BÚSQUEDA DE PRODUCTO O STOCK (Prioridad Máxima) ---
-        // Extraemos palabras clave y omitimos conectores
-        $palabrasIgnoradas = ['de', 'con', 'para', 'hola', 'ola', 'buenas', 'tienen', 'stock', 'del', 'quiero', 'busco', 'algo', 'mi', 'negocio', 'cuanto', 'cuesta', 'precio', 'que', 'como', 'cuando', 'donde', 'por', 'favor', 'necesito', 'saber', 'sobre', 'el', 'la', 'los', 'las', 'un', 'una', 'sin'];
-        $palabrasOriginales = explode(' ', $mensajeUsuario);
-        $palabrasBusqueda = array_diff($palabrasOriginales, $palabrasIgnoradas);
+        $nombre      = $producto ? $producto->nombre : ($detallesFijos[$mensaje]['nombre'] ?? $mensaje);
+        $descripcion = $producto
+            ? Str::limit($producto->descripcion ?? '', 200)
+            : ($detallesFijos[$mensaje]['desc'] ?? 'Producto decorativo de alta calidad.');
+        $imagen      = $producto ? $producto->imagenes()->first() : null;
 
-        $producto = null;
-        if (!empty($palabrasBusqueda)) {
-            $query = Producto::query();
-            $huboTerminos = false;
-
-            foreach($palabrasBusqueda as $palabra) {
-                $palabra = trim($palabra);
-                if (strlen($palabra) >= 3) {
-                    $huboTerminos = true;
-
-                    // Normalización básica de acentos para la consulta (MySQL suele ignorar acentos en LIKE con collation por defecto, pero por seguridad)
-                    $sinAcentos = str_replace(['á', 'é', 'í', 'ó', 'ú'], ['a', 'e', 'i', 'o', 'u'], $palabra);
-
-                    $query->orWhere('nombre', 'LIKE', '%' . $palabra . '%')
-                          ->orWhere('seccion', 'LIKE', '%' . $palabra . '%')
-                          ->orWhere('nombre', 'LIKE', '%' . $sinAcentos . '%');
-                    
-                    // Manejo de plurales y fragmentos (ej: selladoras -> selladora)
-                    if (str_ends_with($palabra, 's')) {
-                        $singular = substr($palabra, 0, -1);
-                        if (strlen($singular) >= 3) {
-                            $query->orWhere('nombre', 'LIKE', '%' . $singular . '%');
-                        }
-                    }
-                }
-            }
-
-            if ($huboTerminos) {
-                // Ordenar por relevancia (si el nombre contiene la palabra al inicio, es mejor) e intentar traer hasta 2 productos para no saturar
-                $productosEncontrados = $query->orderByRaw("CASE 
-                                    WHEN nombre LIKE ? THEN 1 
-                                    WHEN nombre LIKE ? THEN 2 
-                                    ELSE 3 END", [$mensajeUsuario.'%', '%'.$mensajeUsuario.'%'])
-                                  ->take(2)
-                                  ->get();
-                
-                if ($productosEncontrados->isNotEmpty()) {
-                    $producto = $productosEncontrados->first(); // Para compatibilidad si el front aún usa 'producto'
-                }
-            }
-        }
-
-        // SI NO ENCONTRAMOS PRODUCTO EXACTO, PERO MENCIONÓ MAQUINARIA/DECORACIÓN
-        // Intentamos traer un producto "ejemplo" de esa categoría para mostrar imagen
-        if (!$producto) {
-            $esMaquinaria = $this->contienePalabraClave($mensajeUsuario, ['maquina', 'industrial', 'compresora', 'selladora', 'codificadora', 'cortadora']);
-            $esDecoracion = $this->contienePalabraClave($mensajeUsuario, ['decorar', 'decoracion', 'paneles', 'iluminacion', 'adorno', 'luces', 'luces led', 'mesas led', 'mesa led']);
-
-            if ($esMaquinaria) {
-                $productosEncontrados = Producto::where('seccion', 'LIKE', '%maquina%')
-                                    ->orWhere('nombre', 'LIKE', '%selladora%')
-                                    ->orWhere('nombre', 'LIKE', '%compresora%')
-                                    ->take(2)
-                                    ->get();
-            } elseif ($esDecoracion) {
-                $productosEncontrados = Producto::where('seccion', 'LIKE', '%decoracion%')
-                                    ->orWhere('seccion', 'LIKE', '%panel%')
-                                    ->orWhere('nombre', 'LIKE', '%panel%')
-                                    ->orWhere('nombre', 'LIKE', '%luces%')
-                                    ->orWhere('nombre', 'LIKE', '%mesa%')
-                                    ->take(2)
-                                    ->get();
-            }
-
-            if (isset($productosEncontrados) && $productosEncontrados->isNotEmpty()) {
-                $producto = $productosEncontrados->first();
-            }
-        }
-
-        // SI ENCONTRAMOS UN PRODUCTO (O UN EJEMPLO DE LA CATEGORÍA), RESPONDEMOS CON TARJETA VISUAL
-        if ($producto) {
-            $items = [];
-            foreach($productosEncontrados as $p) {
-                $imagen = $p->imagenes()->first();
-                $urlImagen = $imagen ? $imagen->url_imagen : null;
-                $textoWa = urlencode("Hola Tami, me interesa consultar disponibilidad de: " . $p->nombre);
-                
-                $items[] = [
-                    'nombre' => $p->nombre,
-                    'descripcion' => Str::limit($p->descripcion, 100), 
-                    'imagen' => $urlImagen,
-                    'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text={$textoWa}"
-                ];
-            }
-            
-            $respuestasEncontroProducto = [
-                '✅ Sí tenemos disponibilidad de artículos en esa categoría. Mira estos modelos:',
-                '¡Bingo! 🎉 Encontré estos artículos en nuestro catálogo que coinciden con tu interés:',
-                '¡Claro! Contamos con stock de opciones similares. Dale un vistazo:',
-                'Aquí tienes lo que solicitaste. Te dejo la información a continuación, revísalo aquí:',
-                '¡Buenas noticias! Te conseguí información rápida. Revisa sus características 👍:'
-            ];
-
+        if (!$producto && !isset($detallesFijos[$mensaje])) {
             return response()->json([
-                'tipo' => 'producto',
-                'respuesta' => $respuestasEncontroProducto[array_rand($respuestasEncontroProducto)],
-                'productos' => $items, // Nueva clave plural
-                'producto' => $items[0], // Mantener singular para compatibilidad vieja
-                'link_whatsapp' => $items[0]['link_whatsapp']
-            ]);
-        }
-
-        // --- 2️⃣ INTENCIONES ESPECÍFICAS DE CATEGORÍA ---
-
-        // A. DECORACIÓN (Prioridad por ser actividad específica)
-        $hogarClave = ['decorar', 'decoracion', 'hogar', 'casa', 'adorno', 'paneles', 'iluminacion', 'interior'];
-        if ($this->contienePalabraClave($mensajeUsuario, $hogarClave)) {
-            return response()->json([
-                'tipo' => 'texto',
-                'respuesta' => $respuestasHogar[array_rand($respuestasHogar)],
-                'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20busco%20opciones%20de%20decoraci%C3%B3n%20para%20mi%20negocio."
-            ]);
-        }
-
-        // B. MAQUINARIA (Equipos industriales)
-        $maquinariaClave = ['maquinaria', 'maquina', 'industrial', 'compresora', 'selladora', 'codificadora', 'cortadora', 'tira'];
-        if ($this->contienePalabraClave($mensajeUsuario, $maquinariaClave)) {
-            return response()->json([
-                'tipo' => 'texto',
-                'respuesta' => $respuestasMaquinaria[array_rand($respuestasMaquinaria)],
-                'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20busco%20maquinaria%20industrial%20para%20mi%20negocio."
+                'tipo'      => 'opciones',
+                'respuesta' => 'Por favor elige una de las opciones disponibles 😊',
+                'opciones'  => $this->obtenerProductosPorSeccion('Decoración'),
+                'context'   => ['paso' => 'deco_lista'],
             ]);
         }
 
@@ -333,32 +366,180 @@ class ChatbotController extends Controller
                 'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20quisiera%20asesor%C3%ADa%20para%20mi%20emprendimiento."
             ]);
         }
+        return $this->pasoDecoPrecio($mensaje, $context);
+    }
 
-        // --- 4️⃣ PRECIO / COTIZACIONES ---
-        $preciosClave = ['precio', 'presio', 'prexi', 'costo', 'kosto', 'cuanto', 'kuanto', 'cuesta', 'valor', 'cotizar', 'cotizacion'];
-        if ($this->contienePalabraClave($mensajeUsuario, $preciosClave)) {
-            return response()->json([
-                'tipo' => 'texto',
-                'respuesta' => $respuestasPrecio[array_rand($respuestasPrecio)],
-                'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20quisiera%20consultar%20el%20precio%20de%20unos%20art%C3%ADculos."
-            ]);
+    private function pasoDecoPrecio(string $mensaje, array $context): \Illuminate\Http\JsonResponse
+    {
+        $producto = $context['producto'] ?? 'este producto';
+        $textoWa  = urlencode("Hola, quisiera el precio y más detalles de: {$producto}");
+
+        return response()->json([
+            'tipo'          => 'fin_flujo',
+            'respuesta'     => "¡Perfecto! 🙌 Haz clic en el botón verde para recibir el precio y todos los detalles de *{$producto}* por WhatsApp 👇",
+            'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
+            'context'       => null,
+        ]);
+    }
+
+
+    // FLUJO ASESOR
+
+    private function iniciarFlujoAsesor(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'opciones',
+            'respuesta' => "¡Perfecto! 🙌 Te ayudaré con una atención más personalizada.\n\nPara orientarte mejor, cuéntame 👇\n¿Qué tipo de negocio tienes?",
+            'opciones'  => [
+                ['label' => '🧋 Bebidas (jugos, bubble tea, café)',   'valor' => 'bebidas'],
+                ['label' => '🍔 Comida (snacks, fast food, postres)', 'valor' => 'comida'],
+                ['label' => '🛍️ Retail / tienda',                    'valor' => 'retail'],
+                ['label' => '🎁 Regalos / personalizados',            'valor' => 'regalos'],
+                ['label' => '🏭 Producción / industria',              'valor' => 'industria'],
+                ['label' => '🚀 Emprendimiento en inicio',            'valor' => 'emprendimiento'],
+                ['label' => '✏️ Otro',                                'valor' => 'otro'],
+            ],
+            'context'   => ['paso' => 'asesor_tipo_negocio'],
+        ]);
+    }
+
+    private function pasoAsesorTipoNegocio(string $mensaje): \Illuminate\Http\JsonResponse
+    {
+        $labels = [
+            'bebidas'        => 'Bebidas',
+            'comida'         => 'Comida',
+            'retail'         => 'Retail / tienda',
+            'regalos'        => 'Regalos / personalizados',
+            'industria'      => 'Producción / industria',
+            'emprendimiento' => 'Emprendimiento',
+            'otro'           => 'tu negocio',
+        ];
+
+        $tipo = $labels[$mensaje] ?? $mensaje;
+
+        return response()->json([
+            'tipo'      => 'texto',
+            'respuesta' => "¡Buenísimo! 🔥 El rubro de {$tipo} tiene mucha demanda.\n\nAhora dime, ¿qué tipo de maquinaria o producto te interesa?",
+            'context'   => [
+                'paso'         => 'asesor_producto',
+                'flujo'        => 'asesor',
+                'tipo_negocio' => $tipo,
+            ],
+        ]);
+    }
+
+    private function pasoAsesorProducto(string $mensaje, array $context): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'tipo'      => 'texto',
+            'respuesta' => "¡Excelente elección! 🔥 Por último, ¿en qué ciudad te encuentras?",
+            'context'   => array_merge($context, [
+                'paso'     => 'asesor_ciudad',
+                'producto' => $mensaje,
+            ]),
+        ]);
+    }
+
+    private function pasoAsesorCiudad(string $mensaje, array $context): \Illuminate\Http\JsonResponse
+    {
+        $tipo     = $context['tipo_negocio'] ?? '';
+        $producto = $context['producto']     ?? '';
+        $textoWa  = urlencode("Hola, tengo un negocio de {$tipo} en {$mensaje} y me interesa: {$producto}. ¿Me pueden asesorar?");
+
+        return response()->json([
+            'tipo'          => 'fin_flujo',
+            'respuesta'     => "¡Gracias por la información! 😊\n\nHaz clic en el botón verde para conectarte con un asesor especializado en {$tipo} 👇",
+            'link_whatsapp' => "https://wa.me/{$this->numeroWhatsapp}?text={$textoWa}",
+            'context'       => null,
+        ]);
+    }
+
+
+
+    // HELPERS
+
+
+    private function obtenerProductosPorSeccion(string $seccion, int $limite = 8): array
+    {
+        $productos = Producto::where('seccion', $seccion)
+            ->orderBy('id', 'desc')
+            ->take($limite)
+            ->get();
+
+        if ($productos->isEmpty()) {
+            return [['label' => '👨‍💼 Hablar con un asesor', 'valor' => 'asesor']];
         }
 
-        // --- 5️⃣ INFORMACIÓN GENERAL (UBICACIÓN, PAGOS, GARANTÍA, HORARIO) ---
-        $ubicacionClave = ['ubicacion', 'uvicacion', 'direccion', 'tienda', 'local', 'donde estan', 'envio', 'delivery'];
-        if ($this->contienePalabraClave($mensajeUsuario, $ubicacionClave)) {
-            return response()->json(['tipo' => 'texto','respuesta' => $respuestasUbicacion[array_rand($respuestasUbicacion)],'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20quiero%20info%20de%20env%C3%ADos."]);
+        return $productos->map(fn($p) => [
+            'label' => $p->nombre,
+            'valor' => $p->nombre,
+        ])->toArray();
+    }
+
+    private function guardarLeadCliente(string $datos, array $context): void
+    {
+        try {
+            $partes  = explode(',', $datos);
+            $nombre  = trim($partes[0] ?? '');
+            $celular = trim(preg_replace('/[^0-9]/', '', $partes[1] ?? ''));
+
+            if ($nombre) {
+                Cliente::updateOrCreate(
+                    ['celular' => $celular ?: null],
+                    [
+                        'nombre'   => $nombre,
+                        'celular'  => $celular ?: null,
+                        'ciudad'   => $context['ciudad']   ?? null,
+                        'producto' => $context['producto'] ?? null,
+                        'fuente'   => 'chatbot',
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Error al guardar lead desde chatbot: " . $e->getMessage());
         }
-        
-        $pagoClave = ['pago', 'pagar', 'yape', 'plin', 'tarjeta', 'transferencia', 'cuenta', 'contraentrega', 'efectivo'];
-        if ($this->contienePalabraClave($mensajeUsuario, $pagoClave)) {
-            return response()->json(['tipo' => 'texto','respuesta' => $respuestasPago[array_rand($respuestasPago)],'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20sobre%20m%C3%A9todos%20de%20pago."]);
+    }
+
+
+    // CHATBOT LIBRE
+    private function contienePalabraClave(string $mensaje, array $palabrasClave): bool
+    {
+        $mensajeLimpio   = strtolower(trim($mensaje));
+        $palabrasMensaje = explode(' ', $mensajeLimpio);
+
+        foreach ($palabrasClave as $palabra) {
+            if (str_contains($mensajeLimpio, $palabra)) return true;
+
+            foreach ($palabrasMensaje as $pm) {
+                if (abs(strlen($palabra) - strlen($pm)) > 2) continue;
+                $distancia = levenshtein($palabra, $pm);
+                if (strlen($palabra) <= 4 && $distancia === 0) return true;
+                elseif (strlen($palabra) <= 6 && $distancia <= 1) return true;
+                elseif (strlen($palabra) > 6 && $distancia <= 2) return true;
+            }
         }
 
-        $garantiaClave = ['garantia', 'cambio', 'devolucion', 'soporte', 'falla', 'reclamo', 'defectuoso'];
-        if ($this->contienePalabraClave($mensajeUsuario, $garantiaClave)) {
-            return response()->json(['tipo' => 'texto','respuesta' => $respuestasGarantia[array_rand($respuestasGarantia)],'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20necesito%20soporte%20logistico."]);
-        }
+    private function manejarChatbotLibre(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $mensajeUsuario = strtolower($request->input('mensaje', ''));
+        $numeroWhatsapp = $this->numeroWhatsapp;
+
+        // Puerta de entrada al flujo guiado desde texto libre
+        if ($this->contienePalabraClave($mensajeUsuario, ['maquinaria', 'maquina', 'selladora', 'embalaje', 'codificadora']))
+            return $this->iniciarFlujoMaquinaria();
+        if ($this->contienePalabraClave($mensajeUsuario, ['decoracion', 'decorar', 'silla led', 'mesa led', 'panel']))
+            return $this->iniciarFlujoDecoracion();
+        if ($this->contienePalabraClave($mensajeUsuario, ['negocio', 'emprendimiento', 'empresa', 'productos']))
+            return $this->iniciarFlujoNegocio();
+        if ($this->contienePalabraClave($mensajeUsuario, ['asesor', 'humano', 'persona', 'vendedor']))
+            return $this->iniciarFlujoAsesor();
+        if ($this->contienePalabraClave($mensajeUsuario, ['hola', 'ola', 'buenas', 'buenos dias', 'buen dia', 'holi']))
+            return $this->respuestaBienvenida();
+
+        $palabrasIgnoradas    = ['de','con','para','hola','ola','buenas','tienen','stock','del','quiero','busco','algo','mi','negocio','cuanto','cuesta','precio','que','como','cuando','donde','por','favor','necesito','saber','sobre','el','la','los','las','un','una','sin'];
+        $palabrasBusqueda     = array_diff(explode(' ', $mensajeUsuario), $palabrasIgnoradas);
+        $producto             = null;
+        $productosEncontrados = collect();
 
         $horarioClave = ['hora', 'horario', 'abren', 'cierran', 'domingo', 'atienden'];
         if ($this->contienePalabraClave($mensajeUsuario, $horarioClave)) {

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Producto;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -25,7 +27,7 @@ class ProductoService
      * @throws \Exception
      */
 
-    public function createProducto(array $datosValidados, $request): Producto
+    public function createProducto(array $datosValidados, Request $request): Producto
     {
         DB::beginTransaction();
         try {
@@ -71,7 +73,7 @@ class ProductoService
      * @return Producto
      * @throws \Exception
      */
-    public function updateProducto(Producto $producto, array $datosValidados, $request): Producto
+    public function updateProducto(Producto $producto, array $datosValidados, Request $request): Producto
     {
         DB::beginTransaction();
         try {
@@ -123,10 +125,13 @@ class ProductoService
 
             if (!empty($imagenesEditadasDatos)) {
                 foreach ($imagenesEditadasDatos as $index => $data) {
+                    $archivoEditado = $imagenesEditadasArchivos[$index] ?? null;
+                    $file = is_array($archivoEditado)
+                        ? ($archivoEditado['file'] ?? null)
+                        : $archivoEditado;
 
-                    if (isset($imagenesEditadasArchivos[$index]['file'])) {
+                    if ($file instanceof UploadedFile) {
 
-                        $file = $imagenesEditadasArchivos[$index]['file'];
                         $id = $data['id'];
                         $alt = $data['alt'] ?? '';
 
@@ -233,6 +238,9 @@ class ProductoService
             'nombre' => $datos['nombre'] ?? null,
             'link' => $datos['link'] ?? null,
             'titulo' => $datos['titulo'] ?? null,
+            'detalle_titulo_tamano' => $datos['detalle_titulo_tamano'] ?? null,
+            'detalle_titulo_color' => $datos['detalle_titulo_color'] ?? null,
+            'detalle_titulo_estilo' => $datos['detalle_titulo_estilo'] ?? null,
             'subtitulo' => $datos['subtitulo'] ?? null,
             'stock' => $datos['stock'] ?? null,
             'precio' => $datos['precio'] ?? null,
@@ -248,6 +256,9 @@ class ProductoService
             'nombre',
             'link',
             'titulo',
+            'detalle_titulo_tamano',
+            'detalle_titulo_color',
+            'detalle_titulo_estilo',
             'subtitulo',
             'stock',
             'precio',
@@ -331,7 +342,7 @@ class ProductoService
             // Check for explicit deletion flag
             if ($request->input("delete_$imagenKey") === "1" || $request->input("delete_$tipo") === "1") {
                 $this->imageService->deleteExistingImageByType($producto, $tipo);
-                
+
                 // If it's a type with extra text data (like WhatsApp/Email), we might want to keep the text
                 // but handleSpecialImage usually handles that. If we just want to delete the IMAGE:
                 if ($tipo === 'whatsapp' || $tipo === 'email') {
