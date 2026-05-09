@@ -5,85 +5,176 @@ namespace App\Http\Controllers\Api\V1\Chatbot;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Producto;
-use App\Models\Cliente;
 use Illuminate\Support\Str;
 
 class ChatbotController extends Controller
 {
-    private string $numeroWhatsapp = "51978883199";
+    /**
+     * Función ayudante para tolerar ciertos errores (typos).
+     * Devuelve true si encuentra alguna de las palabras clave en el mensaje.
+     */
+    private function contienePalabraClave($mensaje, $palabrasClave)
+    {
+        $mensajeLimpio = strtolower(trim($mensaje));
+        $palabrasMensaje = explode(' ', $mensajeLimpio);
+        
+        foreach ($palabrasClave as $palabra) {
+            // Chequeo exacto y subcadena
+            if (str_contains($mensajeLimpio, $palabra)) {
+                return true;
+            }
+            
+            // Distancia de Levenshtein ajustada a longitud para evitar falsos positivos
+            foreach ($palabrasMensaje as $pm) {
+                // Descartamos palabras muy diferentes en tamaño rápidamente
+                if (abs(strlen($palabra) - strlen($pm)) > 2) continue;
+
+                $distancia = levenshtein($palabra, $pm);
+
+                if (strlen($palabra) <= 4) {
+                    if ($distancia === 0) return true;
+                } elseif (strlen($palabra) <= 6) {
+                    if ($distancia <= 1) return true; // Permite 1 error (ej: presio vs precio)
+                } else {
+                    if ($distancia <= 2) return true; // Permite 2 errores (ej: uvicacion vs ubicacion)
+                }
+            }
+        }
+        return false;
+    }
 
     public function responder(Request $request)
     {
-        $context = $request->input('context', null);
+        // 1. Obtenemos el mensaje del usuario y lo pasamos a minúsculas
+        $mensajeUsuario = strtolower($request->input('mensaje', ''));
+        
+        // El número de WhatsApp al que redirigiremos
+        $numeroWhatsapp = "51978883199"; 
 
-        if ($context && isset($context['paso'])) {
-            return $this->manejarFlujoGuiado($request, $context);
-        }
+        // === LISTA DE RESPUESTAS DINÁMICAS (Para que no parezca bot) ===
+        $respuestasSaludo = [
+            '¡Hola! Qué gusto saludarte, soy el asistente de Tami 🤖. ¿Qué tipo de producto estás buscando hoy?',
+            '¡Hola, bienvenido a Tami! 👋 ¿En qué te puedo ayudar o qué producto buscas?',
+            '¡Hola hola! Soy el asistente virtual de Tami. Cuéntame, ¿qué estás buscando?',
+            '¡Hola! Es un placer atenderte. 😊 ¿Buscabas información sobre algún artículo en especial?',
+            '¡Buenas! Soy tu asesor virtual en Tami. Escribe el nombre del producto que buscas y te ayudaré al instante.',
+            '¡Hey! 😁 Bienvenido a Tami. Estoy aquí para ayudarte a ubicar lo que necesitas, ¿qué tienes en mente?',
+            '¡Saludos! Soy el bot amigable de Tami 🚀. Déjame saber si buscas algo específico en nuestro catálogo.',
+            '¡Hola y bienvenido! Estamos felices de recibirte. ¿Podrías indicarme qué andas buscando hoy?',
+            '¡Buen día! ☀️ Desde Tami te damos la bienvenida. Cuéntame en qué estás interesado y te mostraré opciones.',
+            '¡Hola, hola! Qué bueno verte por aquí. Escribe alguna palabra clave del producto y veamos si lo tenemos.'
+        ];
 
-        return $this->manejarChatbotLibre($request);
-    }
+        $respuestasPrecio = [
+            '💳 Nuestros precios varían según el modelo y stock actual. Para darte una cotización exacta al instante, escríbenos a nuestro WhatsApp:',
+            '💰 Para brindarte toda la información de costos y métodos de pago de forma personalizada, hemos habilitado nuestro WhatsApp:',
+            'Te comento que manejamos diferentes precios según el producto. ¿Me escribes a WhatsApp para cotizarte sin compromiso?',
+            '¡Claro! Los precios dependen del detalle de tu pedido. Un asesor te dará la lista completa de precios por WhatsApp aquí:',
+            'Para asegurarnos de darte el precio actualizado y descuentos disponibles, te redirigiré con un experto a WhatsApp:',
+            'Dado que los costos fluctúan según promociones vigentes 📉, uno de nuestros expertos te brindará la cotización ideal en WhatsApp:',
+            'Para darte un excelente precio oficial (y a lo mejor con algún dscto. 😁), solo indícanoslo vía mensaje por WhatsApp:',
+            '💵 La información de montos se maneja directamente con nuestros ejecutivos comerciales. Te dejamos la línea oficial de atención acá abajo:',
+            'Revisemos primero tu ubicación y cantidad. A partir de allí podremos armarte el presupuesto por nuestra línea de WhatsApp segura 🔒:',
+            'Cada artículo presenta variables técnicas que inciden en su valor comercial. Por ello preferimos atender precio netamente por WhatsApp comercial aquí:'
+        ];
 
-    private function manejarFlujoGuiado(Request $request, array $context): \Illuminate\Http\JsonResponse
-    {
-        $paso    = $context['paso'];
-        $mensaje = trim($request->input('mensaje', ''));
-
-        return match($paso) {
-            'menu_principal'        => $this->pasoMenuPrincipal($mensaje),
-
-            // Maquinaria
-            'maq_lista'             => $this->pasoMaqLista($mensaje),
-            'maq_uso'               => $this->pasoMaqUso($mensaje, $context),
-            'maq_ciudad'            => $this->pasoMaqCiudad($mensaje, $context),
-            'maq_datos_contacto'    => $this->pasoMaqDatosContacto($mensaje, $context),
-
-            // Decoración
-            'deco_lista'            => $this->pasoDecoLista($mensaje),
-            'deco_detalle'          => $this->pasoDecoDetalle($mensaje, $context),
-            'deco_precio'           => $this->pasoDecoPrecio($mensaje, $context),
+        $respuestasUbicacion = [
+            '📍 Realizamos envíos a todo el Perú de forma rápida y segura. Para coordinar una entrega o recojo, contacta a un asesor:',
+            '🚚 Nuestras entregas son 100% seguras y llegamos a nivel nacional. Coordina la tuya rápidamente por nuestro WhatsApp:',
+            'Para detalles sobre nuestra dirección, horarios físicos o programación de envíos, por favor conversa con nuestro equipo:',
+            '¡Llegamos a donde tú estés! 📦 Coordina el lugar de entrega de tus productos directamente con ventas aquí:',
+            'Te podemos enviar el pedido a domicilio o puedes pasar a recogerlo. Escríbele a nuestro asesor para acordar todo:',
+            '🌍 Actualmente trabajamos envíos garantizados. Si tienes interés en retirar tu propio paquete o envío a provincia, escríbenos primero para darte detalles:',
+            'Las zonas de despacho, direcciones presenciales y costos de ruta los validamos rápidamente si pinchas debajo y te comunicas vía WA.',
+            '🗺️ Si buscas retirar el pedido hoy o programar ruta para esta semana, ponte en contacto ahora mismo con nuestra área de entregas.',
+            'A nosotros también nos emociona que llegue rápido. 🏃‍♂️ ¡Habla ya con logística en WhatsApp presionando en este cuadro!',
+            'Consulta direcciones de las oficinas o plazos de entrega que te correspondan simplemente enviándonos la información en nuestro canal de WhatApp oficial 💬:'
+        ];
 
             // Negocio
             'neg_lista'             => $this->pasoNegLista($mensaje),
 
-            // Asesor
-            'asesor_tipo_negocio'   => $this->pasoAsesorTipoNegocio($mensaje),
-            'asesor_producto'       => $this->pasoAsesorProducto($mensaje, $context),
-            'asesor_ciudad'         => $this->pasoAsesorCiudad($mensaje, $context),
+        $respuestasDefecto = [
+            'Actualmente solo puedo ayudarte a buscar artículos de nuestro catálogo. Para consultas de precios, stock u otras dudas, nuestro equipo humano te atenderá encantado. 👇',
+            'Ups, no entendí muy bien 😅. Solo puedo buscar nombres de productos. Si necesitas algo más complejo, te invito a nuestro WhatsApp:',
+            'Lo siento, mi base de datos solo contiene nuestro catálogo. Si tienes preguntas técnicas o deseas saber el precio, conversemos en WhatsApp:',
+            'Aún sigo aprendiendo 🤖. Para no darte información errónea, es mejor que hables directamente con nuestro equipo de soporte:',
+            'No encontré lo que buscabas o no entendí la pregunta. ¿Te gustaría que un asesor nuestro de Tami te atienda en persona?',
+            'Hmm... Creo que tus palabras están fuera de mis actuales directrices. Por precaución prefiero dejarte comunicarte aquí 📞',
+            'Solo soy capaz de hacer búsquedas básicas. Para una charla sobre cosas complejas u otras solicitudes me apoyo en humanos. Entra aquí abajo 😉',
+            '😅 Creo que eso está un poco difícil de contestar para mí. Te enlazo para un contacto directo y oficial. 👉',
+            'Sinceramente, no lograré responder tu consulta. Disculpa. Para apoyarte me gustaría pasarte con mis diseñadores o el gerente responsable de área. 🙋‍♂️',
+            'Actualmente no dispongo de ese dato de ventas. ¡Lo bueno es que el botón inferior sí te lo da! 🔴 Entra e informa tu cuestionamiento directo al humano:'
+        ];
 
-            default                 => $this->respuestaBienvenida(),
-        };
-    }
+        // === NUEVOS ESCENARIOS ===
+        $respuestasPago = [
+            '💳 Aceptamos Yape, Plin, transferencias bancarias y todas las tarjetas. Para coordinar tu pago y confirmar tu pedido, haz clic aquí:',
+            '🏧 Tenemos pasarela de pago para tarjetas y también opciones de depósito (Yape/Plin/Transferencia). Escríbenos para enviarte los números de cuenta:',
+            '¡Facilitamos tu compra! Puedes pagar con las principales tarjetas o apps del Banco. Un asesor te guiará con el pago por WhatsApp:',
+            'Para brindarte los números de cuenta oficiales o el link de pago seguro de Tami, por favor contacta a ventas:',
+            'Recibimos pagos de todos los bancos. 💵 Por temas de seguridad, los números de Yape y cuentas solo te los entregará nuestro asesor si le escribes:',
+            'No te preocupes por cómo pagar, ¡tenemos todas las alternativas en el Checkout y por depósitos directos! Consulta tus dudas dándole click acá abajo.',
+            'Trabajamos con casi cada billetera móvil y banco local nacional para pago. Los asesores pueden certificar la compra de frente y brindarte las cuentas de Tami 💰.',
+            'Para confirmar el uso de abonos contra entrega u otra modalidad inusual, pregúntale ahora mismo a ventas (haz clic).',
+            'Nos aseguramos en que las trasferencias y pagos vía Niubiz o Mercado Pago sean las más sólidas. Para pedir su voucher dirígete acá 👇⬇️',
+            'Todos los pagos efectuados con la billetera digital o por ventanilla aplican rápido; por tanto la comunicación con Ventas debe hacerse por WA ahora 🕒.'
+        ];
 
+        $respuestasGarantia = [
+            '🛡️ Todos nuestros productos originales cuentan con garantía contra defectos de fábrica. Para tramitar algún inconveniente o reclamo, habla directo con nosotros:',
+            '¡Tu compra está segura! Si has tenido algún problema con un pedido o tienes dudas sobre la política de devoluciones, nuestro equipo te ayudará en WhatsApp:',
+            'Para reportar una falla, ejercer garantía o recibir soporte post-venta personalizado, nuestra área encargada te atiende aquí:',
+            'Nos tomamos muy en serio la calidad de Tami. Si requieres ayuda técnica o devolver un producto, haz clic abajo para conversar con soporte:',
+            '¿Dudas sobre garantías? Tranquilo/a. Escribe a nuestro canal oficial adjuntando tu número de pedido o boleta/factura:',
+            'Si requieres reclamar por una descompostura interna de fábrica o daños logísticos, un asesor se encarga de orientar ese caso de forma prioritaria.',
+            '¡En Tami la Post Venta es primordial! Si cuentas con algún percance por favor accede sin demoras al panel de atención por chat.',
+            'Ofrecemos soporte integral sobre compras realizadas y cubrimos imperfectos si proceden según evaluación de técnicos 👨‍🔧. Inicia aquí.',
+            '¿Vino con detalles extraños o es una desconfiguración? Para tramitar devolución 💡 envía fotografías para iniciar el proceso de inmediato.',
+            'Lamento muchísimo oír lo de las averías eventuales en tu adquisición. Ayudanos con evidencia dirigiéndote al grupo asignado cliqueando abajo:'
+        ];
 
-    // BIENVENIDA
+        $respuestasHorario = [
+            '🕒 Nuestro horario de atención por WhatsApp y redes es de Lunes a Sábado, en horario comercial. ¡Pero puedes dejarnos tu mensaje ahora mismo!',
+            'Trabajamos arduamente durante la semana. Si nos escribes ahora al WhatsApp, te responderemos en el menor tiempo posible ⏳:',
+            'Aunque estemos fuera de horario, nuestro buzón de WhatsApp siempre recibe solicitudes y respondemos apenas estemos en línea. ¡Escríbenos!',
+            'Para conocer los horarios exactos de tienda física o si deseas que te contactemos en la mañana, déjanos tu interés por aquí:',
+            '¡Claro! Atendemos de corrido en días de semana. Puedes confirmar si estamos abiertos y activos justo ahora mandándonos un mensaje:',
+            'Por lo normal, nuestro equipo descansa los domingos, pero los mensajes pueden gestionarse el lunes temprano. 📲 Déjelo cargando ya. ',
+            'Normalmente laboramos turnos diurnos. Si tienes alguna prisa para una recolección escribe pidiendo las agendas reales vigentes 😉',
+            'Estamos enfocados en brindar respuestas durante el horario hábil; ¡siempre un representante lo revisará! Intenta el siguiente contacto interno 🧑‍💻',
+            'Las líneas de WhatsApp Oficial de Empresa usualmente están de sol a sol ☀️ pero puedes dejarnos tu texto e inquietud sin compromisos de horario en el enlace.',
+            'Nuestros relojes no paran para el negocio! Pese a esto el horario presencial final lo dará ventas si los requieres clicando el link 🕓.'
+        ];
 
-    private function respuestaBienvenida(): \Illuminate\Http\JsonResponse
-    {
-        return response()->json([
-            'tipo'      => 'opciones',
-            'respuesta' => "¡Hola! 👋 Soy la Asistente Tami, estoy aquí para ayudarte a encontrar la maquinaria o productos ideales para tu negocio.\n\n¿Qué te gustaría hacer?",
-            'opciones'  => [
-                ['label' => '🚀 Negocio',              'valor' => 'negocio'],
-                ['label' => '⚙️ Maquinaria',            'valor' => 'maquinaria'],
-                ['label' => '✨ Decoración',             'valor' => 'decoracion'],
-                ['label' => '👨‍💼 Hablar con asesor',    'valor' => 'asesor'],
-            ],
-            'context'   => ['paso' => 'menu_principal'],
-        ]);
-    }
+        $respuestasAgradecimiento = [
+            '¡De nada! Ha sido un placer. Recuerda que ante cualquier duda adicional siempre estaremos para ti. 🌟',
+            '¡A ti por preferirnos! Si más adelante decides hacer una compra o consultar otra cosa, por aquí andaré. Que tengas un súper día. ✨',
+            '¡Fue un gusto! Cuídate mucho. Aquí te dejamos el botón de WhatsApp por si nos necesitas luego.',
+            '¡No hay problema! Siempre es bueno ayudar. Que todo vaya excelente con tus proyectos de Tami. 👋',
+            '¡Un placer servirte! Nos vemos pronto. ¡Cualquier otra consulta técnica o comercial, aquí estaremos!',
+            '¡Todo bien, suerte en tus labores y vuelve cuando desees investigar sobre otras promociones!. 😊👍',
+            'Gracias por tu comunicación. Quedo en stand-by 🤖 para el futuro, deseándote buen día.',
+            'Perfecto. Para ser un Bot, amé charlar contigo jaja 😄. Hasta pronto.',
+            '¡Ok, listo! Yo seguiré online aquí en Tami por si tuvieras interés luego en consultar qué catálogo manejamos.',
+            'Bien, comprendido. Te veo lueguito para explorar artículos de Tami 💼.'
+        ];
 
-    private function pasoMenuPrincipal(string $mensaje): \Illuminate\Http\JsonResponse
-    {
-        return match(strtolower($mensaje)) {
-            'maquinaria'  => $this->iniciarFlujoMaquinaria(),
-            'decoracion'  => $this->iniciarFlujoDecoracion(),
-            'negocio'     => $this->iniciarFlujoNegocio(),
-            'asesor'      => $this->iniciarFlujoAsesor(),
-            default       => $this->respuestaBienvenida(),
-        };
-    }
+        $respuestasMaquinaria = [
+            "🔥 En Maquinaria industrial somos líderes. Contamos con:\n• Selladoras de bolsas\n• Compresoras de aire\n• Cortadoras de materiales\n• Codificadoras\n¿Ventas te puede cotizar alguna mañana?",
+            "Nuestras máquinas industriales son el motor de muchos emprendimientos. Tenemos selladoras, compresoras y más. ¿Buscas algún modelo?",
+            "Para producción industrial contamos con un catálogo completo de maquinaria certificada. 🏗️ ¿Deseas ver selladoras o compresoras?",
+            "Si buscas potencia para tu fábrica, nuestras compresoras y selladoras industriales son ideales. Consulta stock aquí:",
+            "Mejora tu línea de producción con maquinaria Tami. Ofrecemos equipos industriales de alto rendimiento. ¡Habla con un asesor!"
+        ];
 
-    // FLUJO NEGOCIO
+        $respuestasNegocio = [
+            "🚀 ¡Impulsamos tu emprendimiento! En Tami te ayudamos con:\n• Maquinaria Industrial (producción)\n• Decoración Comercial (imagen de local)\n¿En qué área necesitas apoyo hoy?",
+            "Para un negocio exitoso necesitas buena producción y una imagen impecable. 🏪 ¿Buscas maquinaria o decoración para tu local?",
+            "En Tami somos aliados de los emprendedores. Te ofrecemos desde equipos industriales hasta paneles decorativos. ¿Cuál te interesa?",
+            "Si estás iniciando una empresa, tenemos todo en maquinaria y acabados decorativos. 📈 ¡Escríbenos para enviarte el catálogo!",
+            "Nuestro enfoque comercial es ayudarte a crecer. Contamos con soluciones industriales y de decoración empresarial. ¿Qué buscas?"
+        ];
 
     private function iniciarFlujoNegocio(): \Illuminate\Http\JsonResponse
     {
@@ -153,7 +244,6 @@ class ChatbotController extends Controller
             ->where('nombre', 'LIKE', '%' . $mensaje . '%')
             ->first();
 
-        if (!$producto) {
             return response()->json([
                 'tipo'      => 'opciones',
                 'respuesta' => 'No encontré esa máquina 🤔. Por favor elige una de las opciones:',
@@ -267,29 +357,14 @@ class ChatbotController extends Controller
             ]);
         }
 
-        return response()->json([
-            'tipo'      => 'opciones',
-            'respuesta' => "¡Buena elección! 😍 *{$nombre}* le da un toque increíble a tu espacio ✨\n\n{$descripcion}\n\nCon gusto te paso el precio y más detalles 😉",
-            'producto'  => [
-                'nombre' => $nombre,
-                'imagen' => $imagen ? $imagen->url_imagen : null,
-            ],
-            'opciones'  => [
-                ['label' => '💰 Quiero precio y más detalles', 'valor' => 'quiero_precio'],
-                ['label' => '🔙 Ver otros productos',          'valor' => 'volver'],
-            ],
-            'context'   => [
-                'paso'     => 'deco_detalle',
-                'flujo'    => 'decoracion',
-                'producto' => $nombre,
-            ],
-        ]);
-    }
-
-    private function pasoDecoDetalle(string $mensaje, array $context): \Illuminate\Http\JsonResponse
-    {
-        if ($mensaje === 'volver') {
-            return $this->iniciarFlujoDecoracion();
+        // C. NEGOCIO / EMPRENDIMIENTO (General - Si no dijo decorar o maquina)
+        $negocioClave = ['negocio', 'emprendimiento', 'empresa', 'taller', 'fabrica', 'produccion', 'negosio'];
+        if ($this->contienePalabraClave($mensajeUsuario, $negocioClave)) {
+            return response()->json([
+                'tipo' => 'texto',
+                'respuesta' => $respuestasNegocio[array_rand($respuestasNegocio)],
+                'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20quisiera%20asesor%C3%ADa%20para%20mi%20emprendimiento."
+            ]);
         }
         return $this->pasoDecoPrecio($mensaje, $context);
     }
@@ -443,8 +518,6 @@ class ChatbotController extends Controller
                 elseif (strlen($palabra) > 6 && $distancia <= 2) return true;
             }
         }
-        return false;
-    }
 
     private function manejarChatbotLibre(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -468,94 +541,96 @@ class ChatbotController extends Controller
         $producto             = null;
         $productosEncontrados = collect();
 
-        if (!empty($palabrasBusqueda)) {
-            $query        = Producto::query();
-            $huboTerminos = false;
+        $horarioClave = ['hora', 'horario', 'abren', 'cierran', 'domingo', 'atienden'];
+        if ($this->contienePalabraClave($mensajeUsuario, $horarioClave)) {
+            return response()->json(['tipo' => 'texto','respuesta' => $respuestasHorario[array_rand($respuestasHorario)],'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20cu%C3%A1les%20son%20sus%20horarios."]);
+        }
+        
+        $humanoClave = ['humano', 'asesor', 'persona', 'alguien', 'ejecutivo', 'vendedor', 'operador'];
+        if ($this->contienePalabraClave($mensajeUsuario, $humanoClave)) {
+            return response()->json(['tipo' => 'texto','respuesta' => $respuestasHumano[array_rand($respuestasHumano)],'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20necesito%20un%20asesor."]);
+        }
 
-            foreach ($palabrasBusqueda as $palabra) {
-                $palabra = trim($palabra);
-                if (strlen($palabra) >= 3) {
-                    $huboTerminos = true;
-                    $sinAcentos   = str_replace(['á','é','í','ó','ú'], ['a','e','i','o','u'], $palabra);
-                    $query->orWhere('nombre', 'LIKE', "%{$palabra}%")
-                          ->orWhere('seccion', 'LIKE', "%{$palabra}%")
-                          ->orWhere('nombre', 'LIKE', "%{$sinAcentos}%");
-                    if (str_ends_with($palabra, 's')) {
-                        $singular = substr($palabra, 0, -1);
-                        if (strlen($singular) >= 3) $query->orWhere('nombre', 'LIKE', "%{$singular}%");
-                    }
+        // --- 3️⃣ RECOMENDACIONES / DESTACADOS ---
+        $recomendacionesClave = ['recomienda', 'recomiendas', 'recomendacion', 'destacados', 'destacado', 'populares', 'mas vendidos', 'mejores'];
+        if ($this->contienePalabraClave($mensajeUsuario, $recomendacionesClave)) {
+            $productosDestacados = Producto::orderBy('id', 'desc')->take(2)->get();
+            if ($productosDestacados->isNotEmpty()) {
+                $items = [];
+                foreach($productosDestacados as $p) {
+                    $imagen = $p->imagenes()->first();
+                    $urlImagen = $imagen ? $imagen->url_imagen : null;
+                    $textoWa = urlencode("Hola Tami, me interesa consultar sobre este producto destacado: " . $p->nombre);
+                    
+                    $items[] = [
+                        'nombre' => $p->nombre,
+                        'descripcion' => Str::limit($p->descripcion, 100), 
+                        'imagen' => $urlImagen,
+                        'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text={$textoWa}"
+                    ];
                 }
-            }
-
-            if ($huboTerminos) {
-                $productosEncontrados = $query->orderByRaw(
-                    "CASE WHEN nombre LIKE ? THEN 1 WHEN nombre LIKE ? THEN 2 ELSE 3 END",
-                    ["{$mensajeUsuario}%", "%{$mensajeUsuario}%"]
-                )->take(2)->get();
-
-                if ($productosEncontrados->isNotEmpty()) $producto = $productosEncontrados->first();
+                return response()->json([
+                    'tipo' => 'producto',
+                    'respuesta' => '🌟 ¡Excelente elección! Aquí te muestro nuestros productos más destacados del momento:',
+                    'productos' => $items,
+                    'producto' => $items[0],
+                    'link_whatsapp' => $items[0]['link_whatsapp']
+                ]);
             }
         }
 
-        if ($producto) {
-            $items = $productosEncontrados->map(function ($p) use ($numeroWhatsapp) {
-                $imagen  = $p->imagenes()->first();
-                $textoWa = urlencode("Hola, me interesa consultar disponibilidad de: {$p->nombre}");
-                return [
-                    'nombre'        => $p->nombre,
-                    'descripcion'   => Str::limit($p->descripcion, 100),
-                    'imagen'        => $imagen ? $imagen->url_imagen : null,
-                    'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text={$textoWa}",
-                ];
-            })->toArray();
-
-            $frases = ['✅ Encontré estos artículos en nuestro catálogo:', '¡Claro! Contamos con estas opciones:'];
+        // --- 5.5️⃣ CATÁLOGO / QUÉ VENDEN ---
+        $catalogoClave = ['catalogo', 'productos', 'venden', 'vendes', 'ofrecen', 'rubros', 'categorias', 'vender', 'si', 'claro', 'muestrame', 'enviame', 'mandame', 'verlos', 'modelos', 'foto', 'fotos', 'video'];
+        if ($this->contienePalabraClave($mensajeUsuario, $catalogoClave)) {
+            $respuestasCatalogo = [
+                "En Tami somos expertos en 🏭 Maquinaria Industrial y ✨ Decoración Comercial. Pide el catálogo completo aquí:",
+                "¡Excelente! 🚀 Tenemos un catálogo PDF con todos los modelos instalados de maquinaria y paneles. Escríbenos:",
+                "¡Perfecto! Un asesor te enviará los modelos y el catálogo digital por WhatsApp ahora mismo. Entra aquí:",
+                "¡Claro que sí! Contamos con un folleto interactivo de nuestras líneas de negocio. Pídelo aquí:",
+                "¡Sin problemas! El catálogo oficial de Tami con precios y stock lo manejamos vía WhatsApp en este enlace:"
+            ];
             return response()->json([
-                'tipo'          => 'producto',
-                'respuesta'     => $frases[array_rand($frases)],
-                'productos'     => $items,
-                'producto'      => $items[0],
-                'link_whatsapp' => $items[0]['link_whatsapp'],
+                'tipo' => 'texto',
+                'respuesta' => $respuestasCatalogo[array_rand($respuestasCatalogo)],
+                'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20quisiera%20el%20cat%C3%A1logo%20y%20ver%20los%20modelos."
             ]);
         }
 
-        // Intenciones específicas
-        $preciosClave   = ['precio','presio','costo','cuanto','cuesta','valor','cotizar'];
-        $ubicacionClave = ['ubicacion','direccion','tienda','local','envio','delivery'];
-        $pagoClave      = ['pago','pagar','yape','plin','tarjeta','transferencia'];
-        $garantiaClave  = ['garantia','cambio','devolucion','soporte','falla','reclamo'];
-        $horarioClave   = ['hora','horario','abren','cierran','atienden'];
-        $catalogoClave  = ['catalogo','venden','ofrecen','categorias','modelos','foto'];
-        $despedidaClave = ['gracias','ok','vale','listo','perfecto','chau','adios'];
+        // --- 6️⃣ DESPEDIDAS ---
+        $despedidaClave = ['gracias', 'ok', 'vale', 'listo', 'perfecto', 'chau', 'chao', 'adios', 'hasta luego'];
+        if ($this->contienePalabraClave($mensajeUsuario, $despedidaClave)) {
+            return response()->json(['tipo' => 'texto','respuesta' => $respuestasAgradecimiento[array_rand($respuestasAgradecimiento)]]);
+        }
 
-        $respuestasPrecio    = ['💳 Los precios varían según modelo y stock. Para una cotización exacta, escríbenos:', '💰 Un asesor te dará la cotización personalizada por WhatsApp:'];
-        $respuestasUbicacion = ['📍 Realizamos envíos a todo el Perú. Coordina tu envío aquí:', '🚚 Llegamos a nivel nacional. Escríbenos:'];
-        $respuestasPago      = ['💳 Aceptamos Yape, Plin, transferencias y tarjetas:', '🏧 Todas las opciones de pago disponibles. Escríbenos:'];
-        $respuestasGarantia  = ['🛡️ Todos nuestros productos tienen garantía. Para reclamos:', '¡Tu compra está segura! Para soporte, escríbenos:'];
-        $respuestasHorario   = ['🕒 Atendemos Lunes a Sábado en horario comercial. ¡Escríbenos!', 'Puedes dejarnos tu mensaje en cualquier momento:'];
-        $respuestasAgradec   = ['¡De nada! Ha sido un placer. 🌟', '¡A ti por preferirnos! Que tengas un súper día. ✨'];
+        // --- 7️⃣ SALUDO SIMPLE (Si no hubo producto ni intención, recién saludamos) ---
+        $saludosClave = ['hola', 'ola', 'buenas', 'buenos dias', 'buen dia', 'buenas tardes', 'buenas noches', 'holi'];
+        if ($this->contienePalabraClave($mensajeUsuario, $saludosClave)) {
+            // Respuestas alineadas al prompt: Directas y Breves.
+            $respuestasSaludoSimple = [
+                '¡Hola! 👋 ¿Qué producto o maquinaria estás buscando hoy?',
+                '¡Hola! Bienvenido a Tami 😊. ¿Buscas artículos para hogar o para tu negocio?',
+                '¡Hola, qué tal! Escribe el nombre o categoría del producto que te interese.',
+                '¡Saludos! 🚀 ¿En qué te puedo ayudar o qué producto buscas?',
+                '¡Buen día! ☀️ Desde Tami te damos la bienvenida. ¿Qué categoría te interesa ver hoy?'
+            ];
+            return response()->json([
+                'tipo' => 'texto',
+                'respuesta' => $respuestasSaludoSimple[array_rand($respuestasSaludoSimple)]
+            ]);
+        }
 
-        if ($this->contienePalabraClave($mensajeUsuario, $preciosClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>$respuestasPrecio[array_rand($respuestasPrecio)],'link_whatsapp'=>"https://wa.me/{$numeroWhatsapp}?text=Hola,%20quisiera%20consultar%20el%20precio."]);
-        if ($this->contienePalabraClave($mensajeUsuario, $ubicacionClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>$respuestasUbicacion[array_rand($respuestasUbicacion)],'link_whatsapp'=>"https://wa.me/{$numeroWhatsapp}?text=Hola,%20quiero%20info%20de%20envios."]);
-        if ($this->contienePalabraClave($mensajeUsuario, $pagoClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>$respuestasPago[array_rand($respuestasPago)],'link_whatsapp'=>"https://wa.me/{$numeroWhatsapp}?text=Hola,%20sobre%20metodos%20de%20pago."]);
-        if ($this->contienePalabraClave($mensajeUsuario, $garantiaClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>$respuestasGarantia[array_rand($respuestasGarantia)],'link_whatsapp'=>"https://wa.me/{$numeroWhatsapp}?text=Hola,%20necesito%20soporte."]);
-        if ($this->contienePalabraClave($mensajeUsuario, $horarioClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>$respuestasHorario[array_rand($respuestasHorario)],'link_whatsapp'=>"https://wa.me/{$numeroWhatsapp}?text=Hola,%20cuales%20son%20sus%20horarios."]);
-        if ($this->contienePalabraClave($mensajeUsuario, $catalogoClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>'¡Un asesor te enviará el catálogo completo!','link_whatsapp'=>"https://wa.me/{$numeroWhatsapp}?text=Hola,%20quisiera%20el%20catalogo."]);
-        if ($this->contienePalabraClave($mensajeUsuario, $despedidaClave))
-            return response()->json(['tipo'=>'texto','respuesta'=>$respuestasAgradec[array_rand($respuestasAgradec)]]);
-
-        // Default
-        $defecto = ['No entendí bien 😅. ¿Me indicas el producto o categoría? O escríbenos directamente:', 'Puedo ayudarte mejor si me dices qué producto buscas. O contáctanos:'];
+        // --- 8️⃣ RESPUESTA POR DEFECTO (No entiendo) ---
+        $respuestasDefectoNuevas = [
+            'Aún estoy aprendiendo 🤖. ¿Podrías indicarme el producto o categoría que buscas? O habla con un asesor aquí:',
+            'No reconocí el término 😅. Te invito a conversar directamente con un humano en nuestro WhatsApp:',
+            'Mi base de datos solo detecta categorías específicas como "panel" o "impresora". Conversemos en WhatsApp:',
+            '¿Buscas algo muy específico? 🤔 Mejor te redirijo de inmediato con nuestro equipo de soporte humano:',
+            'Para no darte información errónea sobre temas puntuales, es mejor que hables con ventas presionando aquí:'
+        ];
         return response()->json([
-            'tipo'          => 'texto',
-            'respuesta'     => $defecto[array_rand($defecto)],
-            'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20necesito%20ayuda.",
+            'tipo' => 'texto',
+            'respuesta' => $respuestasDefectoNuevas[array_rand($respuestasDefectoNuevas)],
+            'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20necesito%20ayuda%20para%20encontrar%20algo."
         ]);
     }
 }
