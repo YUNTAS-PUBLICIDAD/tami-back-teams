@@ -191,10 +191,31 @@ public function sendProductDetails(Request $request)
         $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
         
         $customSetting = new \stdClass();
+        
+        // Mensaje 1
         $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje)) 
             ? $imagenWhatsapp->whatsapp_mensaje 
             : ($producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message);
-        $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : null;
+        $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : $setting->whatsapp_image_url;
+        $customSetting->whatsapp_time_1 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_1 : $setting->whatsapp_time_1;
+
+        // Mensaje 2
+        $customSetting->whatsapp_message_2 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje_2)) 
+            ? $imagenWhatsapp->whatsapp_mensaje_2 
+            : $setting->whatsapp_message_2;
+        $customSetting->whatsapp_image_url_2 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_image_url_2)) 
+            ? $imagenWhatsapp->whatsapp_image_url_2 
+            : $setting->whatsapp_image_url_2;
+        $customSetting->whatsapp_time_2 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_2 : $setting->whatsapp_time_2;
+
+        // Mensaje 3
+        $customSetting->whatsapp_message_3 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje_3)) 
+            ? $imagenWhatsapp->whatsapp_mensaje_3 
+            : $setting->whatsapp_message_3;
+        $customSetting->whatsapp_image_url_3 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_image_url_3)) 
+            ? $imagenWhatsapp->whatsapp_image_url_3 
+            : $setting->whatsapp_image_url_3;
+        $customSetting->whatsapp_time_3 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_3 : $setting->whatsapp_time_3;
         
         $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
         
@@ -203,7 +224,7 @@ public function sendProductDetails(Request $request)
             $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
         }
         $customSetting->email_message = $emailMensaje;
-        $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : null;
+        $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : $setting->email_image_url;
 
         // Usar la configuración del botón del producto si está disponible, de lo contrario usar la global
         $customSetting->email_btn_text = ($imagenEmail && $imagenEmail->email_btn_text) ? $imagenEmail->email_btn_text : $setting->email_btn_text;

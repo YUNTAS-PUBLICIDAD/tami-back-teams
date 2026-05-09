@@ -37,36 +37,36 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
         // --- LÓGICA DE WHATSAPP ---
         try {
             $whatsappServiceUrl = config('services.whatsapp.base_url');
-            if ($whatsappServiceUrl && !empty($setting->whatsapp_message)) {
-                $url = $whatsappServiceUrl . '/whatsapp/send-campaign';
-                $imageUrl = $setting->whatsapp_image_url ? url($setting->whatsapp_image_url) : null;
-                $messageRaw = $setting->whatsapp_message;
-
-                $nombreCliente = $requestData['name'] ?? ($cliente->name !== 'Cliente Popup' ? $cliente->name : null);
-                if ($nombreCliente) {
-                    $messageRaw = "¡Hola {$nombreCliente}! Bienvenido/a.\n\n" . $messageRaw;
-                }
-
-                $message = $this->formatHtmlForWhatsapp($messageRaw);
-
-                $payload = [
-                    'phone'   => $requestData['celular'],
-                    'message' => $message,
-                    'image'   => $imageUrl,
+            if ($whatsappServiceUrl) {
+                $messages = [
+                    ['text' => $setting->whatsapp_message, 'image' => $setting->whatsapp_image_url, 'time' => $setting->whatsapp_time_1 ?? 0],
+                    ['text' => $setting->whatsapp_message_2 ?? null, 'image' => $setting->whatsapp_image_url_2 ?? null, 'time' => $setting->whatsapp_time_2 ?? 0],
+                    ['text' => $setting->whatsapp_message_3 ?? null, 'image' => $setting->whatsapp_image_url_3 ?? null, 'time' => $setting->whatsapp_time_3 ?? 0],
                 ];
 
-                \Illuminate\Support\Facades\Http::timeout(10)->post($url, $payload);
+                $cumulativeDelay = 0;
 
-                \App\Models\WhatsappMessageLog::create([
-                    'cliente_id' => $cliente->id,
-                    'phone' => $requestData['celular'],
-                    'email' => $requestData['email'],
-                    'status' => 'success',
-                    'image_url' => $imageUrl,
-                ]);
+                foreach ($messages as $msgData) {
+                    if (!empty($msgData['text'])) {
+                        $cumulativeDelay += (int)$msgData['time'];
+                        
+                        $job = new \App\Jobs\SendWhatsAppPopUpMessageJob(
+                            $cliente,
+                            $msgData['text'],
+                            $msgData['image'],
+                            $requestData
+                        );
+
+                        if ($cumulativeDelay > 0) {
+                            $job->delay(now()->addMinutes($cumulativeDelay));
+                        }
+
+                        dispatch($job);
+                    }
+                }
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Error en Job WhatsApp: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error en Job WhatsApp (scheduling): ' . $e->getMessage());
         }
 
         // --- LÓGICA DE CORREO ---

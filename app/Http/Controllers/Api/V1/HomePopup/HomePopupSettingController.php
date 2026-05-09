@@ -61,6 +61,16 @@ class HomePopupSettingController extends Controller
             'product_popup_delay_minutes' => 'product_popup_delay_seconds',
             'whatsapp_message' => 'whatsapp_message',
             'whatsappMessage' => 'whatsapp_message',
+            'whatsapp_message_2' => 'whatsapp_message_2',
+            'whatsappMessage2' => 'whatsapp_message_2',
+            'whatsapp_message_3' => 'whatsapp_message_3',
+            'whatsappMessage3' => 'whatsapp_message_3',
+            'whatsapp_time_1' => 'whatsapp_time_1',
+            'whatsappTime1' => 'whatsapp_time_1',
+            'whatsapp_time_2' => 'whatsapp_time_2',
+            'whatsappTime2' => 'whatsapp_time_2',
+            'whatsapp_time_3' => 'whatsapp_time_3',
+            'whatsappTime3' => 'whatsapp_time_3',
             'email_subject' => 'email_subject',
             'emailTitle' => 'email_subject',
             'email_message' => 'email_message',
@@ -94,6 +104,10 @@ class HomePopupSettingController extends Controller
             'popup_mobile_image2' => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
             'whatsappImage'       => ['whatsapp_image_url'],
             'whatsapp_image'      => ['whatsapp_image_url'],
+            'whatsappImage2'      => ['whatsapp_image_url_2'],
+            'whatsapp_image_2'     => ['whatsapp_image_url_2'],
+            'whatsappImage3'      => ['whatsapp_image_url_3'],
+            'whatsapp_image_3'     => ['whatsapp_image_url_3'],
             'emailImage'          => ['email_image_url'],
             'email_image'         => ['email_image_url'],
         ];
@@ -154,6 +168,9 @@ class HomePopupSettingController extends Controller
             'button_bg_color' => '#00AFA0',
             'button_text_color' => '#FFFFFF',
             'whatsapp_enabled' => false,
+            'whatsapp_time_1' => 0,
+            'whatsapp_time_2' => 0,
+            'whatsapp_time_3' => 0,
             'email_enabled' => false,
             'email_btn_text' => '¡REGISTRARME!',
             'email_btn_bg_color' => '#00AFA0',
@@ -186,7 +203,8 @@ class HomePopupSettingController extends Controller
         $schemaColumns = [
             'popup_image_url', 'popup_image_2_url', 'popup_image2_url',
             'popup_mobile_image_url', 'popup_mobile_image2_url', 'popup_mobile_image_1_url', 'popup_mobile_image_2_url',
-            'whatsapp_image_url', 'email_image_url'
+            'whatsapp_image_url', 'whatsapp_image_url_2', 'whatsapp_image_url_3',
+            'email_image_url'
         ];
         
         $data = $setting->toArray();
@@ -218,6 +236,13 @@ class HomePopupSettingController extends Controller
         $data['popup_start_delay_minutes'] = $setting->popup_start_delay_seconds;
         
         $data['whatsappMessage'] = $setting->whatsapp_message;
+        $data['whatsappMessage2'] = $setting->whatsapp_message_2;
+        $data['whatsappMessage3'] = $setting->whatsapp_message_3;
+        $data['whatsappTime1'] = $setting->whatsapp_time_1;
+        $data['whatsappTime2'] = $setting->whatsapp_time_2;
+        $data['whatsappTime3'] = $setting->whatsapp_time_3;
+        $data['whatsappImage2'] = $setting->whatsapp_image_url_2 ?? null;
+        $data['whatsappImage3'] = $setting->whatsapp_image_url_3 ?? null;
         $data['emailTitle'] = $setting->email_subject;
         $data['emailBody'] = $setting->email_message;
         
