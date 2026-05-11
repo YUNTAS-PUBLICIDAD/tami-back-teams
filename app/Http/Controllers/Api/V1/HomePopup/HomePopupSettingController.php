@@ -241,8 +241,8 @@ class HomePopupSettingController extends Controller
         $data['whatsappTime1'] = $setting->whatsapp_time_1;
         $data['whatsappTime2'] = $setting->whatsapp_time_2;
         $data['whatsappTime3'] = $setting->whatsapp_time_3;
-        $data['whatsappImage2'] = $setting->whatsapp_image_url_2 ?? null;
-        $data['whatsappImage3'] = $setting->whatsapp_image_url_3 ?? null;
+        $data['whatsappImage2'] = $data['whatsapp_image_url_2'] ?? null;
+        $data['whatsappImage3'] = $data['whatsapp_image_url_3'] ?? null;
         $data['emailTitle'] = $setting->email_subject;
         $data['emailBody'] = $setting->email_message;
         
