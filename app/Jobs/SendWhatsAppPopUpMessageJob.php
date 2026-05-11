@@ -42,10 +42,27 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
 
             $url = $whatsappServiceUrl . '/whatsapp/send-campaign';
             
-            // Si el imageUrl es relativo, convertir a absoluto
-            $fullImageUrl = $this->imageUrl;
-            if ($fullImageUrl && !filter_var($fullImageUrl, FILTER_VALIDATE_URL)) {
-                $fullImageUrl = url($fullImageUrl);
+            // Manejo de imagen (preferir base64 para evitar problemas de red)
+            $imageData = null;
+            if (!empty($this->imageUrl)) {
+                if (filter_var($this->imageUrl, FILTER_VALIDATE_URL)) {
+                    $imageData = $this->imageUrl;
+                } else {
+                    try {
+                        $path = str_replace('/storage/', '', $this->imageUrl);
+                        if (\Storage::disk('public')->exists($path)) {
+                            $file = \Storage::disk('public')->get($path);
+                            $mime = \Storage::disk('public')->mimeType($path);
+                            $imageData = 'data:' . $mime . ';base64,' . base64_encode($file);
+                        } else {
+                            // Fallback a URL si no se encuentra el archivo localmente
+                            $imageData = url($this->imageUrl);
+                        }
+                    } catch (\Throwable $th) {
+                        Log::error('Error al convertir imagen a base64 en Job: ' . $th->getMessage());
+                        $imageData = url($this->imageUrl);
+                    }
+                }
             }
 
             $messageRaw = $this->messageRaw;
@@ -63,8 +80,19 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
             $payload = [
                 'phone'   => $this->requestData['celular'],
                 'message' => $message,
-                'image'   => $fullImageUrl,
+                'image'   => $imageData,
             ];
+
+            Log::info('Enviando petición a WhatsApp:', [
+                'url' => $url,
+                'payload' => $payload
+            ]);
+
+            // Limpiar imageData para los logs (evitar guardar base64 gigante)
+            $logImageUrl = $imageData;
+            if (str_starts_with($logImageUrl ?? '', 'data:image/')) {
+                $logImageUrl = '[Base64 Image]';
+            }
 
             $response = Http::timeout(10)->post($url, $payload);
 
@@ -74,15 +102,20 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
                     'phone' => $this->requestData['celular'],
                     'email' => $this->requestData['email'] ?? null,
                     'status' => 'success',
-                    'image_url' => $fullImageUrl,
+                    'image_url' => $logImageUrl,
                 ]);
             } else {
                 Log::error('Error respuesta servicio WhatsApp: ' . $response->body());
-                $this->logFailure($fullImageUrl, $response->body());
+                $this->logFailure($logImageUrl, $response->body());
             }
         } catch (\Throwable $e) {
             Log::error('Error en SendWhatsAppPopUpMessageJob: ' . $e->getMessage());
-            $this->logFailure($this->imageUrl ?? null, $e->getMessage());
+            
+            $errorImageUrl = $this->imageUrl;
+            if (str_starts_with($errorImageUrl ?? '', 'data:image/')) {
+                $errorImageUrl = '[Base64 Image]';
+            }
+            $this->logFailure($errorImageUrl, $e->getMessage());
         }
     }
 

@@ -59,6 +59,8 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
 
                         if ($cumulativeDelay > 0) {
                             $job->delay(now()->addMinutes($cumulativeDelay));
+                        } else {
+                            $job->delay(now()->addSeconds(10));
                         }
 
                         dispatch($job);
