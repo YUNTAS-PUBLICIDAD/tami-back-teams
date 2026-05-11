@@ -45,11 +45,16 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
                 ];
 
                 $cumulativeDelay = 0;
+                $messageIndex = 0;
+                $minCooldownSeconds = 5; // Cooldown mínimo entre mensajes para que WhatsApp procese correctamente
 
                 foreach ($messages as $msgData) {
                     if (!empty($msgData['text'])) {
                         $cumulativeDelay += (int)$msgData['time'];
-                        
+
+                        // Convertir a segundos y agregar cooldown mínimo entre cada mensaje
+                        $totalDelaySeconds = ($cumulativeDelay * 60) + ($messageIndex * $minCooldownSeconds);
+
                         $job = new \App\Jobs\SendWhatsAppPopUpMessageJob(
                             $cliente,
                             $msgData['text'],
@@ -57,13 +62,12 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
                             $requestData
                         );
 
-                        if ($cumulativeDelay > 0) {
-                            $job->delay(now()->addMinutes($cumulativeDelay));
-                        } else {
-                            $job->delay(now()->addSeconds(10));
+                        if ($totalDelaySeconds > 0) {
+                            $job->delay(now()->addSeconds($totalDelaySeconds));
                         }
 
                         dispatch($job);
+                        $messageIndex++;
                     }
                 }
             }
