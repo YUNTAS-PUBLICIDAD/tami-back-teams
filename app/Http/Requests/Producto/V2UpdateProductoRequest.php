@@ -69,15 +69,10 @@ class V2UpdateProductoRequest extends FormRequest
     // PUT esperaría todos los campos requeridos
     $isPost = $this->isMethod('post');
     $isPut = $this->isMethod('put');
-    $isOnlyPopup = filter_var($this->input('only_popup'), FILTER_VALIDATE_BOOLEAN);
-
-    // Si es solo actualización de popup, los campos base son opcionales (sometimes)
-    // De lo contrario, se mantiene la lógica original
-    $required = $isOnlyPopup ? 'sometimes' : ($isPut ? 'required' : ($isPost ? 'sometimes' : 'required'));
+    $required = $isPut ? 'required' : ($isPost ? 'sometimes' : 'required');
     $productoId = $this->route('id');
 
     return [
-        'only_popup' => 'nullable|boolean',
         'nombre' => [$required, 'string', 'max:255', Rule::unique('productos', 'nombre')->ignore($productoId)],
         'link' => [$required, 'string', 'max:255', Rule::unique('productos', 'link')->ignore($productoId)],
         'titulo' => [$required, 'string', 'max:255'],
