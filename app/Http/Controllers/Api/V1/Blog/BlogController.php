@@ -585,32 +585,67 @@ class BlogController extends Controller
             }
 
 
-            if ($request->has('imagenes')) {
+            $hasImagenesNuevas = $request->hasFile('imagenes');
+            $hasExistingImages = $request->has('existing_images');
+            $hasParrafos = $request->has('parrafos');
+
+            if ($hasImagenesNuevas || $hasExistingImages || $hasParrafos) {
+                if ($hasParrafos) {
+                    $blog->parrafos()->delete();
+                }
+
                 $rutasImagenesAntiguas = [];
                 foreach ($blog->imagenes as $imagen) {
-                    array_push($rutasImagenesAntiguas, str_replace('storage/', '', $imagen['ruta_imagen']));
+                    array_push($rutasImagenesAntiguas, str_replace('/storage/', '', $imagen->ruta_imagen));
                 }
-                Storage::disk('public')->delete($rutasImagenesAntiguas);
+                $imagenesRetenidas = [];
+
                 $blog->imagenes()->delete();
 
-                $imagenes = $request->file("imagenes", []);
-                $altTexts = $datosValidados["text_alt"] ?? [];
+                $parrafos = $request->input("parrafos", []);
+                $textAlt = $request->input("text_alt", []);
+                $imagenesNuevas = $request->file("imagenes", []);
+                $existingImages = $request->input("existing_images", []);
 
-                foreach ($imagenes as $i => $imagen) {
-                    $ruta = $this->guardarImagen($imagen);
-                    $blog->imagenes()->create([
-                        "ruta_imagen" => $ruta,
-                        "text_alt" => $altTexts[$i] ?? null
-                    ]);
+                $indicesParrafos = empty($parrafos) ? [] : array_keys($parrafos);
+                $indicesNuevas = empty($imagenesNuevas) ? [] : array_keys($imagenesNuevas);
+                $indicesExistentes = empty($existingImages) ? [] : array_keys($existingImages);
+
+                $maxIndex = -1;
+                if (!empty($indicesParrafos)) $maxIndex = max($maxIndex, max($indicesParrafos));
+                if (!empty($indicesNuevas)) $maxIndex = max($maxIndex, max($indicesNuevas));
+                if (!empty($indicesExistentes)) $maxIndex = max($maxIndex, max($indicesExistentes));
+
+                for ($i = 0; $i <= $maxIndex; $i++) {
+                    if (isset($parrafos[$i])) {
+                        $blog->parrafos()->create([
+                            "parrafo" => $parrafos[$i]
+                        ]);
+                    }
+
+                    $ruta = null;
+                    if (isset($imagenesNuevas[$i])) {
+                        $ruta = $this->guardarImagen($imagenesNuevas[$i]);
+                    } elseif (isset($existingImages[$i])) {
+                        $rawUrl = $existingImages[$i];
+                        $parsedUrl = parse_url($rawUrl, PHP_URL_PATH);
+                        if ($parsedUrl) {
+                            $ruta = $parsedUrl;
+                            $imagenesRetenidas[] = str_replace('/storage/', '', $ruta);
+                        }
+                    }
+
+                    if ($ruta) {
+                        $blog->imagenes()->create([
+                            "ruta_imagen" => $ruta,
+                            "text_alt" => $textAlt[$i] ?? null
+                        ]);
+                    }
                 }
-            }
 
-            if ($request->has('parrafos')) {
-                $blog->parrafos()->delete();
-                foreach ($datosValidados["parrafos"] as $item) {
-                    $blog->parrafos()->create([
-                        "parrafo" => $item
-                    ]);
+                $imagenesABorrar = array_diff($rutasImagenesAntiguas, $imagenesRetenidas);
+                if (!empty($imagenesABorrar)) {
+                    Storage::disk('public')->delete($imagenesABorrar);
                 }
             }
 
