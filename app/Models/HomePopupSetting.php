@@ -32,6 +32,25 @@ class HomePopupSetting extends Model
         'email_btn_link',
         'email_btn_bg_color',
         'email_btn_text_color',
+        'email_send_delay_minutes',
+        // Email 2
+        'email_subject_2',
+        'email_message_2',
+        'email_image_url_2',
+        'email_btn_text_2',
+        'email_btn_link_2',
+        'email_btn_bg_color_2',
+        'email_btn_text_color_2',
+        'email_send_delay_minutes_2',
+        // Email 3
+        'email_subject_3',
+        'email_message_3',
+        'email_image_url_3',
+        'email_btn_text_3',
+        'email_btn_link_3',
+        'email_btn_bg_color_3',
+        'email_btn_text_color_3',
+        'email_send_delay_minutes_3',
         'popup_mobile_image2_url',
         'updated_by',
     ];
@@ -42,5 +61,8 @@ class HomePopupSetting extends Model
         'product_popup_delay_seconds' => 'integer',
         'whatsapp_enabled' => 'boolean',
         'email_enabled' => 'boolean',
+        'email_send_delay_minutes' => 'integer',
+        'email_send_delay_minutes_2' => 'integer',
+        'email_send_delay_minutes_3' => 'integer',
     ];
 }
