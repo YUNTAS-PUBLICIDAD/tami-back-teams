@@ -73,6 +73,26 @@ class HomePopupSettingController extends Controller
             'emailBtnBgColor' => 'email_btn_bg_color',
             'email_btn_text_color' => 'email_btn_text_color',
             'emailBtnTextColor' => 'email_btn_text_color',
+            'email_send_delay_minutes' => 'email_send_delay_minutes',
+            'emailSendDelay' => 'email_send_delay_minutes',
+
+            // Correo 2
+            'emailTitle_2' => 'email_subject_2',
+            'emailBody_2' => 'email_message_2',
+            'email_btn_text_2' => 'email_btn_text_2',
+            'email_btn_link_2' => 'email_btn_link_2',
+            'email_btn_bg_color_2' => 'email_btn_bg_color_2',
+            'email_btn_text_color_2' => 'email_btn_text_color_2',
+            'email_send_delay_minutes_2' => 'email_send_delay_minutes_2',
+
+            // Correo 3
+            'emailTitle_3' => 'email_subject_3',
+            'emailBody_3' => 'email_message_3',
+            'email_btn_text_3' => 'email_btn_text_3',
+            'email_btn_link_3' => 'email_btn_link_3',
+            'email_btn_bg_color_3' => 'email_btn_bg_color_3',
+            'email_btn_text_color_3' => 'email_btn_text_color_3',
+            'email_send_delay_minutes_3' => 'email_send_delay_minutes_3',
         ];
 
         foreach ($textMapping as $frontKey => $dbColumn) {
@@ -96,6 +116,8 @@ class HomePopupSettingController extends Controller
             'whatsapp_image'      => ['whatsapp_image_url'],
             'emailImage'          => ['email_image_url'],
             'email_image'         => ['email_image_url'],
+            'emailImage_2'        => ['email_image_url_2'],
+            'emailImage_3'        => ['email_image_url_3'],
         ];
 
         foreach ($imageFields as $fileInput => $dbColumns) {
@@ -158,6 +180,9 @@ class HomePopupSettingController extends Controller
             'email_btn_text' => '¡REGISTRARME!',
             'email_btn_bg_color' => '#00AFA0',
             'email_btn_text_color' => '#FFFFFF',
+            'email_send_delay_minutes' => 0,
+            'email_send_delay_minutes_2' => 30,
+            'email_send_delay_minutes_3' => 1440,
         ]);
     }
 
@@ -186,7 +211,7 @@ class HomePopupSettingController extends Controller
         $schemaColumns = [
             'popup_image_url', 'popup_image_2_url', 'popup_image2_url',
             'popup_mobile_image_url', 'popup_mobile_image2_url', 'popup_mobile_image_1_url', 'popup_mobile_image_2_url',
-            'whatsapp_image_url', 'email_image_url'
+            'whatsapp_image_url', 'email_image_url', 'email_image_url_2', 'email_image_url_3'
         ];
         
         $data = $setting->toArray();
@@ -205,6 +230,8 @@ class HomePopupSettingController extends Controller
         
         $data['whatsappImage'] = $data['whatsapp_image_url'] ?? null;
         $data['emailImage'] = $data['email_image_url'] ?? null;
+        $data['emailImage_2'] = $data['email_image_url_2'] ?? null;
+        $data['emailImage_3'] = $data['email_image_url_3'] ?? null;
 
         // Variables de diseño y texto
         $data['btnTextColor'] = $setting->button_text_color;
@@ -225,6 +252,25 @@ class HomePopupSettingController extends Controller
         $data['emailBtnLink'] = $setting->email_btn_link;
         $data['emailBtnBgColor'] = $setting->email_btn_bg_color;
         $data['emailBtnTextColor'] = $setting->email_btn_text_color;
+        $data['emailSendDelay'] = $setting->email_send_delay_minutes;
+
+        // Correo 2
+        $data['emailTitle_2'] = $setting->email_subject_2;
+        $data['emailBody_2'] = $setting->email_message_2;
+        $data['emailBtnText_2'] = $setting->email_btn_text_2;
+        $data['emailBtnLink_2'] = $setting->email_btn_link_2;
+        $data['emailBtnBgColor_2'] = $setting->email_btn_bg_color_2;
+        $data['emailBtnTextColor_2'] = $setting->email_btn_text_color_2;
+        $data['emailSendDelay_2'] = $setting->email_send_delay_minutes_2;
+
+        // Correo 3
+        $data['emailTitle_3'] = $setting->email_subject_3;
+        $data['emailBody_3'] = $setting->email_message_3;
+        $data['emailBtnText_3'] = $setting->email_btn_text_3;
+        $data['emailBtnLink_3'] = $setting->email_btn_link_3;
+        $data['emailBtnBgColor_3'] = $setting->email_btn_bg_color_3;
+        $data['emailBtnTextColor_3'] = $setting->email_btn_text_color_3;
+        $data['emailSendDelay_3'] = $setting->email_send_delay_minutes_3;
 
         return $data;
     }
