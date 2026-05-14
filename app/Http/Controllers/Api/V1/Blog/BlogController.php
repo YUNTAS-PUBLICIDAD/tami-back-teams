@@ -591,7 +591,7 @@ class BlogController extends Controller
                 if (is_string($imagenIdsPreservar)) {
                     $imagenIdsPreservar = [$imagenIdsPreservar];
                 }
-                
+
                 // Eliminar solo las imágenes que NO están en imagen_ids
                 $rutasImagenesAEliminar = [];
                 foreach ($blog->imagenes as $imagen) {
@@ -599,23 +599,23 @@ class BlogController extends Controller
                         array_push($rutasImagenesAEliminar, str_replace('storage/', '', $imagen['ruta_imagen']));
                     }
                 }
-                
+
                 // Eliminar imágenes que no se usan
                 if (!empty($rutasImagenesAEliminar)) {
                     Storage::disk('public')->delete($rutasImagenesAEliminar);
                 }
-                
+
                 // Eliminar registros de imágenes no preservadas
                 if (!empty($imagenIdsPreservar)) {
                     $blog->imagenes()->whereNotIn('id', $imagenIdsPreservar)->delete();
                 } else {
                     $blog->imagenes()->delete();
                 }
-                
+
                 // Procesar nuevas imágenes
                 $imagenes = $request->file("imagenes", []);
                 $altTexts = $datosValidados["text_alt"] ?? [];
-                
+
                 foreach ($imagenes as $i => $imagen) {
                     $ruta = $this->guardarImagen($imagen);
                     $blog->imagenes()->create([
@@ -639,7 +639,7 @@ class BlogController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->apiResponse->errorResponse(
-                $this->safeErrorMessage($e, 'actualizar el blog'), 
+                $this->safeErrorMessage($e, 'actualizar el blog'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
