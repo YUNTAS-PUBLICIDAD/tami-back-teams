@@ -585,17 +585,37 @@ class BlogController extends Controller
             }
 
 
-            if ($request->has('imagenes')) {
-                $rutasImagenesAntiguas = [];
-                foreach ($blog->imagenes as $imagen) {
-                    array_push($rutasImagenesAntiguas, str_replace('storage/', '', $imagen['ruta_imagen']));
+            if ($request->has('imagenes') || $request->has('imagen_ids')) {
+                // Obtener IDs de imágenes existentes que se deben preservar
+                $imagenIdsPreservar = $request->input('imagen_ids', []);
+                if (is_string($imagenIdsPreservar)) {
+                    $imagenIdsPreservar = [$imagenIdsPreservar];
                 }
-                Storage::disk('public')->delete($rutasImagenesAntiguas);
-                $blog->imagenes()->delete();
-
+                
+                // Eliminar solo las imágenes que NO están en imagen_ids
+                $rutasImagenesAEliminar = [];
+                foreach ($blog->imagenes as $imagen) {
+                    if (!in_array($imagen->id, $imagenIdsPreservar)) {
+                        array_push($rutasImagenesAEliminar, str_replace('storage/', '', $imagen['ruta_imagen']));
+                    }
+                }
+                
+                // Eliminar imágenes que no se usan
+                if (!empty($rutasImagenesAEliminar)) {
+                    Storage::disk('public')->delete($rutasImagenesAEliminar);
+                }
+                
+                // Eliminar registros de imágenes no preservadas
+                if (!empty($imagenIdsPreservar)) {
+                    $blog->imagenes()->whereNotIn('id', $imagenIdsPreservar)->delete();
+                } else {
+                    $blog->imagenes()->delete();
+                }
+                
+                // Procesar nuevas imágenes
                 $imagenes = $request->file("imagenes", []);
                 $altTexts = $datosValidados["text_alt"] ?? [];
-
+                
                 foreach ($imagenes as $i => $imagen) {
                     $ruta = $this->guardarImagen($imagen);
                     $blog->imagenes()->create([
