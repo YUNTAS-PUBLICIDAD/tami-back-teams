@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use App\Jobs\SendMarketingEmailJob;
 
 class ProcessPopUpSubmissionJob implements ShouldQueue
 {
@@ -102,27 +103,29 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
             \Illuminate\Support\Facades\Log::error('Error en Job WhatsApp (scheduling): ' . $e->getMessage());
         }
 
-        // --- LÓGICA DE CORREO ---
-        if (!empty($requestData['email'])) {
+        // --- LÓGICA DE CORREO SECUENCIAL ---
+        if (!empty($requestData['email']) && $setting->email_enabled) {
             try {
-                $mailData = [
-                    'name'    => $requestData['name'],
-                    'email'   => $requestData['email'],
-                    'celular' => $requestData['celular'],
-                    'subject' => $setting->email_subject,
-                    'message' => $setting->email_message,
-                    'image_url' => $setting->email_image_url ? url($setting->email_image_url) : null,
-                    'image_path' => $setting->email_image_url ? public_path($setting->email_image_url) : null,
-                    // Nuevos campos del botón
-                    'email_btn_text' => $setting->email_btn_text ?: '¡REGISTRARME!',
-                    'email_btn_link' => $setting->email_btn_link ?: url('/'),
-                    'email_btn_bg_color' => $setting->email_btn_bg_color ?: '#00AFA0',
-                    'email_btn_text_color' => $setting->email_btn_text_color ?: '#FFFFFF',
-                ];
+                // Email 1
+                $delay1 = $setting->email_send_delay_minutes !== null ? (int) $setting->email_send_delay_minutes : 0;
+                if ($delay1 !== -1) {
+                    SendMarketingEmailJob::dispatch($cliente, 1)->delay(now()->addMinutes($delay1));
+                }
 
-                \Illuminate\Support\Facades\Mail::to($requestData['email'])->send(new \App\Mail\ClientRegistrationMail($mailData));
+                // Email 2
+                $delay2 = $setting->email_send_delay_minutes_2 !== null ? (int) $setting->email_send_delay_minutes_2 : 30;
+                if ($delay2 !== -1) {
+                    SendMarketingEmailJob::dispatch($cliente, 2)->delay(now()->addMinutes($delay2));
+                }
+
+                // Email 3
+                $delay3 = $setting->email_send_delay_minutes_3 !== null ? (int) $setting->email_send_delay_minutes_3 : 1440;
+                if ($delay3 !== -1) {
+                    SendMarketingEmailJob::dispatch($cliente, 3)->delay(now()->addMinutes($delay3));
+                }
+
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Error en Job Correo: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('Error al programar correos secuenciales: ' . $e->getMessage());
             }
         }
     }

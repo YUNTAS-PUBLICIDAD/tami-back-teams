@@ -19,7 +19,7 @@ class UpdateHomePopupSettingRequest extends FormRequest
         // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp") 
         // en lugar de un archivo real (File), fallará la regla de validación 'file|image'.
         // Para evitarlo, eliminamos la variable del request si no es un archivo válido.
-        $imageKeys = ['image1', 'image2', 'imageMobile', 'imageMobile2', 'whatsappImage', 'emailImage'];
+        $imageKeys = ['image1', 'image2', 'imageMobile', 'imageMobile2', 'whatsappImage', 'emailImage', 'emailImage_2', 'emailImage_3'];
         foreach ($imageKeys as $key) {
             if ($this->has($key) && !$this->hasFile($key)) {
                 $this->request->remove($key);
@@ -102,6 +102,30 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'whatsappImage2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'whatsappImage3' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'emailImage' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'email_send_delay_minutes' => ['sometimes', 'integer'],
+
+            // Correo 2
+            'emailTitle_2' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'emailBody_2' => ['sometimes', 'nullable', 'string'],
+            'emailImage_2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'delete_emailImage_2' => ['sometimes', 'boolean'],
+            'email_btn_text_2' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'email_btn_link_2' => ['sometimes', 'nullable', 'url', 'max:255'],
+            'email_btn_bg_color_2' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'email_btn_text_color_2' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'email_send_delay_minutes_2' => ['sometimes', 'integer'],
+
+            // Correo 3
+            'emailTitle_3' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'emailBody_3' => ['sometimes', 'nullable', 'string'],
+            'emailImage_3' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'delete_emailImage_3' => ['sometimes', 'boolean'],
+            'email_btn_text_3' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'email_btn_link_3' => ['sometimes', 'nullable', 'url', 'max:255'],
+            'email_btn_bg_color_3' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'email_btn_text_color_3' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'email_send_delay_minutes_3' => ['sometimes', 'integer'],
+
             'popup_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_image_2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
