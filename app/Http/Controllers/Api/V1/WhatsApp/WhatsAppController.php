@@ -40,7 +40,7 @@ public function sendProductDetails(Request $request)
     ]);
 
     $resultados = [];
-    
+
     $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
                         ->where('link', $request->link)
                         ->first();
@@ -56,9 +56,9 @@ public function sendProductDetails(Request $request)
     if (!$cliente && $request->phone) {
         $cliente = Cliente::where('celular', $request->phone)->first();
     }
-    
+
     $sourceProductoDetalle = ClienteSource::where('name', 'Producto detalle')->first();
-    
+
     if (!$cliente) {
         // Crear nuevo cliente
         $cliente = Cliente::create([
@@ -161,7 +161,7 @@ public function sendProductDetails(Request $request)
         ]);
 
     $resultados = [];
-    
+
     // Obtener la configuración del popup
     $setting = HomePopupSetting::first();
     if (!$setting) {
@@ -189,32 +189,53 @@ public function sendProductDetails(Request $request)
     if ($producto) {
         $imagenEmail = $producto->imagenes->where('tipo', 'email')->first();
         $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
-        
+
         $customSetting = new \stdClass();
-        $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje)) 
-            ? $imagenWhatsapp->whatsapp_mensaje 
+
+        // Mensaje 1
+        $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje))
+            ? $imagenWhatsapp->whatsapp_mensaje
             : ($producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message);
-        $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : null;
-        
+        $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : $setting->whatsapp_image_url;
+        $customSetting->whatsapp_time_1 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_1 : $setting->whatsapp_time_1;
+
+        // Mensaje 2
+        $customSetting->whatsapp_message_2 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje_2))
+            ? $imagenWhatsapp->whatsapp_mensaje_2
+            : $setting->whatsapp_message_2;
+        $customSetting->whatsapp_image_url_2 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_image_url_2))
+            ? $imagenWhatsapp->whatsapp_image_url_2
+            : $setting->whatsapp_image_url_2;
+        $customSetting->whatsapp_time_2 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_2 : $setting->whatsapp_time_2;
+
+        // Mensaje 3
+        $customSetting->whatsapp_message_3 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje_3))
+            ? $imagenWhatsapp->whatsapp_mensaje_3
+            : $setting->whatsapp_message_3;
+        $customSetting->whatsapp_image_url_3 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_image_url_3))
+            ? $imagenWhatsapp->whatsapp_image_url_3
+            : $setting->whatsapp_image_url_3;
+        $customSetting->whatsapp_time_3 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_3 : $setting->whatsapp_time_3;
+
         $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
-        
+
         $emailMensaje = ($imagenEmail && $imagenEmail->email_mensaje) ? $imagenEmail->email_mensaje : $setting->email_message;
         if ($request->name) {
             $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
         }
         $customSetting->email_message = $emailMensaje;
-        $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : null;
+        $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : $setting->email_image_url;
 
         // Usar la configuración del botón del producto si está disponible, de lo contrario usar la global
         $customSetting->email_btn_text = ($imagenEmail && $imagenEmail->email_btn_text) ? $imagenEmail->email_btn_text : $setting->email_btn_text;
         $customSetting->email_btn_link = ($imagenEmail && $imagenEmail->email_btn_link) ? $imagenEmail->email_btn_link : $setting->email_btn_link;
         $customSetting->email_btn_bg_color = ($imagenEmail && $imagenEmail->email_btn_bg_color) ? $imagenEmail->email_btn_bg_color : $setting->email_btn_bg_color;
         $customSetting->email_btn_text_color = ($imagenEmail && $imagenEmail->email_btn_text_color) ? $imagenEmail->email_btn_text_color : $setting->email_btn_text_color;
- 
+
         $setting = $customSetting;
     }
 
-    // Si el usuario envió sus datos desde el popup, asumimos que quiere la info. 
+    // Si el usuario envió sus datos desde el popup, asumimos que quiere la info.
     // Solo validamos que exista un mensaje configurado.
     if (empty($setting->whatsapp_message)) {
         return response()->json(['message' => 'No hay un mensaje configurado para enviar.'], 400);
@@ -232,7 +253,7 @@ public function sendProductDetails(Request $request)
     if (!$cliente && $request->celular) {
         $cliente = Cliente::where('celular', $request->celular)->first();
     }
-    
+
     if (!$cliente) {
         $cliente = Cliente::create([
             'name' => $request->name ?? 'Cliente Popup',
@@ -245,23 +266,27 @@ public function sendProductDetails(Request $request)
         if ($request->name && $cliente->name === 'Cliente Popup') {
             $cliente->update(['name' => $request->name]);
         }
-        
+
         $updateData = [];
         if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
         if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
         if ($producto && !$cliente->producto_id) $updateData['producto_id'] = $producto->id;
         if ($source && $cliente->source_id !== $source->id) $updateData['source_id'] = $source->id;
-        
+
         if (!empty($updateData)) $cliente->update($updateData);
     }
 
     try {
         // Despachar el trabajo en segundo plano para no bloquear la respuesta al usuario
         // Usamos afterResponse para que se ejecute inmediatamente después de enviar la respuesta 200 al navegador
+        // Determinar el tipo de popup: 'producto' si hay producto, 'inicio' si no
+        $popupType = $producto ? 'producto' : 'inicio';
+
         \App\Jobs\ProcessPopUpSubmissionJob::dispatch(
-            $cliente, 
-            $setting, 
-            $request->only(['name', 'celular', 'email'])
+            $cliente,
+            $setting,
+            $request->only(['name', 'celular', 'email']),
+            $popupType
         )->afterResponse();
 
         return response()->json([
@@ -276,7 +301,7 @@ public function sendProductDetails(Request $request)
     }
 }
 
-    public function convertImageToBase64($pathOrUrl) 
+    public function convertImageToBase64($pathOrUrl)
     {
         if (filter_var($pathOrUrl, FILTER_VALIDATE_URL)) {
             $response = Http::get($pathOrUrl);
@@ -292,7 +317,7 @@ public function sendProductDetails(Request $request)
         }
 
         $storagePath = str_replace('/storage/', '', $pathOrUrl);
-        
+
         if (!\Storage::disk('public')->exists($storagePath)) {
             throw new \Exception('La imagen no existe en el storage: ' . $storagePath);
         }
@@ -368,14 +393,14 @@ public function sendProductDetails(Request $request)
     // **NUEVA FUNCIÓN: Obtener plantilla por producto_id**
     public function showByProduct($productoId) {
         $template = WhatsappTemplate::where('producto_id', $productoId)->first();
-        
+
         if (!$template) {
             return response()->json([
                 'message' => 'No hay plantilla personalizada para este producto',
                 'data' => null
             ], 200);
         }
-        
+
         return response()->json([
             'message' => 'Plantilla encontrada',
             'data' => $template
@@ -398,7 +423,7 @@ public function sendProductDetails(Request $request)
             ['producto_id' => $productoId],
             ['content' => $request->content]
         );
-        
+
         return response()->json([
             'message' => 'Plantilla del producto actualizada',
             'data' => $template
@@ -408,13 +433,13 @@ public function sendProductDetails(Request $request)
     // **NUEVA FUNCIÓN: Eliminar plantilla personalizada de un producto**
     public function deleteTemplateByProduct($productoId) {
         $template = WhatsappTemplate::where('producto_id', $productoId)->first();
-        
+
         if (!$template) {
             return response()->json(['message' => 'No hay plantilla para eliminar'], 404);
         }
-        
+
         $template->delete();
-        
+
         return response()->json([
             'message' => 'Plantilla eliminada correctamente'
         ], 200);

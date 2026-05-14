@@ -29,7 +29,26 @@ class ProductoImageService
             $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
         } elseif ($tipo === 'whatsapp') {
             $data['whatsapp_mensaje'] = $extraData['whatsapp_mensaje'] ?? ($textValue ?? '');
+            $data['whatsapp_mensaje_2'] = $extraData['whatsapp_mensaje_2'] ?? null;
+            $data['whatsapp_mensaje_3'] = $extraData['whatsapp_mensaje_3'] ?? null;
+            $data['whatsapp_time_1'] = $extraData['whatsapp_time_1'] ?? 0;
+            $data['whatsapp_time_2'] = $extraData['whatsapp_time_2'] ?? 0;
+            $data['whatsapp_time_3'] = $extraData['whatsapp_time_3'] ?? 0;
             $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
+
+            // Manejo de imágenes adicionales para WhatsApp
+            if (isset($extraData['whatsapp_image_2']) && $extraData['whatsapp_image_2'] instanceof UploadedFile) {
+                if ($imagenExistente && !empty($imagenExistente->whatsapp_image_url_2)) {
+                    $this->deleteImageFromStorage($imagenExistente->whatsapp_image_url_2);
+                }
+                $data['whatsapp_image_url_2'] = $this->guardarImagen($extraData['whatsapp_image_2']);
+            }
+            if (isset($extraData['whatsapp_image_3']) && $extraData['whatsapp_image_3'] instanceof UploadedFile) {
+                if ($imagenExistente && !empty($imagenExistente->whatsapp_image_url_3)) {
+                    $this->deleteImageFromStorage($imagenExistente->whatsapp_image_url_3);
+                }
+                $data['whatsapp_image_url_3'] = $this->guardarImagen($extraData['whatsapp_image_3']);
+            }
         } else {
             $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
         }

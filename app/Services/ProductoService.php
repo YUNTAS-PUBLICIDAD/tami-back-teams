@@ -335,7 +335,16 @@ class ProductoService
                 'email_btn_bg_color' => $request->input('email_btn_bg_color'),
                 'email_btn_text_color' => $request->input('email_btn_text_color'),
             ]],
-            ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp', ['whatsapp_mensaje' => $request->input('mensaje_whatsapp')]],
+            ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp', [
+                'whatsapp_mensaje' => $request->input('mensaje_whatsapp'),
+                'whatsapp_mensaje_2' => $request->input('mensaje_whatsapp_2'),
+                'whatsapp_mensaje_3' => $request->input('mensaje_whatsapp_3'),
+                'whatsapp_time_1' => $request->input('whatsapp_time_1'),
+                'whatsapp_time_2' => $request->input('whatsapp_time_2'),
+                'whatsapp_time_3' => $request->input('whatsapp_time_3'),
+                'whatsapp_image_2' => $request->file('imagen_whatsapp_2'),
+                'whatsapp_image_3' => $request->file('imagen_whatsapp_3'),
+            ]],
         ];
 
         foreach ($tiposImagenes as [$tipo, $imagenKey, $textoKey, $extraData]) {
