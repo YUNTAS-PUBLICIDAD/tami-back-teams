@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Blog;
 use App\Http\Contains\HttpStatusCode;
 use App\Http\Resources\BlogResource;
-use App\Models\BlogEtiqueta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -585,43 +584,70 @@ class BlogController extends Controller
             }
 
 
-            if ($request->has('imagenes') || $request->has('imagen_ids')) {
-                // Obtener IDs de imágenes existentes que se deben preservar
-                $imagenIdsPreservar = $request->input('imagen_ids', []);
-                if (is_string($imagenIdsPreservar)) {
-                    $imagenIdsPreservar = [$imagenIdsPreservar];
+            if ($request->has('parrafos') || $request->has('imagenes') || $request->has('imagen_ids')) {
+                $tiposImagen = $request->input('imagen_tipo', []);
+                if (is_string($tiposImagen)) {
+                    $tiposImagen = [$tiposImagen];
                 }
 
-                // Eliminar solo las imágenes que NO están en imagen_ids
-                $rutasImagenesAEliminar = [];
+                $imagenesNuevas = $request->file('imagenes', []);
+                $idsImagenesExistentes = $request->input('imagen_ids', []);
+                if (is_string($idsImagenesExistentes)) {
+                    $idsImagenesExistentes = [$idsImagenesExistentes];
+                }
+
+                $altTexts = $datosValidados['text_alt'] ?? [];
+                $parrafos = $datosValidados['parrafos'] ?? [];
+                $imagenesActuales = $blog->imagenes->keyBy('id');
+                $imagenesFinales = [];
+                $idsConservados = [];
+                $cursorArchivos = 0;
+                $cursorIds = 0;
+
+                foreach ($parrafos as $indice => $parrafo) {
+                    $tipo = $tiposImagen[$indice] ?? null;
+
+                    if ($tipo === 'file') {
+                        $archivo = $imagenesNuevas[$cursorArchivos] ?? null;
+                        $cursorArchivos++;
+
+                        if (!$archivo) {
+                            throw new \Exception('No se encontró la imagen nueva esperada para una sección.');
+                        }
+
+                        $imagenesFinales[] = [
+                            'ruta_imagen' => $this->guardarImagen($archivo),
+                            'text_alt' => $altTexts[$indice] ?? null,
+                        ];
+                        continue;
+                    }
+
+                    $imagenId = $idsImagenesExistentes[$cursorIds] ?? null;
+                    $cursorIds++;
+
+                    if ($imagenId && isset($imagenesActuales[$imagenId])) {
+                        $imagenExistente = $imagenesActuales[$imagenId];
+                        $idsConservados[] = $imagenExistente->id;
+                        $imagenesFinales[] = [
+                            'ruta_imagen' => $imagenExistente->ruta_imagen,
+                            'text_alt' => $altTexts[$indice] ?? $imagenExistente->text_alt,
+                        ];
+                        continue;
+                    }
+
+                    throw new \Exception('No se pudo resolver la imagen existente de una sección.');
+                }
+
                 foreach ($blog->imagenes as $imagen) {
-                    if (!in_array($imagen->id, $imagenIdsPreservar)) {
-                        array_push($rutasImagenesAEliminar, str_replace('storage/', '', $imagen['ruta_imagen']));
+                    if (!in_array($imagen->id, $idsConservados)) {
+                        Storage::disk('public')->delete(str_replace('/storage/', '', $imagen->ruta_imagen));
                     }
                 }
 
-                // Eliminar imágenes que no se usan
-                if (!empty($rutasImagenesAEliminar)) {
-                    Storage::disk('public')->delete($rutasImagenesAEliminar);
-                }
+                $blog->imagenes()->delete();
 
-                // Eliminar registros de imágenes no preservadas
-                if (!empty($imagenIdsPreservar)) {
-                    $blog->imagenes()->whereNotIn('id', $imagenIdsPreservar)->delete();
-                } else {
-                    $blog->imagenes()->delete();
-                }
-
-                // Procesar nuevas imágenes
-                $imagenes = $request->file("imagenes", []);
-                $altTexts = $datosValidados["text_alt"] ?? [];
-
-                foreach ($imagenes as $i => $imagen) {
-                    $ruta = $this->guardarImagen($imagen);
-                    $blog->imagenes()->create([
-                        "ruta_imagen" => $ruta,
-                        "text_alt" => $altTexts[$i] ?? null
-                    ]);
+                foreach ($imagenesFinales as $imagenData) {
+                    $blog->imagenes()->create($imagenData);
                 }
             }
 
