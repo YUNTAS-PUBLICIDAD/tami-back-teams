@@ -22,8 +22,8 @@ class ProductoImageService
     public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $textValue = null, array $extraData = []): ?ProductoImagen
     {
         $query = $producto->imagenes()->where(function ($query) use ($tipo) {
-            if (str_starts_with($tipo, 'email')) {
-                $query->whereIn('tipo', [$tipo, 'email']);
+            if ($tipo === 'email1' || $tipo === 'email') {
+                $query->whereIn('tipo', ['email1', 'email']);
             } else {
                 $query->where('tipo', $tipo);
             }
@@ -151,8 +151,8 @@ class ProductoImageService
     public function deleteExistingImageByType(Producto $producto, string $tipo): void
     {
         $query = $producto->imagenes()->where(function ($query) use ($tipo) {
-            if (str_starts_with($tipo, 'email')) {
-                $query->whereIn('tipo', [$tipo, 'email']);
+            if ($tipo === 'email1' || $tipo === 'email') {
+                $query->whereIn('tipo', ['email1', 'email']);
             } else {
                 $query->where('tipo', $tipo);
             }
