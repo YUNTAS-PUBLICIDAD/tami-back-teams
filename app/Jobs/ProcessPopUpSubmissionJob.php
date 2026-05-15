@@ -109,19 +109,22 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
                 // Email 1
                 $delay1 = $setting->email_send_delay_minutes !== null ? (int) $setting->email_send_delay_minutes : 0;
                 if ($delay1 !== -1) {
-                    SendMarketingEmailJob::dispatch($cliente, 1)->delay(now()->addMinutes($delay1));
+                    $time1 = now()->addMinutes($delay1)->addSeconds($delay1 === 0 ? 5 : 0);
+                    SendMarketingEmailJob::dispatch($cliente, 1, is_array($setting) ? $setting : (is_object($setting) && method_exists($setting, 'toArray') ? $setting->toArray() : (array)$setting))->delay($time1);
                 }
 
                 // Email 2
                 $delay2 = $setting->email_send_delay_minutes_2 !== null ? (int) $setting->email_send_delay_minutes_2 : 30;
                 if ($delay2 !== -1) {
-                    SendMarketingEmailJob::dispatch($cliente, 2)->delay(now()->addMinutes($delay2));
+                    $time2 = now()->addMinutes($delay2)->addSeconds($delay2 === 0 ? 10 : 0);
+                    SendMarketingEmailJob::dispatch($cliente, 2, is_array($setting) ? $setting : (is_object($setting) && method_exists($setting, 'toArray') ? $setting->toArray() : (array)$setting))->delay($time2);
                 }
 
                 // Email 3
                 $delay3 = $setting->email_send_delay_minutes_3 !== null ? (int) $setting->email_send_delay_minutes_3 : 1440;
                 if ($delay3 !== -1) {
-                    SendMarketingEmailJob::dispatch($cliente, 3)->delay(now()->addMinutes($delay3));
+                    $time3 = now()->addMinutes($delay3)->addSeconds($delay3 === 0 ? 15 : 0);
+                    SendMarketingEmailJob::dispatch($cliente, 3, is_array($setting) ? $setting : (is_object($setting) && method_exists($setting, 'toArray') ? $setting->toArray() : (array)$setting))->delay($time3);
                 }
 
             } catch (\Exception $e) {
