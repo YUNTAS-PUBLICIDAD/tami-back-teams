@@ -187,7 +187,7 @@ public function sendProductDetails(Request $request)
     }
 
     if ($producto) {
-        $imagenEmail = $producto->imagenes->where('tipo', 'email')->first();
+        $imagenEmail = $producto->imagenes->firstWhere('tipo', 'email1') ?: $producto->imagenes->firstWhere('tipo', 'email');
         $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
 
         $customSetting = new \stdClass();

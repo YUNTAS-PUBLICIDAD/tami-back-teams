@@ -519,11 +519,12 @@ class ProductoController extends Controller
             $datosValidados = $request->validated();
             Log::info('Validated data:', ['datos_validados' => $datosValidados]);
 
-            $this->productoService->updateProducto($producto, $datosValidados, $request);
+            $productoActualizado = $this->productoService->updateProducto($producto, $datosValidados, $request);
 
             Log::info('Producto actualizado exitosamente', ['id' => $id]);
 
-            return $this->successMessage(
+            return $this->successResponse(
+                new ProductoResource($productoActualizado, true),
                 'Producto actualizado exitosamente',
                 HttpStatusCode::OK->value
             );

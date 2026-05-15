@@ -328,13 +328,6 @@ class ProductoService
             ['popup2', 'imagen_popup2', 'texto_alt_popup2', []],
             ['popup_mobile', 'imagen_popup_mobile', 'texto_alt_popup_mobile', []],
             ['popup_mobile2', 'imagen_popup_mobile2', 'texto_alt_popup_mobile2', []],
-            ['email', 'imagen_email', 'asunto', [
-                'email_mensaje' => $request->input('mensaje_email'),
-                'email_btn_text' => $request->input('email_btn_text'),
-                'email_btn_link' => $request->input('email_btn_link'),
-                'email_btn_bg_color' => $request->input('email_btn_bg_color'),
-                'email_btn_text_color' => $request->input('email_btn_text_color'),
-            ]],
             ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp', [
                 'whatsapp_mensaje' => $request->input('mensaje_whatsapp'),
                 'whatsapp_mensaje_2' => $request->input('mensaje_whatsapp_2'),
@@ -348,14 +341,11 @@ class ProductoService
         ];
 
         foreach ($tiposImagenes as [$tipo, $imagenKey, $textoKey, $extraData]) {
-            // Check for explicit deletion flag
             if ($request->input("delete_$imagenKey") === "1" || $request->input("delete_$tipo") === "1") {
                 $this->imageService->deleteExistingImageByType($producto, $tipo);
 
-                // If it's a type with extra text data (like WhatsApp/Email), we might want to keep the text
-                // but handleSpecialImage usually handles that. If we just want to delete the IMAGE:
-                if ($tipo === 'whatsapp' || $tipo === 'email') {
-                     $this->imageService->handleSpecialImage($producto, null, $tipo, $request->input($textoKey), $extraData);
+                if ($tipo === 'whatsapp') {
+                    $this->imageService->handleSpecialImage($producto, null, $tipo, $request->input($textoKey), $extraData);
                 }
                 continue;
             }
@@ -365,6 +355,87 @@ class ProductoService
                 $request->file($imagenKey),
                 $tipo,
                 $request->input($textoKey),
+                $extraData
+            );
+        }
+
+        $this->saveEmailTemplates($producto, $request);
+    }
+
+    private function saveEmailTemplates(Producto $producto, $request): void
+    {
+        for ($slot = 1; $slot <= 3; $slot++) {
+            $tipo = "email{$slot}";
+            $imagenKey = "imagen_email_{$slot}";
+            $subjectKey = "asunto_{$slot}";
+            $messageKey = "mensaje_email_{$slot}";
+            $btnTextKey = "email_btn_text_{$slot}";
+            $btnLinkKey = "email_btn_link_{$slot}";
+            $btnBgKey = "email_btn_bg_color_{$slot}";
+            $btnTextColorKey = "email_btn_text_color_{$slot}";
+            $delayKey = "email_time_{$slot}";
+            $deleteKey = "delete_imagen_email_{$slot}";
+
+            $file = $request->file($imagenKey);
+            $deleteFlag = $request->input($deleteKey);
+
+            if ($slot === 1 && !$request->has($imagenKey)) {
+                $file = $request->file('imagen_email') ?? $file;
+                $deleteFlag = $deleteFlag ?? $request->input('delete_imagen_email') ?? $request->input('delete_emailImage');
+            }
+
+            $extraData = ['slot_index' => $slot];
+
+            if ($request->has($messageKey) || ($slot === 1 && $request->has('mensaje_email'))) {
+                $extraData['email_mensaje'] = $request->input($messageKey) ?? $request->input('mensaje_email');
+            }
+            if ($request->has($btnTextKey) || ($slot === 1 && $request->has('email_btn_text'))) {
+                $extraData['email_btn_text'] = $request->input($btnTextKey) ?? $request->input('email_btn_text');
+            }
+            if ($request->has($btnLinkKey) || ($slot === 1 && $request->has('email_btn_link'))) {
+                $extraData['email_btn_link'] = $request->input($btnLinkKey) ?? $request->input('email_btn_link');
+            }
+            if ($request->has($btnBgKey) || ($slot === 1 && $request->has('email_btn_bg_color'))) {
+                $extraData['email_btn_bg_color'] = $request->input($btnBgKey) ?? $request->input('email_btn_bg_color');
+            }
+            if ($request->has($btnTextColorKey) || ($slot === 1 && $request->has('email_btn_text_color'))) {
+                $extraData['email_btn_text_color'] = $request->input($btnTextColorKey) ?? $request->input('email_btn_text_color');
+            }
+            if ($request->has($delayKey)) {
+                $extraData['delay_minutes'] = (int) $request->input($delayKey);
+            }
+
+            $subject = $request->input($subjectKey) ?? ($slot === 1 ? $request->input('asunto') : null);
+
+            if ($deleteFlag === '1' && $file === null) {
+                $existing = $producto->imagenes()
+                    ->where(function ($query) use ($slot) {
+                        if ($slot === 1) {
+                            $query->whereIn('tipo', ['email1', 'email']);
+                        } else {
+                            $query->where('tipo', "email{$slot}");
+                        }
+                    })
+                    ->first();
+
+                if ($existing) {
+                    if (!empty($existing->url_imagen)) {
+                        $this->imageService->deleteImageFromStorage($existing->url_imagen);
+                    }
+                    $existing->update(array_merge($extraData, [
+                        'url_imagen' => '',
+                        'asunto' => $subject,
+                    ]));
+                }
+
+                continue;
+            }
+
+            $this->imageService->handleSpecialImage(
+                $producto,
+                $file,
+                $tipo,
+                $subject,
                 $extraData
             );
         }

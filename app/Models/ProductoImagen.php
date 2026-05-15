@@ -27,6 +27,8 @@ class ProductoImagen extends Model
         'email_btn_link',
         'email_btn_bg_color',
         'email_btn_text_color',
+        'slot_index',
+        'delay_minutes',
     ];
 
     /**
