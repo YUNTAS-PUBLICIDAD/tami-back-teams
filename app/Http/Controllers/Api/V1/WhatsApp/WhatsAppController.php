@@ -188,9 +188,17 @@ public function sendProductDetails(Request $request)
 
     if ($producto) {
         $imagenEmail = $producto->imagenes->firstWhere('tipo', 'email1') ?: $producto->imagenes->firstWhere('tipo', 'email');
+        $imagenEmail2 = $producto->imagenes->firstWhere('tipo', 'email2');
+        $imagenEmail3 = $producto->imagenes->firstWhere('tipo', 'email3');
         $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
 
         $customSetting = new \stdClass();
+
+        // Conservar configuraciones globales de email y tomar delays específicos si existen
+        $customSetting->email_enabled = $setting->email_enabled;
+        $customSetting->email_send_delay_minutes = ($imagenEmail && $imagenEmail->delay_minutes !== null) ? $imagenEmail->delay_minutes : $setting->email_send_delay_minutes;
+        $customSetting->email_send_delay_minutes_2 = ($imagenEmail2 && $imagenEmail2->delay_minutes !== null) ? $imagenEmail2->delay_minutes : $setting->email_send_delay_minutes_2;
+        $customSetting->email_send_delay_minutes_3 = ($imagenEmail3 && $imagenEmail3->delay_minutes !== null) ? $imagenEmail3->delay_minutes : $setting->email_send_delay_minutes_3;
 
         // Mensaje 1
         $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje))
@@ -220,7 +228,7 @@ public function sendProductDetails(Request $request)
         $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
 
         $emailMensaje = ($imagenEmail && $imagenEmail->email_mensaje) ? $imagenEmail->email_mensaje : $setting->email_message;
-        if ($request->name) {
+        if ($request->name && is_string($emailMensaje)) {
             $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
         }
         $customSetting->email_message = $emailMensaje;
@@ -231,6 +239,32 @@ public function sendProductDetails(Request $request)
         $customSetting->email_btn_link = ($imagenEmail && $imagenEmail->email_btn_link) ? $imagenEmail->email_btn_link : $setting->email_btn_link;
         $customSetting->email_btn_bg_color = ($imagenEmail && $imagenEmail->email_btn_bg_color) ? $imagenEmail->email_btn_bg_color : $setting->email_btn_bg_color;
         $customSetting->email_btn_text_color = ($imagenEmail && $imagenEmail->email_btn_text_color) ? $imagenEmail->email_btn_text_color : $setting->email_btn_text_color;
+
+        // Correo 2
+        $customSetting->email_subject_2 = ($imagenEmail2 && $imagenEmail2->asunto) ? $imagenEmail2->asunto : $setting->email_subject_2;
+        $emailMensaje2 = ($imagenEmail2 && $imagenEmail2->email_mensaje) ? $imagenEmail2->email_mensaje : $setting->email_message_2;
+        if ($request->name && is_string($emailMensaje2)) {
+            $emailMensaje2 = str_replace('{{nombre}}', $request->name, $emailMensaje2);
+        }
+        $customSetting->email_message_2 = $emailMensaje2;
+        $customSetting->email_image_url_2 = $imagenEmail2 ? $imagenEmail2->url_imagen : $setting->email_image_url_2;
+        $customSetting->email_btn_text_2 = ($imagenEmail2 && $imagenEmail2->email_btn_text) ? $imagenEmail2->email_btn_text : $setting->email_btn_text_2;
+        $customSetting->email_btn_link_2 = ($imagenEmail2 && $imagenEmail2->email_btn_link) ? $imagenEmail2->email_btn_link : $setting->email_btn_link_2;
+        $customSetting->email_btn_bg_color_2 = ($imagenEmail2 && $imagenEmail2->email_btn_bg_color) ? $imagenEmail2->email_btn_bg_color : $setting->email_btn_bg_color_2;
+        $customSetting->email_btn_text_color_2 = ($imagenEmail2 && $imagenEmail2->email_btn_text_color) ? $imagenEmail2->email_btn_text_color : $setting->email_btn_text_color_2;
+
+        // Correo 3
+        $customSetting->email_subject_3 = ($imagenEmail3 && $imagenEmail3->asunto) ? $imagenEmail3->asunto : $setting->email_subject_3;
+        $emailMensaje3 = ($imagenEmail3 && $imagenEmail3->email_mensaje) ? $imagenEmail3->email_mensaje : $setting->email_message_3;
+        if ($request->name && is_string($emailMensaje3)) {
+            $emailMensaje3 = str_replace('{{nombre}}', $request->name, $emailMensaje3);
+        }
+        $customSetting->email_message_3 = $emailMensaje3;
+        $customSetting->email_image_url_3 = $imagenEmail3 ? $imagenEmail3->url_imagen : $setting->email_image_url_3;
+        $customSetting->email_btn_text_3 = ($imagenEmail3 && $imagenEmail3->email_btn_text) ? $imagenEmail3->email_btn_text : $setting->email_btn_text_3;
+        $customSetting->email_btn_link_3 = ($imagenEmail3 && $imagenEmail3->email_btn_link) ? $imagenEmail3->email_btn_link : $setting->email_btn_link_3;
+        $customSetting->email_btn_bg_color_3 = ($imagenEmail3 && $imagenEmail3->email_btn_bg_color) ? $imagenEmail3->email_btn_bg_color : $setting->email_btn_bg_color_3;
+        $customSetting->email_btn_text_color_3 = ($imagenEmail3 && $imagenEmail3->email_btn_text_color) ? $imagenEmail3->email_btn_text_color : $setting->email_btn_text_color_3;
 
         $setting = $customSetting;
     }
