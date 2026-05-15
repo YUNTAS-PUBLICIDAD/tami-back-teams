@@ -164,8 +164,14 @@ class V2UpdateProductoRequest extends FormRequest
 
         // Imagen Whatsapp
         'imagen_whatsapp' => 'nullable|file|image|max:3048',
+        'imagen_whatsapp_2' => 'nullable|file|image|max:3048',
+        'imagen_whatsapp_3' => 'nullable|file|image|max:3048',
         'texto_alt_whatsapp' => 'nullable|string|max:2000',
         'mensaje_whatsapp' => 'nullable|string',
+        'mensaje_whatsapp_2' => 'nullable|string',
+        'mensaje_whatsapp_3' => 'nullable|string',
+        'delete_imagen_whatsapp_2' => 'nullable|string|in:0,1',
+        'delete_imagen_whatsapp_3' => 'nullable|string|in:0,1',
 
         'video_url' => 'nullable|url|max:500',
         'relacionados' => 'nullable|array',
@@ -179,6 +185,11 @@ class V2UpdateProductoRequest extends FormRequest
         'delete_imagen_popup_mobile2' => 'nullable|string|in:0,1',
         'delete_emailImage' => 'nullable|string|in:0,1',
         'delete_whatsappImage' => 'nullable|string|in:0,1',
+
+        // Tiempos de WhatsApp
+        'whatsapp_time_1' => 'nullable|integer|min:-1|max:9999',
+        'whatsapp_time_2' => 'nullable|integer|min:-1|max:9999',
+        'whatsapp_time_3' => 'nullable|integer|min:-1|max:9999',
     ];
  }
 }
