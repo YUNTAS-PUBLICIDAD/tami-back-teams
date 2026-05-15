@@ -21,12 +21,23 @@ class ProductoImageService
      */
     public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $textValue = null, array $extraData = []): ?ProductoImagen
     {
-        $imagenExistente = $producto->imagenes()->where('tipo', $tipo)->first();
+        $query = $producto->imagenes()->where(function ($query) use ($tipo) {
+            if (str_starts_with($tipo, 'email')) {
+                $query->whereIn('tipo', [$tipo, 'email']);
+            } else {
+                $query->where('tipo', $tipo);
+            }
+        });
 
-        $data = $extraData; // Initialize with extraData
-        if ($tipo === 'email') {
+        $imagenExistente = $query->first();
+        $data = $extraData;
+
+        if (str_starts_with($tipo, 'email')) {
+            $slotIndex = $extraData['slot_index'] ?? ($tipo === 'email' ? 1 : (int) filter_var($tipo, FILTER_SANITIZE_NUMBER_INT));
             $data['asunto'] = $textValue ?? '';
             $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
+            $data['slot_index'] = $slotIndex;
+            $data['delay_minutes'] = $extraData['delay_minutes'] ?? 0;
         } elseif ($tipo === 'whatsapp') {
             $data['whatsapp_mensaje'] = $extraData['whatsapp_mensaje'] ?? ($textValue ?? '');
             $data['whatsapp_mensaje_2'] = $extraData['whatsapp_mensaje_2'] ?? null;
@@ -36,7 +47,6 @@ class ProductoImageService
             $data['whatsapp_time_3'] = $extraData['whatsapp_time_3'] ?? 0;
             $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
 
-            // Manejo de imágenes adicionales para WhatsApp
             if (isset($extraData['whatsapp_image_2']) && $extraData['whatsapp_image_2'] instanceof UploadedFile) {
                 if ($imagenExistente && !empty($imagenExistente->whatsapp_image_url_2)) {
                     $this->deleteImageFromStorage($imagenExistente->whatsapp_image_url_2);
@@ -53,7 +63,6 @@ class ProductoImageService
             $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
         }
 
-
         if ($file) {
             if ($imagenExistente) {
                 $this->deleteExistingImageByType($producto, $tipo);
@@ -63,12 +72,12 @@ class ProductoImageService
             $imagenExistente->update($data);
             return $imagenExistente;
         } elseif (!empty($textValue) || !empty($data['email_mensaje']) || !empty($data['whatsapp_mensaje'])) {
-            $data['url_imagen'] = '';
+            $data['url_imagen'] = $data['url_imagen'] ?? '';
             $data['tipo'] = $tipo;
             return $producto->imagenes()->create($data);
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     /**
@@ -141,7 +150,15 @@ class ProductoImageService
 
     public function deleteExistingImageByType(Producto $producto, string $tipo): void
     {
-        $imagenAnterior = $producto->imagenes()->where('tipo', $tipo)->first();
+        $query = $producto->imagenes()->where(function ($query) use ($tipo) {
+            if (str_starts_with($tipo, 'email')) {
+                $query->whereIn('tipo', [$tipo, 'email']);
+            } else {
+                $query->where('tipo', $tipo);
+            }
+        });
+
+        $imagenAnterior = $query->first();
 
         if ($imagenAnterior) {
             $this->deleteImageFromStorage($imagenAnterior->url_imagen);
