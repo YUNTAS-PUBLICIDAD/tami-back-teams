@@ -281,10 +281,8 @@ class HomePopupSettingController extends Controller
 
     private function resolvePopupType($request): string
     {
-        $popupType = strtolower((string) ($request->input('popup_type') ?? $request->query('popup_type') ?? ''));
-
-        if (in_array($popupType, ['inicio', 'producto'], true)) {
-            return $popupType;
+        if ($request->has('popup_type')) {
+            return $request->input('popup_type');
         }
 
         if ($request->has('producto_id') || $request->has('product_id') || $request->has('selected_product_id')) {
