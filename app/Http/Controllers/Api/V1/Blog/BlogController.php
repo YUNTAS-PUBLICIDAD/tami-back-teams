@@ -263,6 +263,9 @@ class BlogController extends Controller
                 $blog->etiqueta()->create([
                     'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
                     'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
+                    'popup_button_text' => $datosValidados['popup_button_text'] ?? null,
+                    'popup_button_color' => $datosValidados['popup_button_color'] ?? null,
+                    'popup_text_color' => $datosValidados['popup_text_color'] ?? null,
                 ]);
             }
 
@@ -577,6 +580,9 @@ class BlogController extends Controller
                     [
                         'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
                         'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
+                        'popup_button_text' => $datosValidados['popup_button_text'] ?? null,
+                        'popup_button_color' => $datosValidados['popup_button_color'] ?? null,
+                        'popup_text_color' => $datosValidados['popup_text_color'] ?? null,
                     ]
                 );
             } else if ($blog->etiqueta && (!isset($datosValidados['meta_titulo']) && !isset($datosValidados['meta_descripcion']))) {

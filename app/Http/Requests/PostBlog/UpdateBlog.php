@@ -45,6 +45,9 @@ class UpdateBlog extends FormRequest
 
             'meta_titulo' => 'nullable|string|min:10|max:60',
             'meta_descripcion' => 'nullable|string|min:40|max:160',
+            'popup_button_text' => 'nullable|string|max:255',
+            'popup_button_color' => 'nullable|string|max:20',
+            'popup_text_color' => 'nullable|string|max:20',
 
             'miniatura' => ['sometimes', 'image', 'max:3048'],
             'imagenes' => ['sometimes', 'array'],

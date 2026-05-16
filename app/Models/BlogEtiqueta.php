@@ -15,6 +15,9 @@ class BlogEtiqueta extends Model
         'blog_id',
         'meta_titulo',
         'meta_descripcion',
+        'popup_button_text',
+        'popup_button_color',
+        'popup_text_color',
     ];
 
     public function blog()
