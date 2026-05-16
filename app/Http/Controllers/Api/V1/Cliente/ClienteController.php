@@ -291,35 +291,27 @@ class ClienteController extends Controller
                     }
 
                     if (!$enviadoProducto) {
-                        // Solo si NO es un producto (o no se pudo obtener la info), usamos la configuración global
                         $setting = HomePopupSetting::first();
-                        $mailData = [
-                            'name' => $request->name,
-                            'email' => $request->email,
-                            'celular' => $request->celular,
-                        ];
+                    }
 
-                        if ($setting) {
-                            $mailData['subject'] = $setting->email_subject;
-                            $mailData['message'] = $setting->email_message;
-                            $mailData['image_url'] = $setting->email_image_url ? url($setting->email_image_url) : null;
-                            
-                            // Configuraciones del botón de correo desde la DB con fallbacks
-                            $mailData['email_btn_text'] = $setting->email_btn_text ?: '¡REGISTRARME!';
-                            $mailData['email_btn_link'] = $setting->email_btn_link ?: url('/');
-                            $mailData['email_btn_bg_color'] = $setting->email_btn_bg_color ?: '#00AFA0';
-                            $mailData['email_btn_text_color'] = $setting->email_btn_text_color ?: '#FFFFFF';
-                            
-                            // Agregar ruta absoluta para embeber la imagen (CID)
-                            if ($setting->email_image_url) {
-                                $filePath = public_path($setting->email_image_url);
-                                if (file_exists($filePath)) {
-                                    $mailData['image_path'] = $filePath;
-                                }
-                            }
+                    if (!$enviadoProducto && $setting && $setting->email_enabled) {
+                        // Email 1
+                        $delay1 = $setting->email_send_delay_minutes !== null ? (int) $setting->email_send_delay_minutes : 0;
+                        if ($delay1 !== -1) {
+                            \App\Jobs\SendMarketingEmailJob::dispatch($cliente, 1)->delay(now()->addMinutes($delay1));
                         }
 
-                        Mail::to($request->email)->send(new ClientRegistrationMail($mailData));
+                        // Email 2
+                        $delay2 = $setting->email_send_delay_minutes_2 !== null ? (int) $setting->email_send_delay_minutes_2 : 30;
+                        if ($delay2 !== -1) {
+                            \App\Jobs\SendMarketingEmailJob::dispatch($cliente, 2)->delay(now()->addMinutes($delay2));
+                        }
+
+                        // Email 3
+                        $delay3 = $setting->email_send_delay_minutes_3 !== null ? (int) $setting->email_send_delay_minutes_3 : 1440;
+                        if ($delay3 !== -1) {
+                            \App\Jobs\SendMarketingEmailJob::dispatch($cliente, 3)->delay(now()->addMinutes($delay3));
+                        }
                     }
                 } catch (\Exception $e) {
                     \Log::error('Error al enviar correo de registro: ' . $e->getMessage());

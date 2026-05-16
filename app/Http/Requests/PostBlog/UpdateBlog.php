@@ -49,8 +49,10 @@ class UpdateBlog extends FormRequest
             'miniatura' => ['sometimes', 'image', 'max:3048'],
             'imagenes' => ['sometimes', 'array'],
             'imagenes.*' => ['sometimes', 'image', 'max:3048'],
-            'existing_images' => ['sometimes', 'array'],
-            'existing_images.*' => ['sometimes', 'string'],
+            'imagen_tipo' => ['sometimes', 'array'],
+            'imagen_tipo.*' => ['sometimes', 'in:file,existing'],
+            'imagen_ids' => ['sometimes', 'array'],
+            'imagen_ids.*' => ['sometimes', 'integer'],
 
             /* 'text_alt' => [$isPut ? 'required' : 'sometimes', 'array'],
             'text_alt.*' => [$isPut ? 'required' : 'sometimes', 'string', 'max:255'],

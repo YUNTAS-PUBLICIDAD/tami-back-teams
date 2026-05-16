@@ -8,19 +8,19 @@
     <main>
         <h1>{{ $data['name'] ? "¡Bienvenido, " . $data['name'] . "!" : "¡Bienvenido!" }}</h1>
         
-    <div style="margin-bottom: 20px; line-height: 1.6; color: #374151;">
-        {!! $data['message'] ?? 'Gracias por registrarte en Tami. Estamos encantados de tenerte con nosotros.' !!}
-    </div>
-
         @if(!empty($data['image_path']) && file_exists($data['image_path']))
-            <div style="margin-top: 20px; text-align: center;">
+            <div style="margin-bottom: 20px; text-align: center;">
                 <img src="{{ $message->embed($data['image_path']) }}" alt="Imagen de bienvenida" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             </div>
         @elseif(!empty($data['image_url']))
-            <div style="margin-top: 20px; text-align: center;">
+            <div style="margin-bottom: 20px; text-align: center;">
                 <img src="{{ $data['image_url'] }}" alt="Imagen de bienvenida" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             </div>
         @endif
+
+    <div style="margin-bottom: 20px; line-height: 1.6; color: #374151;">
+        {!! $data['message'] ?? 'Gracias por registrarte en Tami. Estamos encantados de tenerte con nosotros.' !!}
+    </div>
 
         @php
             $btnText = $data['email_btn_text'] ?? '¡REGISTRARME!';

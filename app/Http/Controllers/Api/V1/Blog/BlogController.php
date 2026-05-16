@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Blog;
 use App\Http\Contains\HttpStatusCode;
 use App\Http\Resources\BlogResource;
-use App\Models\BlogEtiqueta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -585,62 +584,70 @@ class BlogController extends Controller
             }
 
 
-            $hasImagenesNuevas = $request->hasFile('imagenes');
-            $hasExistingImages = $request->has('existing_images');
-            $hasParrafos = $request->has('parrafos');
-
-            if ($hasImagenesNuevas || $hasExistingImages || $hasParrafos) {
-                if ($hasParrafos) {
-                    $blog->parrafos()->delete();
+            if ($request->has('parrafos') || $request->has('imagenes') || $request->has('imagen_ids')) {
+                $tiposImagen = $request->input('imagen_tipo', []);
+                if (is_string($tiposImagen)) {
+                    $tiposImagen = [$tiposImagen];
                 }
 
-                $rutasImagenesAntiguas = [];
+                $imagenesNuevas = $request->file('imagenes', []);
+                $idsImagenesExistentes = $request->input('imagen_ids', []);
+                if (is_string($idsImagenesExistentes)) {
+                    $idsImagenesExistentes = [$idsImagenesExistentes];
+                }
+
+                $altTexts = $datosValidados['text_alt'] ?? [];
+                $parrafos = $datosValidados['parrafos'] ?? [];
+                $imagenesActuales = $blog->imagenes->keyBy('id');
+                $imagenesFinales = [];
+                $idsConservados = [];
+                $cursorArchivos = 0;
+                $cursorIds = 0;
+
+                foreach ($parrafos as $indice => $parrafo) {
+                    $tipo = $tiposImagen[$indice] ?? null;
+
+                    if ($tipo === 'file') {
+                        $archivo = $imagenesNuevas[$cursorArchivos] ?? null;
+                        $cursorArchivos++;
+
+                        if (!$archivo) {
+                            throw new \Exception('No se encontró la imagen nueva esperada para una sección.');
+                        }
+
+                        $imagenesFinales[] = [
+                            'ruta_imagen' => $this->guardarImagen($archivo),
+                            'text_alt' => $altTexts[$indice] ?? null,
+                        ];
+                        continue;
+                    }
+
+                    $imagenId = $idsImagenesExistentes[$cursorIds] ?? null;
+                    $cursorIds++;
+
+                    if ($imagenId && isset($imagenesActuales[$imagenId])) {
+                        $imagenExistente = $imagenesActuales[$imagenId];
+                        $idsConservados[] = $imagenExistente->id;
+                        $imagenesFinales[] = [
+                            'ruta_imagen' => $imagenExistente->ruta_imagen,
+                            'text_alt' => $altTexts[$indice] ?? $imagenExistente->text_alt,
+                        ];
+                        continue;
+                    }
+
+                    throw new \Exception('No se pudo resolver la imagen existente de una sección.');
+                }
+
                 foreach ($blog->imagenes as $imagen) {
-                    array_push($rutasImagenesAntiguas, str_replace('/storage/', '', $imagen->ruta_imagen));
+                    if (!in_array($imagen->id, $idsConservados)) {
+                        Storage::disk('public')->delete(str_replace('/storage/', '', $imagen->ruta_imagen));
+                    }
                 }
-                $imagenesRetenidas = [];
 
                 $blog->imagenes()->delete();
 
-                $parrafos = $request->input("parrafos", []);
-                $textAlt = $request->input("text_alt", []);
-                $imagenesNuevas = $request->file("imagenes", []);
-                $existingImages = $request->input("existing_images", []);
-
-                $indicesParrafos = empty($parrafos) ? [] : array_keys($parrafos);
-                $indicesNuevas = empty($imagenesNuevas) ? [] : array_keys($imagenesNuevas);
-                $indicesExistentes = empty($existingImages) ? [] : array_keys($existingImages);
-
-                $maxIndex = -1;
-                if (!empty($indicesParrafos)) $maxIndex = max($maxIndex, max($indicesParrafos));
-                if (!empty($indicesNuevas)) $maxIndex = max($maxIndex, max($indicesNuevas));
-                if (!empty($indicesExistentes)) $maxIndex = max($maxIndex, max($indicesExistentes));
-
-                for ($i = 0; $i <= $maxIndex; $i++) {
-                    if (isset($parrafos[$i])) {
-                        $blog->parrafos()->create([
-                            "parrafo" => $parrafos[$i]
-                        ]);
-                    }
-
-                    $ruta = null;
-                    if (isset($imagenesNuevas[$i])) {
-                        $ruta = $this->guardarImagen($imagenesNuevas[$i]);
-                    } elseif (isset($existingImages[$i])) {
-                        $rawUrl = $existingImages[$i];
-                        $parsedUrl = parse_url($rawUrl, PHP_URL_PATH);
-                        if ($parsedUrl) {
-                            $ruta = $parsedUrl;
-                            $imagenesRetenidas[] = str_replace('/storage/', '', $ruta);
-                        }
-                    }
-
-                    if ($ruta) {
-                        $blog->imagenes()->create([
-                            "ruta_imagen" => $ruta,
-                            "text_alt" => $textAlt[$i] ?? null
-                        ]);
-                    }
+                foreach ($imagenesFinales as $imagenData) {
+                    $blog->imagenes()->create($imagenData);
                 }
 
                 $imagenesABorrar = array_diff($rutasImagenesAntiguas, $imagenesRetenidas);
@@ -654,7 +661,7 @@ class BlogController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->apiResponse->errorResponse(
-                $this->safeErrorMessage($e, 'actualizar el blog'), 
+                $this->safeErrorMessage($e, 'actualizar el blog'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }

@@ -65,6 +65,34 @@ class ProductoResource extends JsonResource
                 'popup_button_text' => $this->etiqueta->popup_button_text,
             ] : null,
 
+            'email_templates' => $this->imagenes ? $this->imagenes->filter(function ($img) {
+                return !empty($img->tipo) && str_starts_with($img->tipo, 'email');
+            })->sortBy(function ($img) {
+                if (!empty($img->slot_index)) {
+                    return $img->slot_index;
+                }
+                return $img->tipo === 'email' ? 1 : (int) filter_var($img->tipo, FILTER_SANITIZE_NUMBER_INT);
+            })->values()->map(function ($img) {
+                $imageUrl = $img->url_imagen;
+                if (!empty($imageUrl) && !preg_match('/^https?:\/\//', $imageUrl)) {
+                    $imageUrl = url($imageUrl);
+                }
+
+                $slotIndex = $img->slot_index ?? ($img->tipo === 'email' ? 1 : (int) filter_var($img->tipo, FILTER_SANITIZE_NUMBER_INT));
+
+                return [
+                    'slot_index' => $slotIndex,
+                    'image_url' => $imageUrl,
+                    'subject' => $img->asunto,
+                    'body_html' => $img->email_mensaje,
+                    'btn_text' => $img->email_btn_text,
+                    'btn_link' => $img->email_btn_link,
+                    'btn_bg_color' => $img->email_btn_bg_color,
+                    'btn_text_color' => $img->email_btn_text_color,
+                    'delay_minutes' => $img->delay_minutes ?? 0,
+                ];
+            })->toArray() : [],
+
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
