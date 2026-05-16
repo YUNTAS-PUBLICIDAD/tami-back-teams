@@ -32,12 +32,12 @@ class Blog extends Model
 
     public function imagenes(): HasMany
     {
-        return $this->hasMany(BlogImagenes::class, 'blog_id'); 
+        return $this->hasMany(BlogImagenes::class, 'blog_id')->orderBy('id');
     }
 
     public function parrafos(): HasMany
     {
-        return $this->hasMany(BlogParrafos::class, 'blog_id'); 
+        return $this->hasMany(BlogParrafos::class, 'blog_id')->orderBy('id');
     }
 
     public function producto(): BelongsTo

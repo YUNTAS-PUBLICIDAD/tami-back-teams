@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Blog;
 use App\Http\Contains\HttpStatusCode;
 use App\Http\Resources\BlogResource;
-use App\Models\BlogEtiqueta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -585,32 +584,75 @@ class BlogController extends Controller
             }
 
 
-            if ($request->has('imagenes')) {
-                $rutasImagenesAntiguas = [];
-                foreach ($blog->imagenes as $imagen) {
-                    array_push($rutasImagenesAntiguas, str_replace('storage/', '', $imagen['ruta_imagen']));
+            if ($request->has('parrafos') || $request->has('imagenes') || $request->has('imagen_ids')) {
+                $tiposImagen = $request->input('imagen_tipo', []);
+                if (is_string($tiposImagen)) {
+                    $tiposImagen = [$tiposImagen];
                 }
-                Storage::disk('public')->delete($rutasImagenesAntiguas);
+
+                $imagenesNuevas = $request->file('imagenes', []);
+                $idsImagenesExistentes = $request->input('imagen_ids', []);
+                if (is_string($idsImagenesExistentes)) {
+                    $idsImagenesExistentes = [$idsImagenesExistentes];
+                }
+
+                $altTexts = $datosValidados['text_alt'] ?? [];
+                $parrafos = $datosValidados['parrafos'] ?? [];
+                $imagenesActuales = $blog->imagenes->keyBy('id');
+                $imagenesFinales = [];
+                $idsConservados = [];
+                $cursorArchivos = 0;
+                $cursorIds = 0;
+
+                foreach ($parrafos as $indice => $parrafo) {
+                    $tipo = $tiposImagen[$indice] ?? null;
+
+                    if ($tipo === 'file') {
+                        $archivo = $imagenesNuevas[$cursorArchivos] ?? null;
+                        $cursorArchivos++;
+
+                        if (!$archivo) {
+                            throw new \Exception('No se encontró la imagen nueva esperada para una sección.');
+                        }
+
+                        $imagenesFinales[] = [
+                            'ruta_imagen' => $this->guardarImagen($archivo),
+                            'text_alt' => $altTexts[$indice] ?? null,
+                        ];
+                        continue;
+                    }
+
+                    $imagenId = $idsImagenesExistentes[$cursorIds] ?? null;
+                    $cursorIds++;
+
+                    if ($imagenId && isset($imagenesActuales[$imagenId])) {
+                        $imagenExistente = $imagenesActuales[$imagenId];
+                        $idsConservados[] = $imagenExistente->id;
+                        $imagenesFinales[] = [
+                            'ruta_imagen' => $imagenExistente->ruta_imagen,
+                            'text_alt' => $altTexts[$indice] ?? $imagenExistente->text_alt,
+                        ];
+                        continue;
+                    }
+
+                    throw new \Exception('No se pudo resolver la imagen existente de una sección.');
+                }
+
+                foreach ($blog->imagenes as $imagen) {
+                    if (!in_array($imagen->id, $idsConservados)) {
+                        Storage::disk('public')->delete(str_replace('/storage/', '', $imagen->ruta_imagen));
+                    }
+                }
+
                 $blog->imagenes()->delete();
 
-                $imagenes = $request->file("imagenes", []);
-                $altTexts = $datosValidados["text_alt"] ?? [];
-
-                foreach ($imagenes as $i => $imagen) {
-                    $ruta = $this->guardarImagen($imagen);
-                    $blog->imagenes()->create([
-                        "ruta_imagen" => $ruta,
-                        "text_alt" => $altTexts[$i] ?? null
-                    ]);
+                foreach ($imagenesFinales as $imagenData) {
+                    $blog->imagenes()->create($imagenData);
                 }
-            }
 
-            if ($request->has('parrafos')) {
-                $blog->parrafos()->delete();
-                foreach ($datosValidados["parrafos"] as $item) {
-                    $blog->parrafos()->create([
-                        "parrafo" => $item
-                    ]);
+                $imagenesABorrar = array_diff($rutasImagenesAntiguas, $imagenesRetenidas);
+                if (!empty($imagenesABorrar)) {
+                    Storage::disk('public')->delete($imagenesABorrar);
                 }
             }
 
@@ -619,7 +661,7 @@ class BlogController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->apiResponse->errorResponse(
-                $this->safeErrorMessage($e, 'actualizar el blog'), 
+                $this->safeErrorMessage($e, 'actualizar el blog'),
                 HttpStatusCode::INTERNAL_SERVER_ERROR
             );
         }
