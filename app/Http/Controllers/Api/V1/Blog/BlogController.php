@@ -649,14 +649,10 @@ class BlogController extends Controller
                 foreach ($imagenesFinales as $imagenData) {
                     $blog->imagenes()->create($imagenData);
                 }
-            }
 
-            if ($request->has('parrafos')) {
-                $blog->parrafos()->delete();
-                foreach ($datosValidados["parrafos"] as $item) {
-                    $blog->parrafos()->create([
-                        "parrafo" => $item
-                    ]);
+                $imagenesABorrar = array_diff($rutasImagenesAntiguas, $imagenesRetenidas);
+                if (!empty($imagenesABorrar)) {
+                    Storage::disk('public')->delete($imagenesABorrar);
                 }
             }
 
