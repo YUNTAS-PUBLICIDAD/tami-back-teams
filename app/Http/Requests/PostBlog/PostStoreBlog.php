@@ -37,6 +37,9 @@ class PostStoreBlog extends FormRequest
 
             'parrafos' => 'required|array',
             'parrafos.*' => 'required|string|max:2047',
+            'popup_button_text' => 'nullable|string|max:50',
+            'popup_button_color' => 'nullable|string|max:20',
+            'popup_text_color' => 'nullable|string|max:20',
         ];
     }
 
