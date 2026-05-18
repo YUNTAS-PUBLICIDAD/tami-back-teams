@@ -116,8 +116,8 @@ class BlogController extends Controller
     private function guardarImagen($archivo)
     {
         $nombre = uniqid() . '_' . time() . '.' . $archivo->getClientOriginalExtension();
-        $archivo->storeAs("imagenes", $nombre, "public");
-        return "/storage/imagenes/" . $nombre;
+        $path = $archivo->storeAs("imagenes", $nombre, "public");
+        return Storage::disk('public')->url($path);
     }
 
     /**
@@ -259,13 +259,23 @@ class BlogController extends Controller
 
             $blog = Blog::create($blogData);
 
-            if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
+            if (
+                isset($datosValidados['meta_titulo']) ||
+                isset($datosValidados['meta_descripcion']) ||
+                isset($datosValidados['popup_button_text']) ||
+                isset($datosValidados['popup_button_color']) ||
+                isset($datosValidados['popup_text_color']) ||
+                isset($datosValidados['popup_estilo']) ||
+                isset($datosValidados['popup3_sin_fondo'])
+            ) {
                 $blog->etiqueta()->create([
                     'meta_titulo' => $datosValidados['meta_titulo'] ?? null,
                     'meta_descripcion' => $datosValidados['meta_descripcion'] ?? null,
                     'popup_button_text' => $datosValidados['popup_button_text'] ?? null,
                     'popup_button_color' => $datosValidados['popup_button_color'] ?? null,
                     'popup_text_color' => $datosValidados['popup_text_color'] ?? null,
+                    'popup_estilo' => $datosValidados['popup_estilo'] ?? null,
+                    'popup3_sin_fondo' => $datosValidados['popup3_sin_fondo'] ?? null,
                 ]);
             }
 
@@ -574,7 +584,15 @@ class BlogController extends Controller
 
             $blog->update($camposActualizar);
 
-            if (isset($datosValidados['meta_titulo']) || isset($datosValidados['meta_descripcion'])) {
+            if (
+                isset($datosValidados['meta_titulo']) ||
+                isset($datosValidados['meta_descripcion']) ||
+                isset($datosValidados['popup_button_text']) ||
+                isset($datosValidados['popup_button_color']) ||
+                isset($datosValidados['popup_text_color']) ||
+                isset($datosValidados['popup_estilo']) ||
+                isset($datosValidados['popup3_sin_fondo'])
+            ) {
                 $blog->etiqueta()->updateOrCreate(
                     ['blog_id' => $blog->id],
                     [
@@ -583,9 +601,19 @@ class BlogController extends Controller
                         'popup_button_text' => $datosValidados['popup_button_text'] ?? null,
                         'popup_button_color' => $datosValidados['popup_button_color'] ?? null,
                         'popup_text_color' => $datosValidados['popup_text_color'] ?? null,
+                        'popup_estilo' => $datosValidados['popup_estilo'] ?? null,
+                        'popup3_sin_fondo' => $datosValidados['popup3_sin_fondo'] ?? null,
                     ]
                 );
-            } else if ($blog->etiqueta && (!isset($datosValidados['meta_titulo']) && !isset($datosValidados['meta_descripcion']))) {
+            } else if ($blog->etiqueta && (
+                !isset($datosValidados['meta_titulo']) &&
+                !isset($datosValidados['meta_descripcion']) &&
+                !isset($datosValidados['popup_button_text']) &&
+                !isset($datosValidados['popup_button_color']) &&
+                !isset($datosValidados['popup_text_color']) &&
+                !isset($datosValidados['popup_estilo']) &&
+                !isset($datosValidados['popup3_sin_fondo'])
+            )) {
                 $blog->etiqueta()->delete();
             }
 
@@ -656,9 +684,10 @@ class BlogController extends Controller
                     $blog->imagenes()->create($imagenData);
                 }
 
-                $imagenesABorrar = array_diff($rutasImagenesAntiguas, $imagenesRetenidas);
-                if (!empty($imagenesABorrar)) {
-                    Storage::disk('public')->delete($imagenesABorrar);
+                 // Recrear párrafos
+                $blog->parrafos()->delete();
+                foreach ($parrafos as $parrafo) {
+                    $blog->parrafos()->create(['parrafo' => $parrafo]);
                 }
             }
 
@@ -726,7 +755,7 @@ class BlogController extends Controller
             $blog->etiqueta()->delete();
 
             if (!empty($rutasImagenes)) {
-                Storage::delete($rutasImagenes);
+                Storage::disk('public')->delete($rutasImagenes);
             }
 
             $blog->delete();
