@@ -26,6 +26,9 @@ class BlogResource extends JsonResource
             'etiqueta'        => $this->etiqueta ? [
                 'meta_titulo'      => $this->etiqueta->meta_titulo,
                 'meta_descripcion' => $this->etiqueta->meta_descripcion,
+                'popup_button_text'  => $this->etiqueta->popup_button_text,
+                'popup_button_color' => $this->etiqueta->popup_button_color,
+                'popup_text_color'   => $this->etiqueta->popup_text_color,
             ] : null,
             'created_at'      => $this->created_at,
             'updated_at'      => $this->updated_at,
