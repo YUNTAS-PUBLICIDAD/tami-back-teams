@@ -8,23 +8,22 @@ class TestFormatter {
 
 $formatter = new TestFormatter();
 
-$html = "
-<ul>
-    <li>1</li>
-    <li>2</li>
-    <li>3</li>
-</ul>
-<p>😀</p>
-";
+// 🛠️ is encoded in UTF-8 as \xF0\x9F\x9B\xA0
+// Note the ending \xA0 byte.
+$emoji = "🛠️";
+$text = "Estructura de acero inoxidable 304 " . $emoji;
 
-echo "--- CASE 1: With <p> around emoji ---\n";
-echo $formatter->formatHtmlForWhatsapp($html) . "\n\n";
+echo "Original text: " . $text . "\n";
+echo "Original bytes in hex: " . bin2hex($text) . "\n\n";
 
-$html2 = "<ul>
-    <li>1</li>
-    <li>2</li>
-    <li>3</li>
-</ul>😀";
+$formatted = $formatter->formatHtmlForWhatsapp($text);
+echo "Formatted text: " . $formatted . "\n";
+echo "Formatted bytes in hex: " . bin2hex($formatted) . "\n\n";
 
-echo "--- CASE 2: Emoji right after </ul> ---\n";
-echo $formatter->formatHtmlForWhatsapp($html2) . "\n\n";
+// Let's test if json_encode fails on the formatted string
+$json = json_encode(['message' => $formatted]);
+if ($json === false) {
+    echo "json_encode failed: " . json_last_error_msg() . "\n";
+} else {
+    echo "json_encode succeeded!\n";
+}
