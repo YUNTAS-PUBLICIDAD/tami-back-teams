@@ -90,6 +90,7 @@ class ProductoResource extends JsonResource
                     'btn_bg_color' => $img->email_btn_bg_color,
                     'btn_text_color' => $img->email_btn_text_color,
                     'delay_minutes' => $img->delay_minutes ?? 0,
+                    'email_time' => $img->delay_minutes ?? 0,
                 ];
             })->toArray() : [],
 
