@@ -18,9 +18,9 @@ trait FormatsTextTrait
         }
 
         // 1. Limpieza inicial y normalización de espacios
-        $text = str_replace(["&nbsp;", "\xc2\xa0", "\xa0"], ' ', $html);
+        $text = str_replace(["&nbsp;", "\xc2\xa0"], ' ', $html);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $text = str_replace(["\xc2\xa0", "\xa0"], ' ', $text);
+        $text = str_replace("\xc2\xa0", ' ', $text);
 
         // 2. Manejar saltos de línea y bloques
         $text = str_replace(['<br>', '<br/>', '<br />'], "\n", $text);
