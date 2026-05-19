@@ -28,6 +28,7 @@ class ProductoImagenResource extends JsonResource
             'email_btn_bg_color' => $this->email_btn_bg_color,
             'email_btn_text_color' => $this->email_btn_text_color,
             'delay_minutes' => $this->delay_minutes ?? 0,
+            'email_time' => $this->delay_minutes ?? 0,
             'slot_index' => $this->slot_index ?? ($this->tipo === 'email' ? 1 : (str_starts_with($this->tipo ?? '', 'email') ? (int) filter_var($this->tipo, FILTER_SANITIZE_NUMBER_INT) : null)),
             'tipo' => $this->tipo ?? 'galeria',
         ];
