@@ -297,17 +297,23 @@ public function sendProductDetails(Request $request)
             'producto_id' => $producto ? $producto->id : null,
         ]);
     } else {
-        if ($request->name && $cliente->name === 'Cliente Popup') {
-            $cliente->update(['name' => $request->name]);
+        $updateData = [];
+        
+        // Actualizar el nombre si es distinto, así usamos el nombre más reciente proporcionado por el usuario
+        if ($request->name && $cliente->name !== $request->name) {
+            $updateData['name'] = $request->name;
         }
 
-        $updateData = [];
         if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
         if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
         if ($producto && !$cliente->producto_id) $updateData['producto_id'] = $producto->id;
         if ($source && $cliente->source_id !== $source->id) $updateData['source_id'] = $source->id;
 
-        if (!empty($updateData)) $cliente->update($updateData);
+        if (!empty($updateData)) {
+            $cliente->update($updateData);
+            // Refrescar para asegurar que el job reciba el nombre actualizado
+            $cliente->refresh();
+        }
     }
 
     try {
