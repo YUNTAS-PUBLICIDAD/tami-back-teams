@@ -18,8 +18,9 @@ trait FormatsTextTrait
         }
 
         // 1. Limpieza inicial y normalización de espacios
-        $text = str_replace('&nbsp;', ' ', $html);
+        $text = str_replace(["&nbsp;", "\xc2\xa0"], ' ', $html);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = str_replace("\xc2\xa0", ' ', $text);
 
         // 2. Manejar saltos de línea y bloques
         $text = str_replace(['<br>', '<br/>', '<br />'], "\n", $text);
@@ -96,17 +97,13 @@ trait FormatsTextTrait
         $lines = explode("\n", $text);
         $cleanLines = [];
         foreach ($lines as $line) {
-            $trimmed = trim($line);
-            if ($trimmed !== '') {
-                $cleanLines[] = $trimmed;
-            }
+            // Trim carriage returns and trailing space, but preserve empty lines
+            $cleanLines[] = rtrim($line);
         }
         
         $text = implode("\n", $cleanLines);
-        // Colapsar múltiples saltos de línea a uno solo por defecto para estilo compacto
-        // Si el usuario puso un doble espacio real en el HTML, p. ej. con <br><br>, lo respetamos después de esto?
-        // No, el usuario quiere "sin espacios".
-        $text = preg_replace('/\n{2,}/', "\n", $text);
+        // Collapse 3 or more consecutive newlines to at most 2, allowing a single blank line (\n\n)
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
         $text = trim($text);
 
         return $text;
