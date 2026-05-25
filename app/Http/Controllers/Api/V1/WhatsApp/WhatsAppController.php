@@ -297,17 +297,32 @@ public function sendProductDetails(Request $request)
             'producto_id' => $producto ? $producto->id : null,
         ]);
     } else {
-        if ($request->name && $cliente->name === 'Cliente Popup') {
-            $cliente->update(['name' => $request->name]);
+        // Actualizar campos si vienen y son distintos a los actuales.
+        $updateData = [];
+
+        if ($request->name && $request->name !== $cliente->name) {
+            $updateData['name'] = $request->name;
         }
 
-        $updateData = [];
-        if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
-        if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
-        if ($producto && !$cliente->producto_id) $updateData['producto_id'] = $producto->id;
-        if ($source && $cliente->source_id !== $source->id) $updateData['source_id'] = $source->id;
+        if ($request->email && $request->email !== $cliente->email) {
+            $updateData['email'] = $request->email;
+        }
 
-        if (!empty($updateData)) $cliente->update($updateData);
+        if ($request->celular && $request->celular !== $cliente->celular) {
+            $updateData['celular'] = $request->celular;
+        }
+
+        if ($producto && $cliente->producto_id !== $producto->id) {
+            $updateData['producto_id'] = $producto->id;
+        }
+
+        if ($source && $cliente->source_id !== $source->id) {
+            $updateData['source_id'] = $source->id;
+        }
+
+        if (!empty($updateData)) {
+            $cliente->update($updateData);
+        }
     }
 
     try {
