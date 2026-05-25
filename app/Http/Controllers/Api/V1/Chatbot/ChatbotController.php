@@ -7,9 +7,18 @@ use Illuminate\Http\Request;
 use App\Models\Producto;
 use App\Models\Cliente;
 use Illuminate\Support\Str;
+use App\Services\ChatbotService;
+use App\Traits\ApiResponseTrait; 
 
 class ChatbotController extends Controller
 {
+    use ApiResponseTrait; 
+
+    // Inyectamos el nuevo servicio mediante el constructor
+    public function __construct(
+        private ChatbotService $chatbotService
+    ) {}
+    
     private $numeroWhatsapp = "51978883199";
 
     private $respuestasSaludo = [
@@ -610,6 +619,48 @@ class ChatbotController extends Controller
             'tipo' => 'texto',
             'respuesta' => $this->respuestasDefecto[array_rand($this->respuestasDefecto)],
             'link_whatsapp' => "https://wa.me/{$numeroWhatsapp}?text=Hola,%20necesito%20ayuda%20para%20encontrar%20algo."
+        ]);
+    }
+    /**
+     * Endpoint POST para actualizar el ícono del asistente.
+     */
+    public function updateIcon(Request $request)
+    {
+        // 1. Validamos que realmente suban un archivo, que sea imagen y no pese demasiado
+        $request->validate([
+            'chatbot_icon' => 'required|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
+        ]);
+
+        try {
+            if ($request->hasFile('chatbot_icon')) {
+                $archivo = $request->file('chatbot_icon');
+
+                // 2. Delegamos toda la carga al nuevo servicio
+                $urlPublica = $this->chatbotService->updateIconoChatbot($archivo);
+
+                // 3. Respuesta exitosa usando tus funciones nativas del proyecto
+                return $this->successMessage(
+                    'Ícono del chatbot actualizado exitosamente',
+                    200 // O HttpStatusCode::OK->value si usas la estructura de ProductoController
+                );
+            }
+
+            return response()->json(['message' => 'No se recibió ningún archivo de imagen.'], 400);
+
+        } catch (\Exception $e) {
+            // Reutilizamos tu manejador de excepciones configurado en el trait del proyecto
+            return $this->handleException($e, 'actualizar el ícono del chatbot', true);
+        }
+    }
+
+    public function getIcon()
+    {
+        $config = \App\Models\ChatbotConfig::first();
+    
+        return response()->json([
+            'url_icono' => $config?->url_icono
+                ? asset($config->url_icono)
+                : null
         ]);
     }
 }
