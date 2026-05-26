@@ -94,6 +94,17 @@ Route::prefix('v1')->group(function () {
         });
     });
 
+    Route::controller(ChatbotController::class)->prefix('chatbot')->group(function () {
+        Route::middleware('throttle:api')->group(function () {
+            Route::get('/icon', 'getIcon');
+        });
+
+        // Rutas protegidas (Solo ADMIN)
+        Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
+            Route::post('/icon', 'updateIcon');
+        });
+    });
+
     Route::controller(WhatsAppController::class)->prefix('whatsapp')->group(function () {
         Route::middleware('throttle:public-forms')->post('/solicitar-info-producto', 'sendProductDetails');
         Route::middleware('throttle:public-forms')->post('/popup-submission', 'sendPopUpDetails');
