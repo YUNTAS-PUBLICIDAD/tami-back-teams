@@ -71,10 +71,10 @@ public function sendProductDetails(Request $request)
     } else {
         // Actualizar cliente existente si hay datos nuevos
         $updateData = [];
-        if ($request->email && !$cliente->email) {
+        if ($request->email && $cliente->email !== $request->email) {
             $updateData['email'] = $request->email;
         }
-        if ($request->phone && !$cliente->celular) {
+        if ($request->phone && $cliente->celular !== $request->phone) {
             $updateData['celular'] = $request->phone;
         }
         if (!empty($updateData)) {
@@ -298,15 +298,15 @@ public function sendProductDetails(Request $request)
         ]);
     } else {
         $updateData = [];
-        
+
         // Actualizar el nombre si es distinto, así usamos el nombre más reciente proporcionado por el usuario
         if ($request->name && $cliente->name !== $request->name) {
             $updateData['name'] = $request->name;
         }
 
-        if ($request->email && !$cliente->email) $updateData['email'] = $request->email;
-        if ($request->celular && !$cliente->celular) $updateData['celular'] = $request->celular;
-        if ($producto && !$cliente->producto_id) $updateData['producto_id'] = $producto->id;
+        if ($request->email && $cliente->email !== $request->email) $updateData['email'] = $request->email;
+        if ($request->celular && $cliente->celular !== $request->celular) $updateData['celular'] = $request->celular;
+        if ($producto && $cliente->producto_id !== $producto->id) $updateData['producto_id'] = $producto->id;
         if ($source && $cliente->source_id !== $source->id) $updateData['source_id'] = $source->id;
 
         if (!empty($updateData)) {
