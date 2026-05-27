@@ -297,7 +297,6 @@ public function sendProductDetails(Request $request)
             'producto_id' => $producto ? $producto->id : null,
         ]);
     } else {
-        // Actualizar campos si vienen y son distintos a los actuales.
         $updateData = [];
 
         // Actualizar el nombre si es distinto, así usamos el nombre más reciente proporcionado por el usuario
@@ -312,6 +311,8 @@ public function sendProductDetails(Request $request)
 
         if (!empty($updateData)) {
             $cliente->update($updateData);
+            // Refrescar para asegurar que el job reciba el nombre actualizado
+            $cliente->refresh();
         }
     }
 
