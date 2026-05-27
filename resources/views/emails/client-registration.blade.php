@@ -18,7 +18,7 @@
             </div>
         @endif
 
-    <div style="margin-bottom: 20px; line-height: 1.6; color: #374151;">
+    <div style="text-align: center; margin-bottom: 20px; line-height: 1.6; color: #374151;">
         {!! $data['message'] ?? 'Gracias por registrarte en Tami. Estamos encantados de tenerte con nosotros.' !!}
     </div>
 
