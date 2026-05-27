@@ -196,7 +196,7 @@ class ClienteController extends Controller
                 $source = ClienteSource::find($datosValidados['source_id']);
                 $shouldUpsert = $datosValidados['source_id'] == 2 || ($source && $source->name === 'Producto detalle');
             }
-            
+
             if ($shouldUpsert) {
                 // Buscar cliente existente por email o celular
                 $clienteExistente = Cliente::where('email', $datosValidados['email'])
@@ -213,10 +213,12 @@ class ClienteController extends Controller
                         'producto_id' => $datosValidados['producto_id'] ?? $clienteExistente->producto_id,
                     ]);
 
+                    $clienteExistente->refresh();
+
                     DB::commit();
                     return $this->apiResponse->successResponse(
-                        $clienteExistente->fresh(), 
-                        'Cliente actualizado con éxito.', 
+                        $clienteExistente->fresh(),
+                        'Cliente actualizado con éxito.',
                         HttpStatusCode::OK
                     );
                 }
@@ -244,14 +246,14 @@ class ClienteController extends Controller
                         if ($producto) {
                             $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
                             if ($imagenEmail) {
-                                $asunto = $imagenEmail->asunto ?? 'Información sobre ' . $producto->nombre;    
+                                $asunto = $imagenEmail->asunto ?? 'Información sobre ' . $producto->nombre;
                                 $mensaje = $imagenEmail->email_mensaje ?? '';
                                 $mensaje = str_replace('{{nombre}}', $request->name, $mensaje);
 
                                 $productData = [
                                     'name' => $producto->nombre,
-                                    'main_image' => !empty($imagenEmail->url_imagen) 
-                                        ? url($imagenEmail->url_imagen) 
+                                    'main_image' => !empty($imagenEmail->url_imagen)
+                                        ? url($imagenEmail->url_imagen)
                                         : asset('email/default-product.webp'),
                                     'video_url' => $producto->video_url ?? null,
                                     'client_name' => $request->name,
@@ -270,13 +272,13 @@ class ClienteController extends Controller
                         $producto = \App\Models\Producto::find($datosValidados['producto_id']);
                         if ($producto) {
                             // Fallback para productos: enviar información básica en lugar del Home Popup
-                            $imagenPrincipal = $producto->imagenes()->where('tipo', 'galeria')->first() 
+                            $imagenPrincipal = $producto->imagenes()->where('tipo', 'galeria')->first()
                                             ?? $producto->imagenes()->first();
-                            
+
                             $productData = [
                                 'name' => $producto->nombre,
-                                'main_image' => $imagenPrincipal 
-                                    ? url($imagenPrincipal->url_imagen) 
+                                'main_image' => $imagenPrincipal
+                                    ? url($imagenPrincipal->url_imagen)
                                     : asset('email/default-product.webp'),
                                 'video_url' => $producto->video_url ?? null,
                                 'client_name' => $request->name,
@@ -530,7 +532,7 @@ class ClienteController extends Controller
             }
 
             $camposActualizar = [];
-            
+
             foreach (['name', 'email', 'celular'] as $campo) {
                 if (array_key_exists($campo, $datosValidados)) {
                     $camposActualizar[$campo] = $datosValidados[$campo];
