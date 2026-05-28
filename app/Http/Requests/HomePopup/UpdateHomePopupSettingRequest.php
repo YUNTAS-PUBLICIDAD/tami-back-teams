@@ -131,6 +131,7 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'popup_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_mobile_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_mobile_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'popup_mobile_image_count' => 'sometimes|nullable|integer|in:1,2',
         ];
     }
 }
