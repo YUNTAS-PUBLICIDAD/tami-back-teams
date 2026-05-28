@@ -79,6 +79,7 @@ class HomePopupSetting extends Model
         'email_btn_text_color_3',
         'email_send_delay_minutes_3',
         'popup_mobile_image2_url',
+        'popup_mobile_image_count',
         'updated_by',
     ];
 
@@ -100,5 +101,6 @@ class HomePopupSetting extends Model
         'email_send_delay_minutes' => 'integer',
         'email_send_delay_minutes_2' => 'integer',
         'email_send_delay_minutes_3' => 'integer',
+        'popup_mobile_image_count' => 'integer',
     ];
 }

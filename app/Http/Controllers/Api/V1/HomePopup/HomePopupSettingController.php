@@ -96,6 +96,7 @@ class HomePopupSettingController extends Controller
             'email_btn_bg_color_3' => 'email_btn_bg_color_3',
             'email_btn_text_color_3' => 'email_btn_text_color_3',
             'email_send_delay_minutes_3' => 'email_send_delay_minutes_3',
+            'popup_mobile_image_count' => 'popup_mobile_image_count',
         ];
 
         // Agregar campos de WhatsApp según el tipo de popup
@@ -191,25 +192,25 @@ class HomePopupSettingController extends Controller
 
         // Mantener los campos genéricos sincronizados con el popup activo
         if ($popupType === 'producto') {
-            $data['whatsapp_message'] = $data['whatsapp_message_producto'] ?? null;
-            $data['whatsapp_message_2'] = $data['whatsapp_message_2_producto'] ?? null;
-            $data['whatsapp_message_3'] = $data['whatsapp_message_3_producto'] ?? null;
-            $data['whatsapp_time_1'] = $data['whatsapp_time_1_producto'] ?? null;
-            $data['whatsapp_time_2'] = $data['whatsapp_time_2_producto'] ?? null;
-            $data['whatsapp_time_3'] = $data['whatsapp_time_3_producto'] ?? null;
-            $data['whatsapp_image_url'] = $data['whatsapp_image_url_producto'] ?? null;
-            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_producto'] ?? null;
-            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_producto'] ?? null;
+            $data['whatsapp_message'] = $data['whatsapp_message_producto'] ?? $setting->whatsapp_message_producto;
+            $data['whatsapp_message_2'] = $data['whatsapp_message_2_producto'] ?? $setting->whatsapp_message_2_producto;
+            $data['whatsapp_message_3'] = $data['whatsapp_message_3_producto'] ?? $setting->whatsapp_message_3_producto;
+            $data['whatsapp_time_1'] = $data['whatsapp_time_1_producto'] ?? $setting->whatsapp_time_1_producto;
+            $data['whatsapp_time_2'] = $data['whatsapp_time_2_producto'] ?? $setting->whatsapp_time_2_producto;
+            $data['whatsapp_time_3'] = $data['whatsapp_time_3_producto'] ?? $setting->whatsapp_time_3_producto;
+            $data['whatsapp_image_url'] = $data['whatsapp_image_url_producto'] ?? $setting->whatsapp_image_url_producto;
+            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_producto'] ?? $setting->whatsapp_image_url_2_producto;
+            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_producto'] ?? $setting->whatsapp_image_url_3_producto;
         } else {
-            $data['whatsapp_message'] = $data['whatsapp_message_inicio'] ?? null;
-            $data['whatsapp_message_2'] = $data['whatsapp_message_2_inicio'] ?? null;
-            $data['whatsapp_message_3'] = $data['whatsapp_message_3_inicio'] ?? null;
-            $data['whatsapp_time_1'] = $data['whatsapp_time_1_inicio'] ?? null;
-            $data['whatsapp_time_2'] = $data['whatsapp_time_2_inicio'] ?? null;
-            $data['whatsapp_time_3'] = $data['whatsapp_time_3_inicio'] ?? null;
-            $data['whatsapp_image_url'] = $data['whatsapp_image_url_inicio'] ?? null;
-            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_inicio'] ?? null;
-            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_inicio'] ?? null;
+            $data['whatsapp_message'] = $data['whatsapp_message_inicio'] ?? $setting->whatsapp_message_inicio;
+            $data['whatsapp_message_2'] = $data['whatsapp_message_2_inicio'] ?? $setting->whatsapp_message_2_inicio;
+            $data['whatsapp_message_3'] = $data['whatsapp_message_3_inicio'] ?? $setting->whatsapp_message_3_inicio;
+            $data['whatsapp_time_1'] = $data['whatsapp_time_1_inicio'] ?? $setting->whatsapp_time_1_inicio;
+            $data['whatsapp_time_2'] = $data['whatsapp_time_2_inicio'] ?? $setting->whatsapp_time_2_inicio;
+            $data['whatsapp_time_3'] = $data['whatsapp_time_3_inicio'] ?? $setting->whatsapp_time_3_inicio;
+            $data['whatsapp_image_url'] = $data['whatsapp_image_url_inicio'] ?? $setting->whatsapp_image_url_inicio;
+            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_inicio'] ?? $setting->whatsapp_image_url_2_inicio;
+            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_inicio'] ?? $setting->whatsapp_image_url_3_inicio;
         }
 
         $data['enabled'] = true;
@@ -257,6 +258,7 @@ class HomePopupSettingController extends Controller
             'email_send_delay_minutes' => 0,
             'email_send_delay_minutes_2' => 30,
             'email_send_delay_minutes_3' => 1440,
+            'popup_mobile_image_count' => 2,
         ]);
     }
 
