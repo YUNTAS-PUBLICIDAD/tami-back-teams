@@ -9,16 +9,16 @@
         <h1>{{ $data['name'] ? "¡Bienvenido, " . $data['name'] . "!" : "¡Bienvenido!" }}</h1>
         
         @if(!empty($data['image_path']) && file_exists($data['image_path']))
-            <div style="margin-bottom: 20px; text-align: center;">
-                <img src="{{ $message->embed($data['image_path']) }}" alt="Imagen de bienvenida" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="margin-bottom: 20px; width: 600px; height: 400px; text-align: center; vertical-align: middle; background: #f3f4f6; border-radius: 8px; overflow: hidden; margin: 0 auto 20px auto; line-height: 350px;">
+                <img src="{{ $message->embed($data['image_path']) }}" alt="Imagen de bienvenida" style="object-fit: contain; width: 100%; height: 100%; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             </div>
         @elseif(!empty($data['image_url']))
-            <div style="margin-bottom: 20px; text-align: center;">
-                <img src="{{ $data['image_url'] }}" alt="Imagen de bienvenida" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="margin-bottom: 20px; width: 600px; height: 400px; text-align: center; vertical-align: middle; background: #f3f4f6; border-radius: 8px; overflow: hidden; margin: 0 auto 20px auto; line-height: 350px;">
+                <img src="{{ $data['image_url'] }}" alt="Imagen de bienvenida" style="object-fit: contain; width: 100%; height: 100%; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             </div>
         @endif
 
-    <div style="margin-bottom: 20px; line-height: 1.6; color: #374151;">
+    <div style="text-align: center; margin-bottom: 20px; line-height: 1.6; color: #374151;">
         {!! $data['message'] ?? 'Gracias por registrarte en Tami. Estamos encantados de tenerte con nosotros.' !!}
     </div>
 

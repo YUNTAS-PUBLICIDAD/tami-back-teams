@@ -8,6 +8,7 @@ use App\Models\HomePopupSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class HomePopupSettingController extends Controller
@@ -28,7 +29,7 @@ class HomePopupSettingController extends Controller
         $setting = $this->getOrCreateSettings();
 
         // Log para depuración
-        \Log::info('Petición de actualización de popup recibida', $request->all());
+        Log::info('Petición de actualización de popup recibida', $request->all());
 
         // Detectar tipo de popup: 'inicio' o 'producto' (por defecto 'inicio')
         $popupType = $this->resolvePopupType($request);
@@ -96,6 +97,8 @@ class HomePopupSettingController extends Controller
             'email_btn_bg_color_3' => 'email_btn_bg_color_3',
             'email_btn_text_color_3' => 'email_btn_text_color_3',
             'email_send_delay_minutes_3' => 'email_send_delay_minutes_3',
+            'popup_mobile_image_count' => 'popup_mobile_image_count',
+            'popupMobileImageCount' => 'popup_mobile_image_count',
         ];
 
         // Agregar campos de WhatsApp según el tipo de popup
@@ -142,8 +145,10 @@ class HomePopupSettingController extends Controller
             'popup_image2'        => ['popup_image_2_url', 'popup_image2_url'],
             'imageMobile'         => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
             'popup_mobile_image'  => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
+            'imagen_popup_mobile' => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
             'imageMobile2'        => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
             'popup_mobile_image2' => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
+            'imagen_popup_mobile2'=> ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
             'emailImage'          => ['email_image_url'],
             'email_image'         => ['email_image_url'],
             'emailImage_2'        => ['email_image_url_2'],
@@ -186,36 +191,50 @@ class HomePopupSettingController extends Controller
                 foreach ($dbColumns as $col) {
                     $data[$col] = null;
                 }
+            } elseif (in_array($fileInput, ['imageMobile', 'popup_mobile_image', 'imagen_popup_mobile'], true) && $request->boolean('delete_popup_mobile')) {
+                if (!empty($setting->$mainColumn)) {
+                    $this->deleteImage($setting->$mainColumn);
+                }
+                foreach ($dbColumns as $col) {
+                    $data[$col] = null;
+                }
+            } elseif (in_array($fileInput, ['imageMobile2', 'popup_mobile_image2', 'imagen_popup_mobile2'], true) && $request->boolean('delete_popup_mobile2')) {
+                if (!empty($setting->$mainColumn)) {
+                    $this->deleteImage($setting->$mainColumn);
+                }
+                foreach ($dbColumns as $col) {
+                    $data[$col] = null;
+                }
             }
         }
 
         // Mantener los campos genéricos sincronizados con el popup activo
         if ($popupType === 'producto') {
-            $data['whatsapp_message'] = $data['whatsapp_message_producto'] ?? null;
-            $data['whatsapp_message_2'] = $data['whatsapp_message_2_producto'] ?? null;
-            $data['whatsapp_message_3'] = $data['whatsapp_message_3_producto'] ?? null;
-            $data['whatsapp_time_1'] = $data['whatsapp_time_1_producto'] ?? null;
-            $data['whatsapp_time_2'] = $data['whatsapp_time_2_producto'] ?? null;
-            $data['whatsapp_time_3'] = $data['whatsapp_time_3_producto'] ?? null;
-            $data['whatsapp_image_url'] = $data['whatsapp_image_url_producto'] ?? null;
-            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_producto'] ?? null;
-            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_producto'] ?? null;
+            $data['whatsapp_message'] = $data['whatsapp_message_producto'] ?? $setting->whatsapp_message_producto;
+            $data['whatsapp_message_2'] = $data['whatsapp_message_2_producto'] ?? $setting->whatsapp_message_2_producto;
+            $data['whatsapp_message_3'] = $data['whatsapp_message_3_producto'] ?? $setting->whatsapp_message_3_producto;
+            $data['whatsapp_time_1'] = $data['whatsapp_time_1_producto'] ?? $setting->whatsapp_time_1_producto;
+            $data['whatsapp_time_2'] = $data['whatsapp_time_2_producto'] ?? $setting->whatsapp_time_2_producto;
+            $data['whatsapp_time_3'] = $data['whatsapp_time_3_producto'] ?? $setting->whatsapp_time_3_producto;
+            $data['whatsapp_image_url'] = $data['whatsapp_image_url_producto'] ?? $setting->whatsapp_image_url_producto;
+            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_producto'] ?? $setting->whatsapp_image_url_2_producto;
+            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_producto'] ?? $setting->whatsapp_image_url_3_producto;
         } else {
-            $data['whatsapp_message'] = $data['whatsapp_message_inicio'] ?? null;
-            $data['whatsapp_message_2'] = $data['whatsapp_message_2_inicio'] ?? null;
-            $data['whatsapp_message_3'] = $data['whatsapp_message_3_inicio'] ?? null;
-            $data['whatsapp_time_1'] = $data['whatsapp_time_1_inicio'] ?? null;
-            $data['whatsapp_time_2'] = $data['whatsapp_time_2_inicio'] ?? null;
-            $data['whatsapp_time_3'] = $data['whatsapp_time_3_inicio'] ?? null;
-            $data['whatsapp_image_url'] = $data['whatsapp_image_url_inicio'] ?? null;
-            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_inicio'] ?? null;
-            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_inicio'] ?? null;
+            $data['whatsapp_message'] = $data['whatsapp_message_inicio'] ?? $setting->whatsapp_message_inicio;
+            $data['whatsapp_message_2'] = $data['whatsapp_message_2_inicio'] ?? $setting->whatsapp_message_2_inicio;
+            $data['whatsapp_message_3'] = $data['whatsapp_message_3_inicio'] ?? $setting->whatsapp_message_3_inicio;
+            $data['whatsapp_time_1'] = $data['whatsapp_time_1_inicio'] ?? $setting->whatsapp_time_1_inicio;
+            $data['whatsapp_time_2'] = $data['whatsapp_time_2_inicio'] ?? $setting->whatsapp_time_2_inicio;
+            $data['whatsapp_time_3'] = $data['whatsapp_time_3_inicio'] ?? $setting->whatsapp_time_3_inicio;
+            $data['whatsapp_image_url'] = $data['whatsapp_image_url_inicio'] ?? $setting->whatsapp_image_url_inicio;
+            $data['whatsapp_image_url_2'] = $data['whatsapp_image_url_2_inicio'] ?? $setting->whatsapp_image_url_2_inicio;
+            $data['whatsapp_image_url_3'] = $data['whatsapp_image_url_3_inicio'] ?? $setting->whatsapp_image_url_3_inicio;
         }
 
         $data['enabled'] = true;
         $data['updated_by'] = Auth::id();
 
-        \Log::info('--- FINAL SAVE DATA ---', $data);
+        Log::info('--- FINAL SAVE DATA ---', $data);
 
         $setting->update($data);
 
@@ -257,6 +276,7 @@ class HomePopupSettingController extends Controller
             'email_send_delay_minutes' => 0,
             'email_send_delay_minutes_2' => 30,
             'email_send_delay_minutes_3' => 1440,
+            'popup_mobile_image_count' => 2,
         ]);
     }
 
@@ -283,6 +303,21 @@ class HomePopupSettingController extends Controller
     {
         if ($request->has('popup_type')) {
             return $request->input('popup_type');
+        }
+
+        if (
+            $request->has('popup_mobile_image_count')
+            || $request->has('popupMobileImageCount')
+            || $request->hasFile('popup_mobile_image')
+            || $request->hasFile('popup_mobile_image2')
+            || $request->hasFile('imagen_popup_mobile')
+            || $request->hasFile('imagen_popup_mobile2')
+            || $request->has('popup_mobile_image')
+            || $request->has('popup_mobile_image2')
+            || $request->has('imagen_popup_mobile')
+            || $request->has('imagen_popup_mobile2')
+        ) {
+            return 'producto';
         }
 
         if ($request->has('producto_id') || $request->has('product_id') || $request->has('selected_product_id')) {
