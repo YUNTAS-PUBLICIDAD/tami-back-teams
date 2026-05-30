@@ -323,11 +323,20 @@ class ProductoService
 
     private function saveSpecialImages(Producto $producto, $request): void
     {
+        $popupMobileImageCount = $this->normalizePopupMobileImageCount(
+            $request->input('popup_mobile_image_count')
+                ?? $request->input('popupMobileImageCount')
+        );
+
+        if ($this->firstUploadedFile($request, ['imagen_popup_mobile2', 'popup_mobile_image2', 'imageMobile2']) !== null) {
+            $popupMobileImageCount = 2;
+        }
+
         $tiposImagenes = [
             ['popup', 'imagen_popup', 'texto_alt_popup', []],
             ['popup2', 'imagen_popup2', 'texto_alt_popup2', []],
-            ['popup_mobile', 'imagen_popup_mobile', 'texto_alt_popup_mobile', []],
-            ['popup_mobile2', 'imagen_popup_mobile2', 'texto_alt_popup_mobile2', []],
+            ['popup_mobile', ['imagen_popup_mobile', 'popup_mobile_image', 'imageMobile'], 'texto_alt_popup_mobile', ['delete_imagen_popup_mobile', 'delete_popup_mobile', 'delete_imageMobile']],
+            ['popup_mobile2', ['imagen_popup_mobile2', 'popup_mobile_image2', 'imageMobile2'], 'texto_alt_popup_mobile2', ['delete_imagen_popup_mobile2', 'delete_popup_mobile2', 'delete_imageMobile2']],
             ['whatsapp', 'imagen_whatsapp', 'texto_alt_whatsapp', [
                 'whatsapp_mensaje' => $request->input('mensaje_whatsapp'),
                 'whatsapp_mensaje_2' => $request->input('mensaje_whatsapp_2'),
@@ -340,8 +349,24 @@ class ProductoService
             ]],
         ];
 
-        foreach ($tiposImagenes as [$tipo, $imagenKey, $textoKey, $extraData]) {
-            if ($request->input("delete_$imagenKey") === "1" || $request->input("delete_$tipo") === "1") {
+        foreach ($tiposImagenes as [$tipo, $imagenKeys, $textoKey, $payload]) {
+            $imagenKeyList = is_array($imagenKeys) ? $imagenKeys : [$imagenKeys];
+
+            if ($tipo === 'popup_mobile2' && $popupMobileImageCount === 1) {
+                $this->imageService->deleteExistingImageByType($producto, $tipo);
+                continue;
+            }
+
+            $extraData = [];
+            $deleteKeys = [];
+
+            if (array_is_list($payload)) {
+                $deleteKeys = $payload;
+            } elseif (is_array($payload)) {
+                $extraData = $payload;
+            }
+
+            if ($this->shouldDeleteSpecialImage($request, $imagenKeyList, $deleteKeys, $tipo)) {
                 $this->imageService->deleteExistingImageByType($producto, $tipo);
 
                 if ($tipo === 'whatsapp') {
@@ -352,7 +377,7 @@ class ProductoService
 
             $this->imageService->handleSpecialImage(
                 $producto,
-                $request->file($imagenKey),
+                $this->firstUploadedFile($request, $imagenKeyList),
                 $tipo,
                 $request->input($textoKey),
                 $extraData
@@ -360,6 +385,43 @@ class ProductoService
         }
 
         $this->saveEmailTemplates($producto, $request);
+    }
+
+    private function normalizePopupMobileImageCount(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $count = (int) $value;
+
+        return in_array($count, [1, 2], true) ? $count : null;
+    }
+
+    private function firstUploadedFile(Request $request, array $keys): ?UploadedFile
+    {
+        foreach ($keys as $key) {
+            $file = $request->file($key);
+
+            if ($file instanceof UploadedFile) {
+                return $file;
+            }
+        }
+
+        return null;
+    }
+
+    private function shouldDeleteSpecialImage(Request $request, array $imageKeys, array $deleteKeys, string $tipo): bool
+    {
+        $keysToCheck = array_merge($imageKeys, $deleteKeys, ["delete_$tipo", "delete_imagen_$tipo"]);
+
+        foreach ($keysToCheck as $key) {
+            if ($request->input($key) === '1') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function saveEmailTemplates(Producto $producto, $request): void

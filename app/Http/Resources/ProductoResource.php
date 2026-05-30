@@ -19,6 +19,9 @@ class ProductoResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $popupMobileImage = $this->popup_mobile_image_url;
+        $popupMobileImage2 = $this->popup_mobile_image2_url;
+
         return [
             'id' => $this->id,
             'titulo' => $this->titulo,
@@ -39,6 +42,15 @@ class ProductoResource extends JsonResource
                 'largo' => $this->dimensiones->largo,
                 'ancho' => $this->dimensiones->ancho,
             ] : null,
+            'popup_mobile_image_count' => $this->popup_mobile_image_count,
+            'popup_mobile_image_url' => $popupMobileImage,
+            'popup_mobile_image2_url' => $popupMobileImage2,
+            'popup_mobile_image_1_url' => $popupMobileImage,
+            'popup_mobile_image_2_url' => $popupMobileImage2,
+            'popup_mobile_image' => $popupMobileImage,
+            'popup_mobile_image2' => $popupMobileImage2,
+            'imageMobile' => $popupMobileImage,
+            'imageMobile2' => $popupMobileImage2,
 
             'imagenes' => ProductoImagenResource::collection(
                 $this->imagenes->filter(function($img) {

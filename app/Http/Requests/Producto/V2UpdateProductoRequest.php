@@ -125,6 +125,12 @@ class V2UpdateProductoRequest extends FormRequest
         'texto_alt_popup_mobile' => 'nullable|string|max:255',
         'imagen_popup_mobile2' => 'nullable|file|image|max:3048',
         'texto_alt_popup_mobile2' => 'nullable|string|max:255',
+        'imageMobile' => 'nullable|file|image|max:3048',
+        'imageMobile2' => 'nullable|file|image|max:3048',
+        'popup_mobile_image' => 'nullable|file|image|max:3048',
+        'popup_mobile_image2' => 'nullable|file|image|max:3048',
+        'popupMobileImageCount' => 'nullable|integer|in:1,2',
+        'popup_mobile_image_count' => 'nullable|integer|in:1,2',
         //Imagen email
 
         'imagen_email' => 'nullable|file|image|max:3048',
@@ -183,6 +189,10 @@ class V2UpdateProductoRequest extends FormRequest
         'delete_imagen_popup_2' => 'nullable|string|in:0,1',
         'delete_imagen_popup_mobile' => 'nullable|string|in:0,1',
         'delete_imagen_popup_mobile2' => 'nullable|string|in:0,1',
+        'delete_imageMobile' => 'nullable|string|in:0,1',
+        'delete_imageMobile2' => 'nullable|string|in:0,1',
+        'delete_popup_mobile' => 'nullable|string|in:0,1',
+        'delete_popup_mobile2' => 'nullable|string|in:0,1',
         'delete_emailImage' => 'nullable|string|in:0,1',
         'delete_whatsappImage' => 'nullable|string|in:0,1',
 

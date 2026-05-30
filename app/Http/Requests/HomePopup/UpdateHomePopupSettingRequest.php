@@ -4,22 +4,35 @@ namespace App\Http\Requests\HomePopup;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Log;
 
 class UpdateHomePopupSettingRequest extends FormRequest
 {
     protected function failedValidation(Validator $validator)
     {
-        \Log::error('Validation Failed in Popup Settings:', $validator->errors()->toArray());
+        Log::error('Validation Failed in Popup Settings:', $validator->errors()->toArray());
         parent::failedValidation($validator);
     }
 
     protected function prepareForValidation(): void
     {
-        // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp") 
+        // Si el frontend envía un string con el nombre de la imagen vieja (ej: "silla.webp")
         // en lugar de un archivo real (File), fallará la regla de validación 'file|image'.
         // Para evitarlo, eliminamos la variable del request si no es un archivo válido.
-        $imageKeys = ['image1', 'image2', 'imageMobile', 'imageMobile2', 'whatsappImage', 'emailImage', 'emailImage_2', 'emailImage_3'];
+        $imageKeys = [
+            'image1',
+            'image2',
+            'imageMobile',
+            'imageMobile2',
+            'popup_mobile_image',
+            'popup_mobile_image2',
+            'imagen_popup_mobile',
+            'imagen_popup_mobile2',
+            'whatsappImage',
+            'emailImage',
+            'emailImage_2',
+            'emailImage_3',
+        ];
         foreach ($imageKeys as $key) {
             if ($this->has($key) && !$this->hasFile($key)) {
                 $this->request->remove($key);
@@ -131,6 +144,8 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'popup_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_mobile_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_mobile_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imagen_popup_mobile' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'imagen_popup_mobile2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'popup_mobile_image_count' => 'sometimes|nullable|integer|in:1,2',
         ];
     }

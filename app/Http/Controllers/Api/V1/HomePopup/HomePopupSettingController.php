@@ -8,6 +8,7 @@ use App\Models\HomePopupSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class HomePopupSettingController extends Controller
@@ -28,7 +29,7 @@ class HomePopupSettingController extends Controller
         $setting = $this->getOrCreateSettings();
 
         // Log para depuración
-        \Log::info('Petición de actualización de popup recibida', $request->all());
+        Log::info('Petición de actualización de popup recibida', $request->all());
 
         // Detectar tipo de popup: 'inicio' o 'producto' (por defecto 'inicio')
         $popupType = $this->resolvePopupType($request);
@@ -97,6 +98,7 @@ class HomePopupSettingController extends Controller
             'email_btn_text_color_3' => 'email_btn_text_color_3',
             'email_send_delay_minutes_3' => 'email_send_delay_minutes_3',
             'popup_mobile_image_count' => 'popup_mobile_image_count',
+            'popupMobileImageCount' => 'popup_mobile_image_count',
         ];
 
         // Agregar campos de WhatsApp según el tipo de popup
@@ -143,8 +145,10 @@ class HomePopupSettingController extends Controller
             'popup_image2'        => ['popup_image_2_url', 'popup_image2_url'],
             'imageMobile'         => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
             'popup_mobile_image'  => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
+            'imagen_popup_mobile' => ['popup_mobile_image_url', 'popup_mobile_image_1_url'],
             'imageMobile2'        => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
             'popup_mobile_image2' => ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
+            'imagen_popup_mobile2'=> ['popup_mobile_image2_url', 'popup_mobile_image_2_url'],
             'emailImage'          => ['email_image_url'],
             'email_image'         => ['email_image_url'],
             'emailImage_2'        => ['email_image_url_2'],
@@ -187,6 +191,20 @@ class HomePopupSettingController extends Controller
                 foreach ($dbColumns as $col) {
                     $data[$col] = null;
                 }
+            } elseif (in_array($fileInput, ['imageMobile', 'popup_mobile_image', 'imagen_popup_mobile'], true) && $request->boolean('delete_popup_mobile')) {
+                if (!empty($setting->$mainColumn)) {
+                    $this->deleteImage($setting->$mainColumn);
+                }
+                foreach ($dbColumns as $col) {
+                    $data[$col] = null;
+                }
+            } elseif (in_array($fileInput, ['imageMobile2', 'popup_mobile_image2', 'imagen_popup_mobile2'], true) && $request->boolean('delete_popup_mobile2')) {
+                if (!empty($setting->$mainColumn)) {
+                    $this->deleteImage($setting->$mainColumn);
+                }
+                foreach ($dbColumns as $col) {
+                    $data[$col] = null;
+                }
             }
         }
 
@@ -216,7 +234,7 @@ class HomePopupSettingController extends Controller
         $data['enabled'] = true;
         $data['updated_by'] = Auth::id();
 
-        \Log::info('--- FINAL SAVE DATA ---', $data);
+        Log::info('--- FINAL SAVE DATA ---', $data);
 
         $setting->update($data);
 
@@ -285,6 +303,21 @@ class HomePopupSettingController extends Controller
     {
         if ($request->has('popup_type')) {
             return $request->input('popup_type');
+        }
+
+        if (
+            $request->has('popup_mobile_image_count')
+            || $request->has('popupMobileImageCount')
+            || $request->hasFile('popup_mobile_image')
+            || $request->hasFile('popup_mobile_image2')
+            || $request->hasFile('imagen_popup_mobile')
+            || $request->hasFile('imagen_popup_mobile2')
+            || $request->has('popup_mobile_image')
+            || $request->has('popup_mobile_image2')
+            || $request->has('imagen_popup_mobile')
+            || $request->has('imagen_popup_mobile2')
+        ) {
+            return 'producto';
         }
 
         if ($request->has('producto_id') || $request->has('product_id') || $request->has('selected_product_id')) {
