@@ -108,6 +108,13 @@ class V2StoreProductoRequest extends FormRequest
             'texto_alt_popup' => "nullable|string|max:255",
             'imagen_popup2' => "nullable|file|image|max:3048",
             'texto_alt_popup2' => "nullable|string|max:255",
+            'imagen_popup_mobile' => "nullable|file|image|max:3048",
+            'texto_alt_popup_mobile' => "nullable|string|max:255",
+            'imagen_popup_mobile2' => "nullable|file|image|max:3048",
+            'texto_alt_popup_mobile2' => "nullable|string|max:255",
+            'popup_mobile_image' => "nullable|file|image|max:3048",
+            'popup_mobile_image2' => "nullable|file|image|max:3048",
+            'popup_mobile_image_count' => "nullable|integer|in:1,2",
 
             'imagen_email' => "nullable|file|image|max:3048",
             'texto_alt_email' => "nullable|string|max:255",

@@ -27,6 +27,11 @@ class Producto extends Model
     ];
 
     public $timestamps = true;
+    protected $appends = [
+        'popup_mobile_image_count',
+        'popup_mobile_image_url',
+        'popup_mobile_image2_url',
+    ];
 
     public function dimensiones()
     {
@@ -71,6 +76,43 @@ class Producto extends Model
     public function productoImagenes()
     {
         return $this->hasMany(ProductoImagen::class, 'producto_id', 'id');
+    }
+
+    public function getPopupMobileImageCountAttribute(): int
+    {
+        return collect([
+            $this->popup_mobile_image_url,
+            $this->popup_mobile_image2_url,
+        ])->filter()->count();
+    }
+
+    public function getPopupMobileImageUrlAttribute(): ?string
+    {
+        return $this->resolveSpecialImageUrl(['popup_mobile', 'popup_mobile_image', 'popup_mobile_1']);
+    }
+
+    public function getPopupMobileImage2UrlAttribute(): ?string
+    {
+        return $this->resolveSpecialImageUrl(['popup_mobile2', 'popup_mobile_image2', 'popup_mobile_2']);
+    }
+
+    private function resolveSpecialImageUrl(array $types): ?string
+    {
+        $imagenes = $this->relationLoaded('imagenes') ? $this->imagenes : $this->imagenes()->get();
+
+        $imagen = $imagenes
+            ->whereIn('tipo', $types)
+            ->filter(fn ($item) => !empty($item->url_imagen))
+            ->sortByDesc('id')
+            ->first();
+
+        if (!$imagen || empty($imagen->url_imagen)) {
+            return null;
+        }
+
+        return preg_match('/^https?:\/\//', $imagen->url_imagen)
+            ? $imagen->url_imagen
+            : url($imagen->url_imagen);
     }
 
     public function whatsappTemplate()

@@ -21,13 +21,7 @@ class ProductoImageService
      */
     public function handleSpecialImage(Producto $producto, ?UploadedFile $file, string $tipo, ?string $textValue = null, array $extraData = []): ?ProductoImagen
     {
-        $query = $producto->imagenes()->where(function ($query) use ($tipo) {
-            if ($tipo === 'email1' || $tipo === 'email') {
-                $query->whereIn('tipo', ['email1', 'email']);
-            } else {
-                $query->where('tipo', $tipo);
-            }
-        });
+        $query = $producto->imagenes()->whereIn('tipo', $this->typeAliases($tipo));
 
         $imagenExistente = $query->first();
         $data = $extraData;
@@ -60,7 +54,13 @@ class ProductoImageService
                 $data['whatsapp_image_url_3'] = $this->guardarImagen($extraData['whatsapp_image_3']);
             }
         } else {
-            $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue ?? '', 120);
+            if ($textValue !== null) {
+                $data['texto_alt_SEO'] = \Illuminate\Support\Str::limit($textValue, 120);
+            }
+        }
+
+        if (!$file && empty($data)) {
+            return $imagenExistente;
         }
 
         if ($file) {
@@ -150,13 +150,7 @@ class ProductoImageService
 
     public function deleteExistingImageByType(Producto $producto, string $tipo): void
     {
-        $query = $producto->imagenes()->where(function ($query) use ($tipo) {
-            if ($tipo === 'email1' || $tipo === 'email') {
-                $query->whereIn('tipo', ['email1', 'email']);
-            } else {
-                $query->where('tipo', $tipo);
-            }
-        });
+        $query = $producto->imagenes()->whereIn('tipo', $this->typeAliases($tipo));
 
         $imagenAnterior = $query->first();
 
@@ -185,5 +179,15 @@ class ProductoImageService
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
+    }
+
+    private function typeAliases(string $tipo): array
+    {
+        return match ($tipo) {
+            'email1', 'email' => ['email1', 'email'],
+            'popup_mobile' => ['popup_mobile', 'popup_mobile_image', 'popup_mobile_1'],
+            'popup_mobile2' => ['popup_mobile2', 'popup_mobile_image2', 'popup_mobile_2'],
+            default => [$tipo],
+        };
     }
 }
