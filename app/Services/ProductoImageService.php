@@ -166,7 +166,9 @@ class ProductoImageService
 
         $payload = array_merge($data, [
             'url_imagen' => $url,
-            'tipo' => $tipo
+            'tipo' => $tipo,
+            // Asegurar que `texto_alt_SEO` siempre esté presente para evitar errores SQL
+            'texto_alt_SEO' => $data['texto_alt_SEO'] ?? '',
         ]);
 
         return $producto->imagenes()->create($payload);
@@ -185,8 +187,8 @@ class ProductoImageService
     {
         return match ($tipo) {
             'email1', 'email' => ['email1', 'email'],
-            'popup_mobile' => ['popup_mobile', 'popup_mobile_image', 'popup_mobile_1'],
-            'popup_mobile2' => ['popup_mobile2', 'popup_mobile_image2', 'popup_mobile_2'],
+            'popup_mobile' => ['popup_mobile', 'popup_mobile_image', 'popup_mobile_1', 'imageMobile'],
+            'popup_mobile2' => ['popup_mobile2', 'popup_mobile_image2', 'popup_mobile_2', 'imageMobile2'],
             default => [$tipo],
         };
     }
