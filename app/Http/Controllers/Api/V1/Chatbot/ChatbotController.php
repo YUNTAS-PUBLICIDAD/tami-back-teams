@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Chatbot;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Models\Producto;
 use App\Models\Cliente;
 use Illuminate\Support\Str;
@@ -663,4 +664,50 @@ class ChatbotController extends Controller
                 : null
         ]);
     }
+
+    public function getSaludo(): JsonResponse
+    {
+        try {
+            // Llamamos a la función encargada en tu servicio
+            $salute = $this->chatbotService->getSaludo(); // o el nombre que le hayas dado en tu Service
+
+            return response()->json([
+                'success' => true,
+                'salute'  => $salute
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el saludo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateSaludo(Request $request): JsonResponse
+    {
+        // 1. Validamos los datos en la entrada del controlador
+        $request->validate([
+            'salute' => 'required|string|max:1000', 
+        ]);
+
+        try {
+            // 2. Pasamos el string limpio al método del servicio para que haga el save()
+            $saluteActualizado = $this->chatbotService->updateSaludo($request->salute);
+
+            return response()->json([
+                'success' => true,
+                'message' => '¡Saludo del chatbot actualizado con éxito!',
+                'salute'  => $saluteActualizado
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar el saludo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    
 }
