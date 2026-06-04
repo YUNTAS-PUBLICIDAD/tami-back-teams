@@ -97,13 +97,16 @@ Route::prefix('v1')->group(function () {
     Route::controller(ChatbotController::class)->prefix('chatbot')->group(function () {
         Route::middleware('throttle:api')->group(function () {
             Route::get('/icon', 'getIcon');
-            Route::get('/icon', 'getHeadColor');
+            Route::get('/header', 'getHeadColor');
+            Route::get('/salute', 'getSaludo');
         });
 
         // Rutas protegidas (Solo ADMIN)
         Route::middleware(['auth:sanctum', 'role:ADMIN'])->group(function () {
             Route::post('/icon', 'updateIcon');
-            Route::post('/icon', 'updateHeadColor');
+            Route::post('/header', 'updateHeadColor');
+            Route::post('/salute', 'updateSaludo');
+
         });
     });
 

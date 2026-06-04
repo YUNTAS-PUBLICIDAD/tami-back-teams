@@ -49,4 +49,60 @@ class ChatbotService
             throw $e;
         }
     }
+
+
+
+    public function getSaludo()
+    {
+        try {
+            // Busca la primera configuración. Si no existe, la crea con un saludo por defecto.
+            $config = ChatbotConfig::firstOrCreate([], [
+                'salute' => '¡Hola! Bienvenido a nuestra tienda. ¿En qué puedo ayudarte hoy?'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'salute'  => $config->salute
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el saludo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Guardar o actualizar el saludo inicial (POST)
+     */
+    public function updateSaludo(Request $request)
+    {
+        // 1. Validamos que el saludo sea obligatorio y un texto válido
+        $request->validate([
+            'salute' => 'required|string|max:1000', 
+        ]);
+
+        try {
+            // 2. Buscamos el primer registro de configuración (o creamos uno nuevo si no existiera)
+            $config = ChatbotConfig::first() ?? new ChatbotConfig();
+            
+            // 3. Asignamos el nuevo saludo y guardamos
+            $config->salute = $request->salute;
+            $config->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => '¡Saludo del chatbot actualizado con éxito!',
+                'salute'  => $config->salute
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar el saludo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
