@@ -50,6 +50,7 @@ class UpdateBlog extends FormRequest
             'popup_text_color' => 'nullable|string|max:20',
 
             'miniatura' => ['sometimes', 'image', 'max:3048'],
+            'hero_image' => ['sometimes', 'image', 'max:3048'],
             'imagenes' => ['sometimes', 'array'],
             'imagenes.*' => ['sometimes', 'image', 'max:3048'],
             'imagen_tipo' => ['sometimes', 'array'],

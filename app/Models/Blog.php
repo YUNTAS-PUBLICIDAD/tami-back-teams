@@ -24,6 +24,7 @@ class Blog extends Model
         'subtitulo2',
         'video_url',
         'video_titulo',
+        'hero_image',
         'miniatura',
         'created_at',
     ];
@@ -49,4 +50,5 @@ class Blog extends Model
     {
         return $this->hasOne(BlogEtiqueta::class);
     }
+
 }

@@ -241,7 +241,12 @@ class BlogController extends Controller
 
             $imagenPrincipal = $request->file("miniatura");
             $rutaImagenPrincipal = $this->guardarImagen($imagenPrincipal);
-
+            $heroImagePath = null;
+            if ($request->hasFile('hero_image')) {
+                $heroImagePath = $this->guardarImagen(
+                    $request->file('hero_image')
+                );
+            }
             $blogData = [
                 "titulo" => $datosValidados["titulo"],
                 "producto_id" => $datosValidados["producto_id"],
@@ -251,12 +256,13 @@ class BlogController extends Controller
                 "video_url" => $datosValidados["video_url"],
                 "video_titulo" => $datosValidados["video_titulo"],
                 "miniatura" => $rutaImagenPrincipal,
+                "hero_image" => $heroImagePath,
             ];
 
             if (isset($datosValidados['created_at'])) {
                 $blogData['created_at'] = $datosValidados['created_at'];
             }
-
+            
             $blog = Blog::create($blogData);
 
             if (
@@ -574,7 +580,19 @@ class BlogController extends Controller
                     Storage::disk('public')->delete($rutaAnterior);
                 }
                 $camposActualizar['miniatura'] = $this->guardarImagen($request->file('miniatura'));
-            } elseif ($request->has('miniatura') && $datosValidados['miniatura'] === null) {
+            } 
+            if ($request->hasFile('hero_image')) {
+                if ($blog->hero_image) {
+                    $rutaAnterior = str_replace('/storage/', '', $blog->hero_image);
+                    Storage::disk('public')->delete($rutaAnterior);
+                }
+
+                $camposActualizar['hero_image'] = $this->guardarImagen(
+                    $request->file('hero_image')
+                );
+            }
+            
+            elseif ($request->has('miniatura') && $datosValidados['miniatura'] === null) {
                 if ($blog->miniatura) {
                     $rutaAnterior = str_replace('/storage/', '', $blog->miniatura);
                     Storage::disk('public')->delete($rutaAnterior);
