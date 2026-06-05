@@ -668,18 +668,18 @@ class ChatbotController extends Controller
     public function getSaludo(): JsonResponse
     {
         try {
-            // Llamamos a la función encargada en tu servicio
-            $salute = $this->chatbotService->getSaludo(); // o el nombre que le hayas dado en tu Service
+            // El servicio ahora nos devuelve un string puro, no un objeto response()
+            $salute = $this->chatbotService->getSaludo(); 
 
             return response()->json([
                 'success' => true,
-                'salute'  => $salute
+                'salute'  => $salute // Ahora llegará directo y limpio
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener el saludo: ' . $e->getMessage()
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -709,5 +709,40 @@ class ChatbotController extends Controller
         }
     }
 
-    
+    /**
+ * Obtener la posición del widget (GET)
+ */
+public function getPosicion(): \Illuminate\Http\JsonResponse
+{
+    try {
+        $isLeft = $this->chatbotService->getPosicion();
+        return response()->json([
+            'success' => true,
+            'is_left' => $isLeft
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * Actualizar la posición del widget (POST)
+ */
+public function updatePosicion(Request $request): \Illuminate\Http\JsonResponse
+{
+    $request->validate([
+        'is_left' => 'required|boolean'
+    ]);
+
+    try {
+        $isLeftActualizado = $this->chatbotService->updatePosicion($request->is_left);
+        return response()->json([
+            'success' => true,
+            'message' => '¡Posición del chatbot actualizada con éxito!',
+            'is_left' => $isLeftActualizado
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
 }

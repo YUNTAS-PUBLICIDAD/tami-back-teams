@@ -102,6 +102,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/icon', 'getIcon');
             Route::get('/header', 'getHeadColor');
             Route::get('/salute', 'getSaludo');
+            Route::get('/posicion', [ChatbotController::class, 'getPosicion']);
         });
 
         // Rutas protegidas (Solo ADMIN)
@@ -109,7 +110,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/icon', 'updateIcon');
             Route::post('/header', 'updateHeadColor');
             Route::post('/salute', 'updateSaludo');
-
+            Route::post('/posicion', [ChatbotController::class, 'updatePosicion']);
         });
     });
 

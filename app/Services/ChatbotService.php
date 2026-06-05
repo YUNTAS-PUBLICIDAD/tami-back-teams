@@ -50,29 +50,15 @@ class ChatbotService
         }
     }
 
-
-
     public function getSaludo()
     {
-        try {
-            // Busca la primera configuración. Si no existe, la crea con un saludo por defecto.
-            $config = ChatbotConfig::firstOrCreate([], [
-                'salute' => '¡Hola! Bienvenido a nuestra tienda. ¿En qué puedo ayudarte hoy?'
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'salute'  => $config->salute
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al obtener el saludo: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+        $config = ChatbotConfig::firstOrCreate([], [
+            'salute' => '¡Hola! 👋 Soy Tami Bot. ¿En qué puedo ayudarte?'
+        ]);
     
+        return $config->salute ?? '¡Hola! 👋 Soy Tami Bot. ¿En qué puedo ayudarte?';
+    }
+
     /**
      * Guardar o actualizar el saludo inicial (POST)
      */
@@ -104,5 +90,30 @@ class ChatbotService
             ], 500);
         }
     }
+
+    /**
+     * Obtener la posición actual (true = izquierda, false = derecha)
+     */
+    public function getPosicion()
+    {
+        $config = ChatbotConfig::firstOrCreate([], [
+            'is_left' => false
+        ]);
+
+        return (bool) $config->is_left;
+    }
+
+    /**
+     * Guardar la posición
+     */
+    public function updatePosicion($isLeft)
+    {
+        $config = ChatbotConfig::first() ?? new ChatbotConfig();
+        $config->is_left = $isLeft;
+        $config->save();
+
+        return (bool) $config->is_left;
+    }
+
 
 }
