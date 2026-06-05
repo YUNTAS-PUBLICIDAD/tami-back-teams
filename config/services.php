@@ -53,5 +53,10 @@ return [
     'base_url' => env('WHATSAPP_SERVICE_URL'),
 ],
 
+'gemini' => [
+    'key' => env('GEMINI_API_KEY'),
+    'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+],
+
 
 ];

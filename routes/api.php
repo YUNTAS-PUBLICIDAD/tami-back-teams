@@ -20,6 +20,9 @@ use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
 use App\Http\Controllers\Api\V1\HomePopup\HomePopupSettingController;
 use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
+use App\Services\GeminiService;
+use App\Models\Producto;
+
 
 Route::prefix('v1')->group(function () {
 
@@ -247,5 +250,28 @@ Route::controller(RoleController::class)->prefix("roles")->group(function () {
         Route::post('/remove-role/{id}', 'removeRoleFromUser');
         Route::get('/getUserRoles/{id}', 'getUserRoles');
     });
+});
+
+Route::post('/v1/chatbot/sandbox-ia', function (Illuminate\Http\Request $request, GeminiService $geminiService) {
+    $mensajeUsuario = $request->input('mensaje', '¿Qué herramientas o máquinas tienen?');
+
+    // 1. Jalamos datos reales de tu base de datos de Laravel (Filtramos un par de productos)
+    $productosBD = Producto::take(5)->get(['nombre', 'descripcion', 'seccion']);
+
+    // 2. Armamos las reglas del juego para evitar alucinaciones
+    $contextoEmpresa = "Eres Tami, el asistente virtual inteligente de la empresa Tami Maquinarias en Perú. "
+                 . "Responde de forma amable, natural, breve y en español. "
+                 . "Usa ÚNICAMENTE el siguiente listado de productos reales de nuestra base de datos para responder. "
+                 . "Menciona explícitamente los nombres de las máquinas disponibles en tu respuesta. " // <-- Nueva instrucción
+                 . "Inventario Actual MySQL:\n" . $productosBD->toJson();
+
+    // 3. Le pegamos a Google Gemini
+    $respuestaIA = $geminiService->generarRespuesta($mensajeUsuario, $contextoEmpresa);
+
+    return response()->json([
+        'usuario' => $mensajeUsuario,
+        'asistente_ia' => $respuestaIA,
+        'datos_enviados_como_contexto' => $productosBD
+    ]);
 });
 
