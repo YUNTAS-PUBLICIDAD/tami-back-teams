@@ -22,7 +22,8 @@ use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
 use App\Services\GeminiService;
 use App\Models\Producto;
-
+use App\DTO\ProductoDTO;
+use Illuminate\Support\Facades\Cache;
 
 Route::prefix('v1')->group(function () {
 
@@ -252,26 +253,44 @@ Route::controller(RoleController::class)->prefix("roles")->group(function () {
     });
 });
 
+
+//------------------NO TOCAR: IMPLEMENTACIÓN DE CHATBOT CON IA ---------------------------
+
 Route::post('/v1/chatbot/sandbox-ia', function (Illuminate\Http\Request $request, GeminiService $geminiService) {
-    $mensajeUsuario = $request->input('mensaje', '¿Qué herramientas o máquinas tienen?');
+    $mensajeUsuario = $request->input('mensaje', 'Hola');
+    $chatId = 'chat_' . $request->ip();
 
-    // 1. Jalamos datos reales de tu base de datos de Laravel (Filtramos un par de productos)
-    $productosBD = Producto::take(5)->get(['nombre', 'descripcion', 'seccion']);
+    // 1. Recuperamos el historial nativo de la caché
+    $historial = Cache::get($chatId, []);
 
-    // 2. Armamos las reglas del juego para evitar alucinaciones
-    $contextoEmpresa = "Eres Tami, el asistente virtual inteligente de la empresa Tami Maquinarias en Perú. "
-                 . "Responde de forma amable, natural, breve y en español. "
-                 . "Usa ÚNICAMENTE el siguiente listado de productos reales de nuestra base de datos para responder. "
-                 . "Menciona explícitamente los nombres de las máquinas disponibles en tu respuesta. " // <-- Nueva instrucción
-                 . "Inventario Actual MySQL:\n" . $productosBD->toJson();
+    // 2. Jalamos y limpiamos el inventario con tu DTO 🧼
+    $productosBD = Producto::all();
+    $productosLimpios = ProductoDTO::transformarColeccion($productosBD);
 
-    // 3. Le pegamos a Google Gemini
-    $respuestaIA = $geminiService->generarRespuesta($mensajeUsuario, $contextoEmpresa);
+    // 3. El System Instruction solo lleva la identidad y el inventario (Estricto)
+    $systemInstruction = "Eres Tami, el asistente virtual inteligente de la empresa Tami Maquinarias en Perú. "
+                    . "Responde de forma amable, natural, breve y en español. "
+                    . "Usa ÚNICAMENTE el siguiente listado de productos reales de nuestra base de datos para responder. "
+                    . "Menciona explícitamente los nombres de las máquinas disponibles si te preguntan por catálogo o stock.\n"
+                    . "Inventario Actual MySQL:\n" . json_encode($productosLimpios);
+
+    // 4. Le mandamos a Gemini el mensaje, las reglas fijas y el historial acumulado
+    $respuestaIA = $geminiService->generarRespuestaConHistorial($mensajeUsuario, $systemInstruction, $historial);
+
+    // 5. Si la IA respondió con éxito, guardamos el nuevo par de mensajes en el formato exacto de Gemini
+    if ($respuestaIA !== "Lo siento, estoy experimentando problemas técnicos para responder.") {
+        $historial[] = ['role' => 'user', 'parts' => [['text' => $mensajeUsuario]]];
+        $historial[] = ['role' => 'model', 'parts' => [['text' => $respuestaIA]]];
+        
+        // Guardamos en caché por 30 minutos
+        Cache::put($chatId, $historial, now()->addMinutes(30));
+    }
 
     return response()->json([
         'usuario' => $mensajeUsuario,
         'asistente_ia' => $respuestaIA,
-        'datos_enviados_como_contexto' => $productosBD
+        'total_mensajes' => count($historial),
+        'historial_nativo' => $historial
     ]);
 });
 
