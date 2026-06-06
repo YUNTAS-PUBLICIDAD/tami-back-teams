@@ -21,6 +21,7 @@ class BlogResource extends JsonResource
             'video_url'       => $this->video_url,
             'video_titulo'    => $this->video_titulo,
             'miniatura'       => $this->miniatura,
+            'hero_image'      => $this->hero_image ? url($this->hero_image) : null,
             'imagenes'        => BlogImagenResource::collection($this->imagenes),
             'parrafos'        => BlogParrafoResource::collection($this->parrafos),
             'etiqueta'        => $this->etiqueta ? [

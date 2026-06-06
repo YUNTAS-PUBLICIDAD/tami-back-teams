@@ -76,7 +76,7 @@ class V2StoreProductoRequest extends FormRequest
             'link' => 'required|string|unique:productos,link|max:255',
             'subtitulo' => "nullable|string|max:255",
             'detalle_titulo_tamano' => 'nullable|integer|min:8|max:200',
-            'detalle_titulo_color' => 'nullable|string|regex:/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/',
+            'detalle_titulo_color' => ['nullable', 'string', 'regex:/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/'],
             'detalle_titulo_estilo' => 'nullable|string|in:normal,negrita,cursiva,negrita_cursiva,subrayado',
             'stock' => "nullable|integer|max:1000|min:0",
             'precio' => "nullable|numeric|max:100000|min:0",

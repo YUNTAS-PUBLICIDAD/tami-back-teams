@@ -29,6 +29,7 @@ class PostStoreBlog extends FormRequest
             'meta_descripcion' => 'nullable|string|min:40|max:200',
 
             'miniatura' => 'file|image|max:3048',
+            'hero_image' => 'nullable|file|image|max:3048',
             'imagenes' => 'nullable|array',
             'imagenes.*' => 'required|image|max:3048',
 

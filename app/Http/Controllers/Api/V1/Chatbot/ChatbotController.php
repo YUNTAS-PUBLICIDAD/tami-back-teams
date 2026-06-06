@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Chatbot;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use App\Models\Producto;
 use App\Models\Cliente;
 use Illuminate\Support\Str;
@@ -663,4 +664,85 @@ class ChatbotController extends Controller
                 : null
         ]);
     }
+
+    public function getSaludo(): JsonResponse
+    {
+        try {
+            // El servicio ahora nos devuelve un string puro, no un objeto response()
+            $salute = $this->chatbotService->getSaludo(); 
+
+            return response()->json([
+                'success' => true,
+                'salute'  => $salute // Ahora llegará directo y limpio
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateSaludo(Request $request): JsonResponse
+    {
+        // 1. Validamos los datos en la entrada del controlador
+        $request->validate([
+            'salute' => 'required|string|max:1000', 
+        ]);
+
+        try {
+            // 2. Pasamos el string limpio al método del servicio para que haga el save()
+            $saluteActualizado = $this->chatbotService->updateSaludo($request->salute);
+
+            return response()->json([
+                'success' => true,
+                'message' => '¡Saludo del chatbot actualizado con éxito!',
+                'salute'  => $saluteActualizado
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar el saludo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+ * Obtener la posición del widget (GET)
+ */
+public function getPosicion(): \Illuminate\Http\JsonResponse
+{
+    try {
+        $isLeft = $this->chatbotService->getPosicion();
+        return response()->json([
+            'success' => true,
+            'is_left' => $isLeft
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+/**
+ * Actualizar la posición del widget (POST)
+ */
+public function updatePosicion(Request $request): \Illuminate\Http\JsonResponse
+{
+    $request->validate([
+        'is_left' => 'required|boolean'
+    ]);
+
+    try {
+        $isLeftActualizado = $this->chatbotService->updatePosicion($request->is_left);
+        return response()->json([
+            'success' => true,
+            'message' => '¡Posición del chatbot actualizada con éxito!',
+            'is_left' => $isLeftActualizado
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
 }

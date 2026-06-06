@@ -49,4 +49,71 @@ class ChatbotService
             throw $e;
         }
     }
+
+    public function getSaludo()
+    {
+        $config = ChatbotConfig::firstOrCreate([], [
+            'salute' => '¡Hola! 👋 Soy Tami Bot. ¿En qué puedo ayudarte?'
+        ]);
+    
+        return $config->salute ?? '¡Hola! 👋 Soy Tami Bot. ¿En qué puedo ayudarte?';
+    }
+
+    /**
+     * Guardar o actualizar el saludo inicial (POST)
+     */
+    public function updateSaludo(Request $request)
+    {
+        // 1. Validamos que el saludo sea obligatorio y un texto válido
+        $request->validate([
+            'salute' => 'required|string|max:1000', 
+        ]);
+
+        try {
+            // 2. Buscamos el primer registro de configuración (o creamos uno nuevo si no existiera)
+            $config = ChatbotConfig::first() ?? new ChatbotConfig();
+            
+            // 3. Asignamos el nuevo saludo y guardamos
+            $config->salute = $request->salute;
+            $config->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => '¡Saludo del chatbot actualizado con éxito!',
+                'salute'  => $config->salute
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar el saludo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener la posición actual (true = izquierda, false = derecha)
+     */
+    public function getPosicion()
+    {
+        $config = ChatbotConfig::firstOrCreate([], [
+            'is_left' => false
+        ]);
+
+        return (bool) $config->is_left;
+    }
+
+    /**
+     * Guardar la posición
+     */
+    public function updatePosicion($isLeft)
+    {
+        $config = ChatbotConfig::first() ?? new ChatbotConfig();
+        $config->is_left = $isLeft;
+        $config->save();
+
+        return (bool) $config->is_left;
+    }
+
+
 }
