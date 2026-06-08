@@ -9,7 +9,8 @@ use App\Models\Producto;
 use App\Models\Cliente;
 use Illuminate\Support\Str;
 use App\Services\ChatbotService;
-use App\Traits\ApiResponseTrait; 
+use App\Traits\ApiResponseTrait;
+use Psy\Readline\Hoa\Console;
 
 class ChatbotController extends Controller
 {
@@ -657,7 +658,9 @@ class ChatbotController extends Controller
     public function getIcon()
     {
         $config = \App\Models\ChatbotConfig::first();
-    
+        
+        
+
         return response()->json([
             'url_icono' => $config?->url_icono
                 ? asset($config->url_icono)
@@ -709,40 +712,104 @@ class ChatbotController extends Controller
         }
     }
 
+
     /**
- * Obtener la posición del widget (GET)
- */
-public function getPosicion(): \Illuminate\Http\JsonResponse
-{
-    try {
-        $isLeft = $this->chatbotService->getPosicion();
-        return response()->json([
-            'success' => true,
-            'is_left' => $isLeft
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+     * Obtener la posición del widget (GET)
+     */
+    public function getPosicion(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $isLeft = $this->chatbotService->getPosicion();
+            return response()->json([
+                'success' => true,
+                'is_left' => $isLeft
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
-}
 
-/**
- * Actualizar la posición del widget (POST)
- */
-public function updatePosicion(Request $request): \Illuminate\Http\JsonResponse
-{
-    $request->validate([
-        'is_left' => 'required|boolean'
-    ]);
+    /**
+     * Actualizar la posición del widget (POST)
+     */
+    public function updatePosicion(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'is_left' => 'required|boolean'
+        ]);
 
-    try {
-        $isLeftActualizado = $this->chatbotService->updatePosicion($request->is_left);
-        return response()->json([
-            'success' => true,
-            'message' => '¡Posición del chatbot actualizada con éxito!',
-            'is_left' => $isLeftActualizado
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        try {
+            $isLeftActualizado = $this->chatbotService->updatePosicion($request->is_left);
+            return response()->json([
+                'success' => true,
+                'message' => '¡Posición del chatbot actualizada con éxito!',
+                'is_left' => $isLeftActualizado
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
-}
+
+    /**
+     * Obtener los colores del encabezado del chatbot (GET)
+     */
+    public function getHeaderColor(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            // Llamamos al método de tu Service que retorna el array con ambos campos
+            $colores = $this->chatbotService->getHeaderColor();
+
+            return response()->json([
+                'success' => true,
+                'color_inicial' => $colores['color_inicial'],
+                'color_final' => $colores['color_final']
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Guardar los colores del encabezado (POST/PUT)
+     */
+    public function updateHeaderColor(Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            // Validamos que los colores sean obligatorios y tengan formato hexadecimal válido
+            $request->validate([
+                'color_inicial' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/',
+                'color_final' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/',
+            ]);
+
+            // Pasamos los parámetros limpios al Service
+            $colores = $this->chatbotService->updateHeaderColor(
+                $request->input('color_inicial'),
+                $request->input('color_final')
+            );
+
+            return response()->json([
+                'success' => true,
+                'color_inicial' => $colores['color_inicial'],
+                'color_final' => $colores['color_final']
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false, 
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
+    }
+
 }
