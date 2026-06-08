@@ -18,7 +18,7 @@ class ProductoDTO
         // Cortamos descripciones excesivamente largas para ahorrar tokens
         // Si la descripción es muy larga, la acortamos a 150 caracteres
         $textoDescripcion = $productoEloquent->descripcion ?? 'Sin descripción disponible.';
-        $this->detalles = mb_strimwidth($textoDescripcion, 0, 80, '...');
+        $this->detalles = mb_strimwidth($textoDescripcion, 0, 400, '...');
         
         // Simplificamos la lógica de stock para la IA
         $this->disponibilidad = 'Disponible para entrega inmediata';

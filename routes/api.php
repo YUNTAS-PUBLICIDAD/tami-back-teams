@@ -273,6 +273,7 @@ Route::post('/v1/chatbot/sandbox-ia', function (Illuminate\Http\Request $request
                     . "Responde de forma amable, natural, breve y en español. "
                     . "Usa ÚNICAMENTE el siguiente listado de productos reales de nuestra base de datos para responder. "
                     . "Menciona explícitamente los nombres de las máquinas disponibles si te preguntan por catálogo o stock.\n"
+                    . "Recuerda que tu función es ayudar a los clientes a elegir la máquina adecuada según sus necesidades, usando solo la información de este inventario. No des información que no esté aquí, y si no sabes algo, mejor di que no lo sabes y que no puedes proporcionar esa información. "
                     . "Inventario Actual MySQL:\n" . json_encode($productosLimpios);
 
     // 4. Le mandamos a Gemini el mensaje, las reglas fijas y el historial acumulado

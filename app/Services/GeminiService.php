@@ -28,39 +28,25 @@ class GeminiService
                 return "Lo siento, estoy experimentando problemas técnicos para responder.";
             }
 
-            // 1. Creamos la estructura de contenidos del chat
-            $contents = [];
+            // 1. Clonamos el historial previo de la caché (solo contiene roles user y model reales)
+            $contents = !empty($historialAnterior) ? $historialAnterior : [];
 
-            // 2. Inyectamos las instrucciones del sistema como el primerísimo mensaje (Rol de usuario para evitar quejas)
+            // 2. Inyectamos las reglas del negocio y el DTO de productos sutilmente dentro del mensaje actual.
+            // De esta forma, en cada petición la IA recuerda quién es y qué vende sin romper el orden del chat.
+            $mensajeInyectado = "CONTEXTO INVENTARIO Y REGLAS (Usa esto para responder de forma breve):\n" 
+                              . $systemInstruction 
+                              . "\n\nPREGUNTA ACTUAL DEL USUARIO:\n" 
+                              . $mensaje;
+
+            // 3. Añadimos este mensaje final al flujo que se enviará a Google
             $contents[] = [
                 'role' => 'user',
                 'parts' => [
-                    ['text' => "INSTRUCCIONES DEL SISTEMA (Sigue estas reglas estrictamente):\n" . $systemInstruction]
+                    ['text' => $mensajeInyectado]
                 ]
             ];
 
-            // Confirmamos la recepción de las instrucciones simulando una respuesta del modelo
-            $contents[] = [
-                'role' => 'model',
-                'parts' => [
-                    ['text' => "Entendido. Actuaré como Tami de Tami Maquinarias y solo usaré el inventario proporcionado."]
-                ]
-            ];
-
-            // 3. Si ya hay historial acumulado en la caché, lo sumamos al flujo
-            if (!empty($historialAnterior)) {
-                $contents = array_merge($contents, $historialAnterior);
-            }
-
-            // 4. Añadimos el mensaje actual que acaba de enviar el usuario
-            $contents[] = [
-                'role' => 'user',
-                'parts' => [
-                    ['text' => $mensaje]
-                ]
-            ];
-
-            // 5. El payload definitivo solo lleva contents y la configuración básica
+            // 4. Armamos el payload plano que la API v1 acepta sin chistar
             $payload = [
                 'contents' => $contents,
                 'generationConfig' => [
@@ -69,20 +55,20 @@ class GeminiService
                 ]
             ];
 
-            // 6. Ejecutamos la petición HTTP a la URL v1 estable
+            // 5. Petición HTTP a la URL v1 estable
             $url = "https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent?key=" . $apiKey;
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post($url, $payload);
 
-            // 7. Procesamos la respuesta del asistente
+            // 6. Procesamos el éxito
             if ($response->successful()) {
                 return $response->json('candidates.0.content.parts.0.text') ?? 'No pude procesar la respuesta.';
             }
 
-            // Si vuelve a fallar, auditamos el JSON exacto en el log
-            Log::error("Error de API Gemini v1: Code " . $response->status() . " - " . $response->body());
+            // Si falla, dejamos el rastro exacto en el log de Laravel
+            Log::error("Error de API Gemini v1 (Flujo Memoria): Code " . $response->status() . " - " . $response->body());
             return "Lo siento, estoy experimentando problemas técnicos para responder.";
 
         } catch (\Exception $e) {
