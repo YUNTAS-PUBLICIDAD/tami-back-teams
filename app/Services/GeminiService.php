@@ -12,67 +12,88 @@ class GeminiService
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.key') ?? env('GEMINI_API_KEY');
-        $this->model = config('services.gemini.model') ?? 'gemini-1.5-flash';
+        // Jalamos la nueva API Key de Groq desde el .env
+        $this->apiKey = env('GROQ_API_KEY');
+        // Por defecto usamos Llama 3 8B (Gratuito, rápido y eficiente)
+        $this->model = env('GROQ_MODEL', 'llama3-8b-8192');
     }
 
     /**
-     * Genera una respuesta manteniendo un flujo de conversación (Chat con memoria)
+     * Genera una respuesta manteniendo un flujo de conversación utilizando Groq (Llama 3)
      */
     public function generarRespuestaConHistorial(string $mensaje, string $systemInstruction, array $historialAnterior): string
     {
         try {
             $apiKey = $this->apiKey;
             if (!$apiKey) {
-                Log::error("Falta la variable GEMINI_API_KEY");
+                Log::error("Falta la variable GROQ_API_KEY en el archivo .env");
                 return "Lo siento, estoy experimentando problemas técnicos para responder.";
             }
 
-            // 1. Clonamos el historial previo de la caché (solo contiene roles user y model reales)
-            $contents = !empty($historialAnterior) ? $historialAnterior : [];
-
-            // 2. Inyectamos las reglas del negocio y el DTO de productos sutilmente dentro del mensaje actual.
-            // De esta forma, en cada petición la IA recuerda quién es y qué vende sin romper el orden del chat.
-            $mensajeInyectado = "CONTEXTO INVENTARIO Y REGLAS (Usa esto para responder de forma breve):\n" 
-                              . $systemInstruction 
-                              . "\n\nPREGUNTA ACTUAL DEL USUARIO:\n" 
-                              . $mensaje;
-
-            // 3. Añadimos este mensaje final al flujo que se enviará a Google
-            $contents[] = [
-                'role' => 'user',
-                'parts' => [
-                    ['text' => $mensajeInyectado]
+            // 1. Inicializamos el array de mensajes con el rol 'system'
+            // Aquí inyectamos directamente las reglas y el stock del ProductoDTO de forma aislada y limpia.
+            $messages = [
+                [
+                    'role' => 'system',
+                    'content' => "Eres Tami, el asistente virtual inteligente de Tami Maquinarias. Usa el siguiente inventario real y reglas de negocio para responder de manera breve y precisa:\n" . $systemInstruction
                 ]
             ];
 
-            // 4. Armamos el payload plano que la API v1 acepta sin chistar
-            $payload = [
-                'contents' => $contents,
-                'generationConfig' => [
-                    'temperature' => 0.4,
-                    'maxOutputTokens' => 2048,
-                ]
-            ];
+            // 2. Mapeamos e incorporamos el historial anterior si es que existe.
+            // Nota técnica: Convertimos el rol 'model' de Gemini al estándar 'assistant' que usa Groq.
+            if (!empty($historialAnterior)) {
+                foreach ($historialAnterior as $chat) {
+                    $role = ($chat['role'] === 'model' || $chat['role'] === 'assistant') ? 'assistant' : 'user';
+                    
+                    // Extraemos el texto adaptándolo si viene en formato estructurado de Gemini o plano
+                    $text = '';
+                    if (isset($chat['parts'][0]['text'])) {
+                        $text = $chat['parts'][0]['text'];
+                    } elseif (isset($chat['content'])) {
+                        $text = $chat['content'];
+                    }
 
-            // 5. Petición HTTP a la URL v1 estable
-            $url = "https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent?key=" . $apiKey;
-
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post($url, $payload);
-
-            // 6. Procesamos el éxito
-            if ($response->successful()) {
-                return $response->json('candidates.0.content.parts.0.text') ?? 'No pude procesar la respuesta.';
+                    if (!empty($text)) {
+                        $messages[] = [
+                            'role' => $role,
+                            'content' => $text
+                        ];
+                    }
+                }
             }
 
-            // Si falla, dejamos el rastro exacto en el log de Laravel
-            Log::error("Error de API Gemini v1 (Flujo Memoria): Code " . $response->status() . " - " . $response->body());
+            // 3. Añadimos la pregunta actual del cliente al final del flujo
+            $messages[] = [
+                'role' => 'user',
+                'content' => $mensaje
+            ];
+
+            // 4. Armamos el payload estándar compatible con la API de Groq
+            $payload = [
+                'model' => $this->model,
+                'messages' => $messages,
+                'temperature' => 0.4,
+                'max_tokens' => 2048,
+            ];
+
+            // 5. Petición HTTP POST al endpoint oficial de Groq
+            $url = "https://api.groq.com/openai/v1/chat/completions";
+
+            $response = Http::withToken($apiKey)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post($url, $payload);
+
+            // 6. Procesamos la respuesta exitosa
+            if ($response->successful()) {
+                return $response->json('choices.0.message.content') ?? 'No pude procesar la respuesta.';
+            }
+
+            // Si la API responde con un código de error, dejamos el rastro exacto en el log
+            Log::error("Error de API Groq (Flujo Memoria): Code " . $response->status() . " - " . $response->body());
             return "Lo siento, estoy experimentando problemas técnicos para responder.";
 
         } catch (\Exception $e) {
-            Log::error("Excepción en Gemini Chat: " . $e->getMessage());
+            Log::error("Excepción en Groq Chat: " . $e->getMessage());
             return "Lo siento, estoy experimentando problemas técnicos para responder.";
         }
     }
@@ -82,37 +103,35 @@ class GeminiService
      */
     public function generarRespuesta(string $prompt, string $contexto): string
     {
-        $url = "https://generativelanguage.googleapis.com/v1/models/{$this->model}:generateContent?key={$this->apiKey}";
-
-        // Combinamos las instrucciones del sistema con la pregunta del usuario
-        $promptCompleto = "Contexto e Inventario Real:\n{$contexto}\n\nPregunta del usuario: {$prompt}";
+        $url = "https://api.groq.com/openai/v1/chat/completions";
 
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post($url, [
-                        'contents' => [
-                            [
-                                'parts' => [
-                                    ['text' => $promptCompleto]
-                                ]
-                            ]
+            $response = Http::withToken($this->apiKey)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post($url, [
+                    'model' => $this->model,
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => "Contexto e Inventario Real de Tami Maquinarias:\n" . $contexto
                         ],
-                        'generationConfig' => [
-                            'temperature' => 0.3, // Menor temperatura = menos alucinación, más preciso
+                        [
+                            'role' => 'user',
+                            'content' => $prompt
                         ]
-                    ]);
+                    ],
+                    'temperature' => 0.3,
+                ]);
 
             if ($response->successful()) {
-                $resultado = $response->json();
-                return $resultado['candidates'][0]['content']['parts'][0]['text'] ?? 'Ups, no pude procesar la respuesta.';
+                return $response->json('choices.0.message.content') ?? 'Ups, no pude procesar la respuesta.';
             }
 
-            Log::error("Error de Gemini API Simple: " . $response->body());
+            Log::error("Error de Groq API Simple: " . $response->body());
             return "Lo siento, estoy experimentando problemas técnicos para responder.";
 
         } catch (\Throwable $e) {
-            Log::error("Excepción al conectar con Gemini Simple: " . $e->getMessage());
+            Log::error("Excepción al conectar con Groq Simple: " . $e->getMessage());
             return "Error de conexión con el asistente virtual.";
         }
     }
