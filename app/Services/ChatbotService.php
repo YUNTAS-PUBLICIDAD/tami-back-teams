@@ -115,5 +115,35 @@ class ChatbotService
         return (bool) $config->is_left;
     }
 
+    /**
+     * Obtener los colores del header
+     */
+    public function getHeaderColor()
+    {
+        $config = ChatbotConfig::firstOrCreate([], [
+            'color_inicial' => '#2A938B',
+            'color_final' => '#0D2D2B'
+        ]);
+
+        return $config->only(['color_inicial', 'color_final']);
+    }
+
+    /**
+     * Guardar los colores del header
+     */
+    public function updateHeaderColor(string $colorInicial, string $colorFinal): array
+    {
+        // Busca el primer registro o instancia uno nuevo si la tabla está vacía
+        $config = ChatbotConfig::first() ?? new ChatbotConfig();
+        
+        // Asigna los nuevos valores
+        $config->color_inicial = $colorInicial;
+        $config->color_final = $colorFinal;
+        $config->save();
+    
+        // Retorna los campos actualizados usando only() para mantener consistencia
+        return $config->only(['color_inicial', 'color_final']);
+    }
+    
 
 }
