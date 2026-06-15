@@ -58,5 +58,7 @@ return [
     'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
 ],
 
-
+'url_n8n' => [
+    'url' => env('N8N_CHATBOT_WEBHOOK_URL')
+]
 ];
