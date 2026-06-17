@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Chatbot;
 
+use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -11,7 +12,6 @@ use App\Models\ChatbotConfig;
 use Illuminate\Support\Str;
 use App\Services\ChatbotService;
 use App\Traits\ApiResponseTrait;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -138,6 +138,79 @@ class ChatbotController extends Controller
                 'color' => '#2A938B',
             ]);
         }
+    public function getSaludo(ChatbotService $service): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'salute' => $service->getSaludo(),
+        ]);
+    }
+
+    public function updateSaludo(Request $request, ChatbotService $service): JsonResponse
+    {
+        $request->validate([
+            'salute' => 'required|string|max:1000',
+        ]);
+
+        $config = ChatbotConfig::firstOrCreate([]);
+        $config->salute = $request->salute;
+        $config->save();
+
+        Cache::forget('chatbot_config');
+
+        return response()->json([
+            'success' => true,
+            'salute' => $config->salute,
+        ]);
+    }
+
+    public function updateHeaderColor(Request $request, ChatbotService $service): JsonResponse
+    {
+        $request->validate([
+            'color_inicial' => 'required|string|max:20',
+            'color_final' => 'required|string|max:20',
+        ]);
+
+        $colors = $service->updateHeaderColor(
+            $request->color_inicial,
+            $request->color_final
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $colors,
+        ]);
+    }
+
+    public function getPosicion(): JsonResponse
+    {
+        $config = ChatbotConfig::firstOrCreate([], [
+            'is_left' => false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'is_left' => (bool) $config->is_left,
+        ]);
+    }
+
+    public function updatePosicion(Request $request): JsonResponse
+    {
+        $request->validate([
+            'is_left' => 'required|boolean',
+        ]);
+
+        $config = ChatbotConfig::firstOrCreate([]);
+        $config->is_left = $request->boolean('is_left');
+        $config->save();
+
+        Cache::forget('chatbot_config');
+
+        return response()->json([
+            'success' => true,
+            'is_left' => (bool) $config->is_left,
+        ]);
+    }
 
     private function normalizeText($text)
     {
