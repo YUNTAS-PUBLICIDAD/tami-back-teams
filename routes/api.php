@@ -20,10 +20,6 @@ use App\Http\Controllers\Api\V1\Deploy\FrontendDeployController;
 use App\Http\Controllers\Api\V1\HomePopup\HomePopupSettingController;
 use App\Http\Controllers\Api\V1\Chatbot\ChatbotController;
 
-use App\Services\GeminiService;
-use App\Models\Producto;
-use App\DTO\ProductoDTO;
-use Illuminate\Support\Facades\Cache;
 
 Route::prefix('v1')->group(function () {
 
@@ -193,7 +189,7 @@ Route::prefix('v1')->group(function () {
 
     // ------------------- CHATBOT -------------------
     // Limitamos a 20 mensajes por minuto por usuario (IP) para evitar ataques de SPAM.
-    Route::middleware('throttle:20,1')->post('chat/responder', [\App\Http\Controllers\Api\V1\Chatbot\ChatbotController::class, 'responder']);
+    Route::middleware('throttle:20,1')->post('chat/responder', [\App\Http\Controllers\Api\V1\Chatbot\ChatbotController::class, 'ask']);
 
 });
 
@@ -253,66 +249,3 @@ Route::controller(RoleController::class)->prefix("roles")->group(function () {
         Route::get('/getUserRoles/{id}', 'getUserRoles');
     });
 });
-
-
-//------------------NO TOCAR: IMPLEMENTACIÓN DE CHATBOT CON IA ---------------------------
-
-Route::post('/v1/chatbot/sandbox-ia', function (Illuminate\Http\Request $request, GeminiService $geminiService) {
-    $mensajeUsuario = $request->input('mensaje', 'Hola');
-    $chatId = 'chat_' . $request->ip();
-
-    // 1. Recuperamos el historial nativo de la caché
-    $historial = Cache::get($chatId, []);
-
-    // 2. Jalamos y limpiamos el inventario con tu DTO 🧼
-    $productosBD = Producto::all();
-    $productosLimpios = ProductoDTO::transformarColeccion($productosBD);
-
-    // 3. El System Instruction solo lleva la identidad y el inventario (Estricto)
-    $systemInstruction = "Eres Tami, la asesora virtual de Tami Maquinarias (Perú). Tu objetivo es guiar al cliente con un tono muy amable, entusiasta y vendedor. Mantén las respuestas fluidas, naturales y dinámicas (máximo 80 palabras por respuesta). Siempre que respondas, sé servicial y cierra con una pregunta abierta para mantener la conversación activa.
-
-REGLAS ESTRICTAS:
-1. Usa SOLO el catálogo JSON adjunto al final. Si un producto o dato no está ahí, di honestamente que no dispones de esa información en este momento. ¡No inventes stock ni características!
-2. LISTAS DE PRODUCTOS: Si te preguntan qué vendes o qué hay disponible, lístalos usando viñetas de Markdown (- Producto), uno por línea. Agrega una breve frase introductoria y un cierre amigable para no sonar robótica.
-3. PRECIOS: Si no hay valor numérico exacto en el JSON, ¡NO INVENTES NÚMEROS BAJO NINGUNA CIRCUNSTANCIA! Responde con empatía explicando que los precios varían según stock, importación o lugar de envío. Invítalos cordialmente a pulsar el botón de WhatsApp para darles una cotización formal y detallada.
-4. DERIVACIÓN: Si piden cotizar, comprar o una asesoría personalizada, diles con entusiasmo (usando ✨ y 📲) que un asesor experto del equipo los atenderá de inmediato por WhatsApp para ayudarlos con su proyecto.
-
-GUÍA DE HOLOGRAMAS / VENTILADORES 3D:
-- Definición: Dispositivos visuales o ventiladores que proyectan imágenes y animaciones en movimiento, generando un efecto visual flotante 3D de alto impacto ideal para captar miradas y clientes en cualquier negocio.
-- Contenido: Confirma de manera entusiasta (😊) que sí pueden mostrar sus propios logos y videos. Si no tienen contenido, aclara que en Tami Maquinarias los orientamos para que su holograma tenga el mejor resultado.
-- Características: Son sumamente prácticos de instalar (👍) y contamos con variedad de tamaños según el espacio disponible.
-
-INVENTARIO ACTUAL EN MYSQL (Usa solo esta información para validar stock y productos):" 
-    . json_encode($productosLimpios);
-
-    // 4. Le mandamos a Groq el mensaje, las reglas fijas y el historial acumulado
-    $respuestaIA = $geminiService->generarRespuestaConHistorial($mensajeUsuario, $systemInstruction, $historial);
-
-    // 5. Validamos el límite de mensajes (15 intercambios) para evitar abusos y sobrecarga de la IA
-
-    if (count($historial) >= 30) {
-        return response()->json([
-            'usuario' => $mensajeUsuario,
-            'asistente_ia' => "Has alcanzado el límite máximo de consultas para esta sesión de chat. Si necesitas más ayuda con Tami Maquinarias, por favor reinicia la ventana del chat o comunícate directamente con nuestro soporte.",
-            'total_mensajes' => count($historial),
-            'historial_nativo' => $historial
-        ]);
-    }
-
-    // 6. Si la IA respondió con éxito, guardamos el nuevo par de mensajes en el formato plano de Groq
-    if ($respuestaIA !== "Lo siento, estoy experimentando problemas técnicos para responder.") {
-        $historial[] = ['role' => 'user', 'content' => $mensajeUsuario];
-        $historial[] = ['role' => 'assistant', 'content' => $respuestaIA];
-
-        // Guardamos en caché por 10 minutos
-        Cache::put($chatId, $historial, now()->addMinutes(10));
-    }
-
-    return response()->json([
-        'usuario' => $mensajeUsuario,
-        'asistente_ia' => $respuestaIA,
-        'total_mensajes' => count($historial),
-        'historial_nativo' => $historial
-    ]);
-});
-
