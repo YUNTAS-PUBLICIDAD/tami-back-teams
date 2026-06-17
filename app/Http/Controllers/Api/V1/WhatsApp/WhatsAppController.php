@@ -100,7 +100,7 @@ public function sendProductDetails(Request $request)
         $mensajeWhatsapp = $producto->imagenWhatsapp?->whatsapp_mensaje;
         $descripcionFinal = !empty($mensajeWhatsapp) ? $mensajeWhatsapp : $producto->descripcion;
 
-        $response = Http::post($whatsappServiceUrl . '/whatsapp/send-product-info', [
+        $response = Http::timeout(10)->post($whatsappServiceUrl . '/whatsapp/send-product-info', [
             'productName' => $producto->nombre,
             'description' => $this->formatHtmlForWhatsapp($descripcionFinal),
             'phone'       => $request->phone,
@@ -123,7 +123,7 @@ public function sendProductDetails(Request $request)
             'image_url' => $imageUrl,
         ]);
 
-        $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente ✅';
+        $resultados['whatsapp'] = 'Mensaje de WhatsApp enviado correctamente';
     } catch (\Throwable $e) {
         // Registrar mensaje fallido en BD
         if (isset($producto)) {
@@ -138,7 +138,7 @@ public function sendProductDetails(Request $request)
             ]);
         }
 
-        $resultados['whatsapp'] = '❌ ' . $this->safeErrorMessage($e, 'enviar WhatsApp de producto', 500);
+        $resultados['whatsapp'] =  $this->safeErrorMessage($e, 'enviar WhatsApp de producto', 500);
     }
 
     return response()->json([
@@ -332,7 +332,7 @@ public function sendProductDetails(Request $request)
         return response()->json([
             'message'   => 'Proceso de popup iniciado correctamente',
             'resultados' => [
-                'info' => 'Tu solicitud está siendo procesada. Recibirás la información en unos segundos ✅'
+                'info' => 'Tu solicitud está siendo procesada. Recibirás la información en unos segundos'
             ]
         ], 200);
     } catch (\Throwable $e) {
@@ -385,7 +385,7 @@ public function sendProductDetails(Request $request)
                 return $this->apiResponse->errorResponse('Configuración de WhatsApp no encontrada.', HttpStatusCode::INTERNAL_SERVER_ERROR);
             }
 
-            $response = Http::post($whatsappServiceUrl . '/whatsapp/request-qr');
+            $response = Http::timeout(10)->post($whatsappServiceUrl . '/whatsapp/request-qr');
 
             if ($response->successful()) {
                 return response()->json([
@@ -410,7 +410,7 @@ public function sendProductDetails(Request $request)
         try{
             $whatsappServiceUrl = env('WHATSAPP_SERVICE_URL', 'http://localhost:3001/api');
 
-            $response = Http::post($whatsappServiceUrl . '/whatsapp/reset');
+            $response = Http::timeout(10)->post($whatsappServiceUrl . '/whatsapp/reset');
 
             if ($response->successful()) {
                 return response()->json([
