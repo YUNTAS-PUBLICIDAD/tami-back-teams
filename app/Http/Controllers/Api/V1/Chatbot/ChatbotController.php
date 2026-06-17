@@ -37,7 +37,7 @@ class ChatbotController extends Controller
         Cache::put($cacheKey, $messageCount, 3600);
 
         // Obtener configuración dinámica
-        $settings = Cache::remember('chatbot_settings', 86400, function () {
+        $settings = Cache::remember('chatbot_config', 86400, function () {
             return ChatbotConfig::first();
         });
 
