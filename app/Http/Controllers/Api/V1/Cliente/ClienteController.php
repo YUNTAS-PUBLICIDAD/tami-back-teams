@@ -260,7 +260,7 @@ class ClienteController extends Controller
                                     'mensaje_html' => $mensaje,
                                 ];
 
-                                Mail::to($request->email)->queue(
+                                Mail::to($request->email)->send(
                                     new \App\Mail\ProductInfoMail(['product' => $productData], 'emails.product-generic', $asunto)
                                 );
                                 $enviadoProducto = true;
@@ -285,7 +285,7 @@ class ClienteController extends Controller
                                 'mensaje_html' => "Información sobre {$producto->nombre}<br><br>Precio: S/ {$producto->precio}<br><br>Puedes ver más detalles aquí: <a href='" . url('/productos/' . $producto->link) . "'>Ver producto</a>",
                             ];
 
-                            Mail::to($request->email)->queue(
+                            Mail::to($request->email)->send(
                                 new \App\Mail\ProductInfoMail(['product' => $productData], 'emails.product-generic', 'Información sobre ' . $producto->nombre)
                             );
                             $enviadoProducto = true;

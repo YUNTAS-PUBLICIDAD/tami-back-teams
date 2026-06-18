@@ -300,20 +300,15 @@ class ProductoService
 
     private function updateEtiqueta(Producto $producto, array $datos, $request): void
     {
-        Log::info('Datos recibidos en etiqueta:', ['etiqueta' => $request->etiqueta]);
-        // Cambiamos el origen de los datos a la misma estructura que los demás campos
-        $rawKeywords = $request->etiqueta['keywords'] ?? null;
-        Log::info('Keywords raw:', [
-            'value' => $request->etiqueta['keywords'] ?? null,
-            'type'  => gettype($request->etiqueta['keywords'] ?? null),
-        ]);
-        $keywords = $this->keywordService->processKeywordsFromJson($rawKeywords);
+        $keywords = $this->keywordService->processKeywordsFromJson($datos['keywords'] ?? null);
+
         $producto->etiqueta()->updateOrCreate(
             ['producto_id' => $producto->id],
             [
                 'meta_titulo' => $request->etiqueta['meta_titulo'] ?? null,
                 'meta_descripcion' => $request->etiqueta['meta_descripcion'] ?? null,
-                'keywords' => is_array($keywords) ? implode(',', $keywords) : $keywords,                'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
+                'keywords' => $keywords,
+                'popup_estilo' => $request->etiqueta['popup_estilo'] ?? null,
                 'popup3_sin_fondo' => filter_var(
                     $request->etiqueta['popup3_sin_fondo'] ?? false,
                     FILTER_VALIDATE_BOOLEAN
