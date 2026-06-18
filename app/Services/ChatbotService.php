@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 use App\Services\ProductoImageService; // <-- Asegúrate de mapear la ruta real de tu servicio de imágenes
 
@@ -39,6 +40,9 @@ class ChatbotService
             $config = ChatbotConfig::firstOrCreate([]); 
             $config->url_icono = $urlPublica; 
             $config->save();
+            
+            // Limpiar la caché al modificar
+            Cache::forget('chatbot_config');
 
             DB::commit();
             return $urlPublica;
@@ -77,6 +81,9 @@ class ChatbotService
             $config->salute = $request->salute;
             $config->save();
 
+            // Limpiar la caché al modificar
+            Cache::forget('chatbot_config');
+
             return response()->json([
                 'success' => true,
                 'message' => '¡Saludo del chatbot actualizado con éxito!',
@@ -112,6 +119,9 @@ class ChatbotService
         $config->is_left = $isLeft;
         $config->save();
 
+        // Limpiar la caché al modificar
+        Cache::forget('chatbot_config');
+
         return (bool) $config->is_left;
     }
 
@@ -141,6 +151,9 @@ class ChatbotService
         $config->color_final = $colorFinal;
         $config->save();
     
+        // Limpiar la caché al modificar
+        Cache::forget('chatbot_config');
+
         // Retorna los campos actualizados usando only() para mantener consistencia
         return $config->only(['color_inicial', 'color_final']);
     }
