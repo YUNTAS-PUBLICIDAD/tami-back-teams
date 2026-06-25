@@ -12,6 +12,7 @@ class Producto extends Model
 {
     protected $fillable = [
         'nombre',
+        'porque_elegirnos',
         'link',
         'titulo',
         'detalle_titulo_tamano',
