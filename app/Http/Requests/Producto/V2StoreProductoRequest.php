@@ -73,6 +73,7 @@ class V2StoreProductoRequest extends FormRequest
         return [
             'titulo' => "required|string|max:255",
             'nombre' => "required|string|max:255|unique:productos,nombre",
+            'porque_elegirnos' => "required|string|max:500",
             'link' => 'required|string|unique:productos,link|max:255',
             'subtitulo' => "nullable|string|max:255",
             'detalle_titulo_tamano' => 'nullable|integer|min:8|max:200',
