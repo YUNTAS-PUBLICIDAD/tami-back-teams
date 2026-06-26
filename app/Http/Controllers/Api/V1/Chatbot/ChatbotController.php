@@ -111,7 +111,11 @@ class ChatbotController extends Controller
                     </a>
                 </div>";
             
-            $responseText .= $botonWhatsApp;
+            return response()->json([
+                'success' => true,
+                'response' => $responseText,
+                'link_whatsapp' => $messageCount === 3 ? $whatsappUrl : null,
+            ]);
         }
 
         return response()->json([
