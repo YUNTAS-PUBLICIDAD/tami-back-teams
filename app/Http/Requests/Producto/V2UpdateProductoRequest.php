@@ -75,7 +75,7 @@ class V2UpdateProductoRequest extends FormRequest
     return [
         'nombre' => [$required, 'string', 'max:255', Rule::unique('productos', 'nombre')->ignore($productoId)],
         'link' => [$required, 'string', 'max:255', Rule::unique('productos', 'link')->ignore($productoId)],
-        'porque_elegirnos' => [$required, 'string', 'max:500', Rule::unique('productos', 'porque_elegirnos')->ignore($productoId)],
+        'porque_elegirnos' => [$required, 'string', 'max:3000', Rule::unique('productos', 'porque_elegirnos')->ignore($productoId)],
         'titulo' => [$required, 'string', 'max:255'],
         'subtitulo' => [$required, 'string', 'max:255'],
         'detalle_titulo_tamano' => ['sometimes', 'nullable', 'integer', 'min:8', 'max:200'],
