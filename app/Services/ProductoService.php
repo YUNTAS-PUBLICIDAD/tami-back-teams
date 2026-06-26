@@ -236,6 +236,7 @@ class ProductoService
     {
         return Producto::create([
             'nombre' => $datos['nombre'] ?? null,
+            'porque_elegirnos' => $datos['porque_elegirnos'] ?? null,
             'link' => $datos['link'] ?? null,
             'titulo' => $datos['titulo'] ?? null,
             'detalle_titulo_tamano' => $datos['detalle_titulo_tamano'] ?? null,
@@ -254,6 +255,7 @@ class ProductoService
     {
         $camposPermitidos = [
             'nombre',
+            'porque_elegirnos',
             'link',
             'titulo',
             'detalle_titulo_tamano',

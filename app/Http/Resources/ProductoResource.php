@@ -25,6 +25,7 @@ class ProductoResource extends JsonResource
         return [
             'id' => $this->id,
             'titulo' => $this->titulo,
+            'porque_elegirnos' => $this->porque_elegirnos,
             'detalle_titulo_tamano' => $this->detalle_titulo_tamano,
             'detalle_titulo_color' => $this->detalle_titulo_color,
             'detalle_titulo_estilo' => $this->detalle_titulo_estilo,
