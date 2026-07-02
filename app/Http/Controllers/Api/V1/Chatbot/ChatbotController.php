@@ -23,9 +23,13 @@ class ChatbotController extends Controller
     {
         // Aceptamos 'chatbotTami' o 'mensaje' para evitar que Laravel rechace la petición de React
         $chatbotTami = $request->input('chatbotTami') ?? $request->input('mensaje');
+        $platform = $request->input('platform') ?? $request->input('website') ?? 'website';
 
         if (empty($chatbotTami)) {
             return response()->json(['success' => false, 'response' => 'El mensaje es requerido.'], 400);
+        }
+        if (empty($platform)) {
+            $platform = 'website';
         }
 
         $normalizedMessage = $this->normalizeText($chatbotTami);
@@ -63,7 +67,8 @@ class ChatbotController extends Controller
                     
                     $response = $http->post($n8n_url, [
                         'chatbotTami' => $chatbotTami,
-                        'sessionId' => $sessionId
+                        'sessionId' => $sessionId,
+                        'platform' => $platform,
                     ]);
                     
                     if ($response->successful()) {
