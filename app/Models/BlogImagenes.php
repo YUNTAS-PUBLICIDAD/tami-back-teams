@@ -12,7 +12,10 @@ class BlogImagenes extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'ruta_imagen',
-        'text_alt',
+        'img_alt',
+        'img_nombre',
+        'img_tittle',
+        //'text_alt',
         'blog_id'
     ];
 
