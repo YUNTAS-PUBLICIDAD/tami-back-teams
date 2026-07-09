@@ -12,7 +12,9 @@ class BlogImagenResource extends JsonResource
         return [
             'id'           => $this->id,
             'ruta_imagen' => $this->ruta_imagen,
-            'text_alt'    => $this->text_alt,
+            'img_alt'     => $this->img_alt,
+            'img_nombre'  => $this->img_nombre,
+            'img_tittle'  => $this->img_tittle,
         ];
     }
 }

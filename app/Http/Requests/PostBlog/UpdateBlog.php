@@ -50,7 +50,13 @@ class UpdateBlog extends FormRequest
             'popup_text_color' => 'nullable|string|max:20',
 
             'miniatura' => ['sometimes', 'image', 'max:3048'],
+            'miniatura_nombre' => 'nullable|string|min:10|max:60',
+            'miniatura_alt' => 'nullable|string|min:10|max:160',
+            'miniatura_tittle' => 'nullable|string|min:10|max:60',
             'hero_image' => ['sometimes', 'image', 'max:3048'],
+            'hero_image_nombre' => 'nullable|string|min:10|max:60',
+            'hero_image_alt' => 'nullable|string|min:10|max:160',
+            'hero_image_tittle' => 'nullable|string|min:10|max:60',
             'imagenes' => ['sometimes', 'array'],
             'imagenes.*' => ['sometimes', 'image', 'max:3048'],
             'imagen_tipo' => ['sometimes', 'array'],
@@ -64,8 +70,16 @@ class UpdateBlog extends FormRequest
             'parrafos' => [$isPut ? 'required' : 'sometimes', 'array'],
             'parrafos.*' => [$isPut ? 'required' : 'sometimes', 'string', 'max:2047'], */
 
-            'text_alt' => ['required', 'array'],
-            'text_alt.*' => ['required', 'string', 'max:255'],
+            /*'text_alt' => ['required', 'array'],
+            'text_alt.*' => ['required', 'string', 'max:255'],*/
+
+            'img_alt' => ['required', 'array'],
+            'img_alt.*' => ['required', 'string', 'max:255'],
+            'img_nombre' => ['nullable', 'array'],
+            'img_nombre.*' => ['nullable', 'string', 'max:60'],
+            'img_tittle' => ['nullable', 'array'],
+            'img_tittle.*' => ['nullable', 'string', 'max:60'],
+
 
             'parrafos' => ['required', 'array'],
             'parrafos.*' => ['required', 'string', 'max:2047'],
