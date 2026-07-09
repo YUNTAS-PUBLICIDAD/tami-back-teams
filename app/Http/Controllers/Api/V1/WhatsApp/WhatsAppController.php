@@ -41,7 +41,7 @@ public function sendProductDetails(Request $request)
 
     $resultados = [];
 
-    $producto = Producto::with(['imagenWhatsapp', 'imagenes'])
+    $producto = Producto::with(['whatsappPasos', 'imagenes'])
                         ->where('link', $request->link)
                         ->first();
      if (!$producto) {
@@ -83,12 +83,13 @@ public function sendProductDetails(Request $request)
     }
 
     try {
-        $imagenParaEnviar = $producto->imagenWhatsapp ?? $producto->imagenes->where('tipo', 'galeria')->first();
+        $whatsappPaso1 = $producto->whatsappPasos->firstWhere('paso', 1);
+        $imagenParaEnviar = $whatsappPaso1 ?? $producto->imagenes->where('tipo', 'galeria')->first();
         $defaultImageUrl = 'https://res.cloudinary.com/dshi5w2wt/image/upload/v1759791593/Copia_de_Imagen_de_Beneficios_2_1_u7a7tk.png';
 
         $imageUrl = $defaultImageUrl;
         if ($imagenParaEnviar) {
-            $imageUrl = $imagenParaEnviar->url_imagen;
+            $imageUrl = $whatsappPaso1 ? $whatsappPaso1->imagen_url : $imagenParaEnviar->url_imagen;
         }
 
         $whatsappServiceUrl = config('services.whatsapp.base_url');
@@ -97,7 +98,7 @@ public function sendProductDetails(Request $request)
         }
 
         // Priorizar whatsapp_mensaje personalizado de la imagen tipo 'whatsapp'
-        $mensajeWhatsapp = $producto->imagenWhatsapp?->whatsapp_mensaje;
+        $mensajeWhatsapp = $whatsappPaso1?->mensaje;
         $descripcionFinal = !empty($mensajeWhatsapp) ? $mensajeWhatsapp : $producto->descripcion;
 
         $response = Http::timeout(10)->post($whatsappServiceUrl . '/whatsapp/send-product-info', [
@@ -168,103 +169,189 @@ public function sendProductDetails(Request $request)
         return response()->json(['message' => 'No hay configuración de popup cargada.'], 400);
     }
 
-    // Intentar obtener el link del referer si no viene en el body
+    // =========================================================================
+    // RESOLUCIÓN DE PRODUCTO — Cadena de fallbacks para identificar el producto
+    // =========================================================================
     $referer = $request->header('referer');
-    if (!$request->producto_id && !$request->link && $referer) {
-        if (preg_match('/\/productos?\/([^\/\?]+)/', $referer, $matches)) {
-            $request->merge(['link' => $matches[1]]);
-        } elseif (preg_match('/\/[^\/]+\/([^\/\?]+)/', $referer, $matches)) { // Fallback para otras rutas si el slug está al final
-            // Solo para probar, pero mejor ser conservador
+    $eagerLoad = ['imagenes', 'whatsappTemplate', 'etiqueta', 'whatsappPasos', 'emailPasos'];
+    $producto = null;
+    $productoResolution = 'ninguno';
+
+    // 1) Por producto_id explícito en el request
+    if ($request->producto_id) {
+        $producto = Producto::with($eagerLoad)->find($request->producto_id);
+        if ($producto) $productoResolution = "producto_id={$request->producto_id}";
+    }
+
+    // 2) Por link del request (ignorar el dummy 'detalle')
+    if (!$producto && $request->link && $request->link !== 'detalle') {
+        $producto = Producto::with($eagerLoad)->where('link', $request->link)->first();
+        if ($producto) $productoResolution = "link={$request->link}";
+    }
+
+    // 3) Por slug extraído del Referer
+    if (!$producto && $referer && preg_match('/\/productos?\/([^\/\?]+)/', $referer, $matches)) {
+        $slug = $matches[1];
+        if ($slug !== 'detalle') {
+            $producto = Producto::with($eagerLoad)->where('link', $slug)->first();
+            if ($producto) $productoResolution = "referer_slug={$slug}";
         }
     }
 
-    // Verificar si es un popup de producto
-    $producto = null;
-    if ($request->producto_id) {
-        $producto = Producto::with(['imagenes', 'whatsappTemplate', 'etiqueta'])->find($request->producto_id);
-    } elseif ($request->link) {
-        $producto = Producto::with(['imagenes', 'whatsappTemplate', 'etiqueta'])->where('link', $request->link)->first();
+    // 4) Fallback: si el contexto indica popup de producto pero no se resolvió,
+    //    buscar el cliente existente y usar su producto_id asociado.
+    if (!$producto && ($request->link === 'detalle' || $request->input('source_id') == 2)) {
+        $clienteFallback = null;
+        if ($request->email) {
+            $clienteFallback = Cliente::where('email', $request->email)->first();
+        }
+        if (!$clienteFallback && $request->celular) {
+            $clienteFallback = Cliente::where('celular', $request->celular)->first();
+        }
+        if ($clienteFallback && $clienteFallback->producto_id) {
+            $producto = Producto::with($eagerLoad)->find($clienteFallback->producto_id);
+            if ($producto) $productoResolution = "cliente_producto_id={$clienteFallback->producto_id}";
+        }
     }
+
+    Log::info('sendPopUpDetails: resolución de producto', [
+        'metodo' => $productoResolution,
+        'producto_id' => $producto?->id,
+        'producto_nombre' => $producto?->nombre,
+    ]);
 
     if ($producto) {
-        $imagenEmail = $producto->imagenes->firstWhere('tipo', 'email1') ?: $producto->imagenes->firstWhere('tipo', 'email');
-        $imagenEmail2 = $producto->imagenes->firstWhere('tipo', 'email2');
-        $imagenEmail3 = $producto->imagenes->firstWhere('tipo', 'email3');
-        $imagenWhatsapp = $producto->imagenes->where('tipo', 'whatsapp')->first();
+        $emailPaso1 = $producto->emailPasos->firstWhere('paso', 1);
+        $emailPaso2 = $producto->emailPasos->firstWhere('paso', 2);
+        $emailPaso3 = $producto->emailPasos->firstWhere('paso', 3);
+        $whatsappPaso1 = $producto->whatsappPasos->firstWhere('paso', 1);
+        $whatsappPaso2 = $producto->whatsappPasos->firstWhere('paso', 2);
+        $whatsappPaso3 = $producto->whatsappPasos->firstWhere('paso', 3);
 
         $customSetting = new \stdClass();
-
-        // Conservar configuraciones globales de email y tomar delays específicos si existen
         $customSetting->email_enabled = $setting->email_enabled;
-        $customSetting->email_send_delay_minutes = ($imagenEmail && $imagenEmail->delay_minutes !== null) ? $imagenEmail->delay_minutes : $setting->email_send_delay_minutes;
-        $customSetting->email_send_delay_minutes_2 = ($imagenEmail2 && $imagenEmail2->delay_minutes !== null) ? $imagenEmail2->delay_minutes : $setting->email_send_delay_minutes_2;
-        $customSetting->email_send_delay_minutes_3 = ($imagenEmail3 && $imagenEmail3->delay_minutes !== null) ? $imagenEmail3->delay_minutes : $setting->email_send_delay_minutes_3;
 
-        // Mensaje 1
-        $customSetting->whatsapp_message = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje))
-            ? $imagenWhatsapp->whatsapp_mensaje
-            : ($producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message);
-        $customSetting->whatsapp_image_url = $imagenWhatsapp ? $imagenWhatsapp->url_imagen : $setting->whatsapp_image_url;
-        $customSetting->whatsapp_time_1 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_1 : $setting->whatsapp_time_1;
+        // WhatsApp Pasos Lógica
+        $hasProductWhatsappSteps = ($producto->whatsappPasos->count() > 0);
 
-        // Mensaje 2
-        $customSetting->whatsapp_message_2 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje_2))
-            ? $imagenWhatsapp->whatsapp_mensaje_2
-            : $setting->whatsapp_message_2;
-        $customSetting->whatsapp_image_url_2 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_image_url_2))
-            ? $imagenWhatsapp->whatsapp_image_url_2
-            : $setting->whatsapp_image_url_2;
-        $customSetting->whatsapp_time_2 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_2 : $setting->whatsapp_time_2;
+        if ($hasProductWhatsappSteps) {
+            $customSetting->whatsapp_message = $whatsappPaso1?->mensaje ?? '';
+            $customSetting->whatsapp_image_url = $whatsappPaso1?->imagen_url ?? null;
+            $customSetting->whatsapp_time_1 = $whatsappPaso1 ? $whatsappPaso1->delay_minutos : -1;
 
-        // Mensaje 3
-        $customSetting->whatsapp_message_3 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_mensaje_3))
-            ? $imagenWhatsapp->whatsapp_mensaje_3
-            : $setting->whatsapp_message_3;
-        $customSetting->whatsapp_image_url_3 = ($imagenWhatsapp && !empty($imagenWhatsapp->whatsapp_image_url_3))
-            ? $imagenWhatsapp->whatsapp_image_url_3
-            : $setting->whatsapp_image_url_3;
-        $customSetting->whatsapp_time_3 = ($imagenWhatsapp) ? $imagenWhatsapp->whatsapp_time_3 : $setting->whatsapp_time_3;
+            $customSetting->whatsapp_message_2 = $whatsappPaso2?->mensaje ?? null;
+            $customSetting->whatsapp_image_url_2 = $whatsappPaso2?->imagen_url ?? null;
+            $customSetting->whatsapp_time_2 = $whatsappPaso2 ? $whatsappPaso2->delay_minutos : -1;
 
-        $customSetting->email_subject = ($imagenEmail && $imagenEmail->asunto) ? $imagenEmail->asunto : $setting->email_subject;
+            $customSetting->whatsapp_message_3 = $whatsappPaso3?->mensaje ?? null;
+            $customSetting->whatsapp_image_url_3 = $whatsappPaso3?->imagen_url ?? null;
+            $customSetting->whatsapp_time_3 = $whatsappPaso3 ? $whatsappPaso3->delay_minutos : -1;
+        } else {
+            // Fallback global completo si el producto no tiene pasos configurados
+            $customSetting->whatsapp_message = $producto->whatsappTemplate ? $producto->whatsappTemplate->content : $setting->whatsapp_message;
+            $customSetting->whatsapp_image_url = $setting->whatsapp_image_url;
+            $customSetting->whatsapp_time_1 = $setting->whatsapp_time_1;
 
-        $emailMensaje = ($imagenEmail && $imagenEmail->email_mensaje) ? $imagenEmail->email_mensaje : $setting->email_message;
-        if ($request->name && is_string($emailMensaje)) {
-            $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
+            $customSetting->whatsapp_message_2 = $setting->whatsapp_message_2;
+            $customSetting->whatsapp_image_url_2 = $setting->whatsapp_image_url_2;
+            $customSetting->whatsapp_time_2 = $setting->whatsapp_time_2;
+
+            $customSetting->whatsapp_message_3 = $setting->whatsapp_message_3;
+            $customSetting->whatsapp_image_url_3 = $setting->whatsapp_image_url_3;
+            $customSetting->whatsapp_time_3 = $setting->whatsapp_time_3;
         }
-        $customSetting->email_message = $emailMensaje;
-        $customSetting->email_image_url = $imagenEmail ? $imagenEmail->url_imagen : $setting->email_image_url;
 
-        // Usar la configuración del botón del producto si está disponible, de lo contrario usar la global
-        $customSetting->email_btn_text = ($imagenEmail && $imagenEmail->email_btn_text) ? $imagenEmail->email_btn_text : $setting->email_btn_text;
-        $customSetting->email_btn_link = ($imagenEmail && $imagenEmail->email_btn_link) ? $imagenEmail->email_btn_link : $setting->email_btn_link;
-        $customSetting->email_btn_bg_color = ($imagenEmail && $imagenEmail->email_btn_bg_color) ? $imagenEmail->email_btn_bg_color : $setting->email_btn_bg_color;
-        $customSetting->email_btn_text_color = ($imagenEmail && $imagenEmail->email_btn_text_color) ? $imagenEmail->email_btn_text_color : $setting->email_btn_text_color;
+        // Email Pasos Lógica
+        $hasProductEmailSteps = ($producto->emailPasos->count() > 0);
 
-        // Correo 2
-        $customSetting->email_subject_2 = ($imagenEmail2 && $imagenEmail2->asunto) ? $imagenEmail2->asunto : $setting->email_subject_2;
-        $emailMensaje2 = ($imagenEmail2 && $imagenEmail2->email_mensaje) ? $imagenEmail2->email_mensaje : $setting->email_message_2;
-        if ($request->name && is_string($emailMensaje2)) {
-            $emailMensaje2 = str_replace('{{nombre}}', $request->name, $emailMensaje2);
+        if ($hasProductEmailSteps) {
+            $customSetting->email_send_delay_minutes = $emailPaso1 ? $emailPaso1->delay_minutos : -1;
+            $customSetting->email_send_delay_minutes_2 = $emailPaso2 ? $emailPaso2->delay_minutos : -1;
+            $customSetting->email_send_delay_minutes_3 = $emailPaso3 ? $emailPaso3->delay_minutos : -1;
+
+            // Correo 1
+            $customSetting->email_subject = $emailPaso1?->asunto ?? null;
+            $emailMensaje = $emailPaso1?->mensaje ?? null;
+            if ($request->name && is_string($emailMensaje)) {
+                $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
+            }
+            $customSetting->email_message = $emailMensaje;
+            $customSetting->email_image_url = $emailPaso1?->imagen_url ?? null;
+            $customSetting->email_btn_text = $emailPaso1?->btn_text ?? '¡REGISTRARME!';
+            $customSetting->email_btn_link = $emailPaso1?->btn_link ?? url('/');
+            $customSetting->email_btn_bg_color = $emailPaso1?->btn_bg_color ?? '#00AFA0';
+            $customSetting->email_btn_text_color = $emailPaso1?->btn_text_color ?? '#FFFFFF';
+
+            // Correo 2
+            $customSetting->email_subject_2 = $emailPaso2?->asunto ?? null;
+            $emailMensaje2 = $emailPaso2?->mensaje ?? null;
+            if ($request->name && is_string($emailMensaje2)) {
+                $emailMensaje2 = str_replace('{{nombre}}', $request->name, $emailMensaje2);
+            }
+            $customSetting->email_message_2 = $emailMensaje2;
+            $customSetting->email_image_url_2 = $emailPaso2?->imagen_url ?? null;
+            $customSetting->email_btn_text_2 = $emailPaso2?->btn_text ?? '¡REGISTRARME!';
+            $customSetting->email_btn_link_2 = $emailPaso2?->btn_link ?? url('/');
+            $customSetting->email_btn_bg_color_2 = $emailPaso2?->btn_bg_color ?? '#00AFA0';
+            $customSetting->email_btn_text_color_2 = $emailPaso2?->btn_text_color ?? '#FFFFFF';
+
+            // Correo 3
+            $customSetting->email_subject_3 = $emailPaso3?->asunto ?? null;
+            $emailMensaje3 = $emailPaso3?->mensaje ?? null;
+            if ($request->name && is_string($emailMensaje3)) {
+                $emailMensaje3 = str_replace('{{nombre}}', $request->name, $emailMensaje3);
+            }
+            $customSetting->email_message_3 = $emailMensaje3;
+            $customSetting->email_image_url_3 = $emailPaso3?->imagen_url ?? null;
+            $customSetting->email_btn_text_3 = $emailPaso3?->btn_text ?? '¡REGISTRARME!';
+            $customSetting->email_btn_link_3 = $emailPaso3?->btn_link ?? url('/');
+            $customSetting->email_btn_bg_color_3 = $emailPaso3?->btn_bg_color ?? '#00AFA0';
+            $customSetting->email_btn_text_color_3 = $emailPaso3?->btn_text_color ?? '#FFFFFF';
+        } else {
+            // Fallback global completo si el producto no tiene pasos de Email configurados
+            $customSetting->email_send_delay_minutes = $setting->email_send_delay_minutes;
+            $customSetting->email_send_delay_minutes_2 = $setting->email_send_delay_minutes_2;
+            $customSetting->email_send_delay_minutes_3 = $setting->email_send_delay_minutes_3;
+
+            // Correo 1
+            $customSetting->email_subject = $setting->email_subject;
+            $emailMensaje = $setting->email_message;
+            if ($request->name && is_string($emailMensaje)) {
+                $emailMensaje = str_replace('{{nombre}}', $request->name, $emailMensaje);
+            }
+            $customSetting->email_message = $emailMensaje;
+            $customSetting->email_image_url = $setting->email_image_url;
+            $customSetting->email_btn_text = $setting->email_btn_text;
+            $customSetting->email_btn_link = $setting->email_btn_link;
+            $customSetting->email_btn_bg_color = $setting->email_btn_bg_color;
+            $customSetting->email_btn_text_color = $setting->email_btn_text_color;
+
+            // Correo 2
+            $customSetting->email_subject_2 = $setting->email_subject_2;
+            $emailMensaje2 = $setting->email_message_2;
+            if ($request->name && is_string($emailMensaje2)) {
+                $emailMensaje2 = str_replace('{{nombre}}', $request->name, $emailMensaje2);
+            }
+            $customSetting->email_message_2 = $emailMensaje2;
+            $customSetting->email_image_url_2 = $setting->email_image_url_2;
+            $customSetting->email_btn_text_2 = $setting->email_btn_text_2;
+            $customSetting->email_btn_link_2 = $setting->email_btn_link_2;
+            $customSetting->email_btn_bg_color_2 = $setting->email_btn_bg_color_2;
+            $customSetting->email_btn_text_color_2 = $setting->email_btn_text_color_2;
+
+            // Correo 3
+            $customSetting->email_subject_3 = $setting->email_subject_3;
+            $emailMensaje3 = $setting->email_message_3;
+            if ($request->name && is_string($emailMensaje3)) {
+                $emailMensaje3 = str_replace('{{nombre}}', $request->name, $emailMensaje3);
+            }
+            $customSetting->email_message_3 = $emailMensaje3;
+            $customSetting->email_image_url_3 = $setting->email_image_url_3;
+            $customSetting->email_btn_text_3 = $setting->email_btn_text_3;
+            $customSetting->email_btn_link_3 = $setting->email_btn_link_3;
+            $customSetting->email_btn_bg_color_3 = $setting->email_btn_bg_color_3;
+            $customSetting->email_btn_text_color_3 = $setting->email_btn_text_color_3;
         }
-        $customSetting->email_message_2 = $emailMensaje2;
-        $customSetting->email_image_url_2 = $imagenEmail2 ? $imagenEmail2->url_imagen : $setting->email_image_url_2;
-        $customSetting->email_btn_text_2 = ($imagenEmail2 && $imagenEmail2->email_btn_text) ? $imagenEmail2->email_btn_text : $setting->email_btn_text_2;
-        $customSetting->email_btn_link_2 = ($imagenEmail2 && $imagenEmail2->email_btn_link) ? $imagenEmail2->email_btn_link : $setting->email_btn_link_2;
-        $customSetting->email_btn_bg_color_2 = ($imagenEmail2 && $imagenEmail2->email_btn_bg_color) ? $imagenEmail2->email_btn_bg_color : $setting->email_btn_bg_color_2;
-        $customSetting->email_btn_text_color_2 = ($imagenEmail2 && $imagenEmail2->email_btn_text_color) ? $imagenEmail2->email_btn_text_color : $setting->email_btn_text_color_2;
-
-        // Correo 3
-        $customSetting->email_subject_3 = ($imagenEmail3 && $imagenEmail3->asunto) ? $imagenEmail3->asunto : $setting->email_subject_3;
-        $emailMensaje3 = ($imagenEmail3 && $imagenEmail3->email_mensaje) ? $imagenEmail3->email_mensaje : $setting->email_message_3;
-        if ($request->name && is_string($emailMensaje3)) {
-            $emailMensaje3 = str_replace('{{nombre}}', $request->name, $emailMensaje3);
-        }
-        $customSetting->email_message_3 = $emailMensaje3;
-        $customSetting->email_image_url_3 = $imagenEmail3 ? $imagenEmail3->url_imagen : $setting->email_image_url_3;
-        $customSetting->email_btn_text_3 = ($imagenEmail3 && $imagenEmail3->email_btn_text) ? $imagenEmail3->email_btn_text : $setting->email_btn_text_3;
-        $customSetting->email_btn_link_3 = ($imagenEmail3 && $imagenEmail3->email_btn_link) ? $imagenEmail3->email_btn_link : $setting->email_btn_link_3;
-        $customSetting->email_btn_bg_color_3 = ($imagenEmail3 && $imagenEmail3->email_btn_bg_color) ? $imagenEmail3->email_btn_bg_color : $setting->email_btn_bg_color_3;
-        $customSetting->email_btn_text_color_3 = ($imagenEmail3 && $imagenEmail3->email_btn_text_color) ? $imagenEmail3->email_btn_text_color : $setting->email_btn_text_color_3;
 
         $setting = $customSetting;
     }

@@ -42,27 +42,43 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
         try {
             $whatsappServiceUrl = config('services.whatsapp.base_url');
             if ($whatsappServiceUrl) {
-                // Obtener los campos correctos según el tipo de popup
-                if ($popupType === 'producto') {
-                    $msg1 = $setting->whatsapp_message_producto ?? $setting->whatsapp_message ?? null;
-                    $img1 = $setting->whatsapp_image_url_producto ?? $setting->whatsapp_image_url ?? null;
+                // El $setting ya contiene los valores correctos mapeados en campos genéricos.
+                // Si viene de un producto, sendPopUpDetails construyó un stdClass con
+                // whatsapp_message, whatsapp_message_2, whatsapp_message_3 del producto.
+                // Si viene del global, es el modelo HomePopupSetting con sufijos _inicio/_producto.
+                $isStdClass = ($setting instanceof \stdClass);
+
+                if ($isStdClass) {
+                    // Setting construido por sendPopUpDetails — campos genéricos directos
+                    $msg1  = $setting->whatsapp_message ?? null;
+                    $img1  = $setting->whatsapp_image_url ?? null;
+                    $time1 = $setting->whatsapp_time_1 ?? 0;
+                    $msg2  = $setting->whatsapp_message_2 ?? null;
+                    $img2  = $setting->whatsapp_image_url_2 ?? null;
+                    $time2 = $setting->whatsapp_time_2 ?? 0;
+                    $msg3  = $setting->whatsapp_message_3 ?? null;
+                    $img3  = $setting->whatsapp_image_url_3 ?? null;
+                    $time3 = $setting->whatsapp_time_3 ?? 0;
+                } elseif ($popupType === 'producto') {
+                    $msg1  = $setting->whatsapp_message_producto ?? $setting->whatsapp_message ?? null;
+                    $img1  = $setting->whatsapp_image_url_producto ?? $setting->whatsapp_image_url ?? null;
                     $time1 = $setting->whatsapp_time_1_producto ?? $setting->whatsapp_time_1 ?? 0;
-                    $msg2 = $setting->whatsapp_message_2_producto ?? $setting->whatsapp_message_2 ?? null;
-                    $img2 = $setting->whatsapp_image_url_2_producto ?? $setting->whatsapp_image_url_2 ?? null;
+                    $msg2  = $setting->whatsapp_message_2_producto ?? $setting->whatsapp_message_2 ?? null;
+                    $img2  = $setting->whatsapp_image_url_2_producto ?? $setting->whatsapp_image_url_2 ?? null;
                     $time2 = $setting->whatsapp_time_2_producto ?? $setting->whatsapp_time_2 ?? 0;
-                    $msg3 = $setting->whatsapp_message_3_producto ?? $setting->whatsapp_message_3 ?? null;
-                    $img3 = $setting->whatsapp_image_url_3_producto ?? $setting->whatsapp_image_url_3 ?? null;
+                    $msg3  = $setting->whatsapp_message_3_producto ?? $setting->whatsapp_message_3 ?? null;
+                    $img3  = $setting->whatsapp_image_url_3_producto ?? $setting->whatsapp_image_url_3 ?? null;
                     $time3 = $setting->whatsapp_time_3_producto ?? $setting->whatsapp_time_3 ?? 0;
                 } else {
                     // Por defecto 'inicio'
-                    $msg1 = $setting->whatsapp_message_inicio ?? $setting->whatsapp_message ?? null;
-                    $img1 = $setting->whatsapp_image_url_inicio ?? $setting->whatsapp_image_url ?? null;
+                    $msg1  = $setting->whatsapp_message_inicio ?? $setting->whatsapp_message ?? null;
+                    $img1  = $setting->whatsapp_image_url_inicio ?? $setting->whatsapp_image_url ?? null;
                     $time1 = $setting->whatsapp_time_1_inicio ?? $setting->whatsapp_time_1 ?? 0;
-                    $msg2 = $setting->whatsapp_message_2_inicio ?? $setting->whatsapp_message_2 ?? null;
-                    $img2 = $setting->whatsapp_image_url_2_inicio ?? $setting->whatsapp_image_url_2 ?? null;
+                    $msg2  = $setting->whatsapp_message_2_inicio ?? $setting->whatsapp_message_2 ?? null;
+                    $img2  = $setting->whatsapp_image_url_2_inicio ?? $setting->whatsapp_image_url_2 ?? null;
                     $time2 = $setting->whatsapp_time_2_inicio ?? $setting->whatsapp_time_2 ?? 0;
-                    $msg3 = $setting->whatsapp_message_3_inicio ?? $setting->whatsapp_message_3 ?? null;
-                    $img3 = $setting->whatsapp_image_url_3_inicio ?? $setting->whatsapp_image_url_3 ?? null;
+                    $msg3  = $setting->whatsapp_message_3_inicio ?? $setting->whatsapp_message_3 ?? null;
+                    $img3  = $setting->whatsapp_image_url_3_inicio ?? $setting->whatsapp_image_url_3 ?? null;
                     $time3 = $setting->whatsapp_time_3_inicio ?? $setting->whatsapp_time_3 ?? 0;
                 }
 
