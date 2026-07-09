@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\ProductoImagen;
 use App\Models\Dimension;
 use App\Models\WhatsappTemplate;
+use App\Models\ProductoWhatsappPaso;
+use App\Models\ProductoEmailPaso;
 
 class Producto extends Model
 {
@@ -52,10 +54,6 @@ class Producto extends Model
     {
         return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'popup2');
     }
-      public function imagenWhatsapp()
-    {
-        return $this->hasOne(ProductoImagen::class, 'producto_id')->where('tipo', 'whatsapp');
-    }
     public function productosRelacionados()
     {
         return $this->belongsToMany(Producto::class, 'producto_relacionados', 'id_producto', 'id_relacionado');
@@ -77,6 +75,16 @@ class Producto extends Model
     public function productoImagenes()
     {
         return $this->hasMany(ProductoImagen::class, 'producto_id', 'id');
+    }
+
+    public function whatsappPasos(): HasMany
+    {
+        return $this->hasMany(ProductoWhatsappPaso::class);
+    }
+
+    public function emailPasos(): HasMany
+    {
+        return $this->hasMany(ProductoEmailPaso::class);
     }
 
     public function getPopupMobileImageCountAttribute(): int
