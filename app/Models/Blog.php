@@ -25,7 +25,13 @@ class Blog extends Model
         'video_url',
         'video_titulo',
         'hero_image',
+        'hero_image_nombre',
+        'hero_image_alt',
+        'hero_image_tittle',
         'miniatura',
+        'miniatura_nombre',
+        'miniatura_alt',
+        'miniatura_tittle',
         'created_at',
     ];
 

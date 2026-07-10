@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Producto;
+use App\Models\ProductoWhatsappPaso;
+use App\Models\ProductoEmailPaso;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -219,6 +221,23 @@ class ProductoService
             $producto->etiqueta()->delete();
             $producto->dimensiones()->delete();
             $producto->productosRelacionados()->detach();
+
+            // Borrar pasos normalizados de WhatsApp y Email
+            $whatsappPasos = ProductoWhatsappPaso::where('producto_id', $producto->id)->get();
+            foreach ($whatsappPasos as $paso) {
+                if (!empty($paso->imagen_url)) {
+                    $this->imageService->deleteImageFromStorage($paso->imagen_url);
+                }
+            }
+            ProductoWhatsappPaso::where('producto_id', $producto->id)->delete();
+
+            $emailPasos = ProductoEmailPaso::where('producto_id', $producto->id)->get();
+            foreach ($emailPasos as $paso) {
+                if (!empty($paso->imagen_url)) {
+                    $this->imageService->deleteImageFromStorage($paso->imagen_url);
+                }
+            }
+            ProductoEmailPaso::where('producto_id', $producto->id)->delete();
 
             $producto->delete();
 
@@ -471,25 +490,26 @@ class ProductoService
 
             $subject = $request->input($subjectKey) ?? ($slot === 1 ? $request->input('asunto') : null);
 
+            // Borrar imagen del paso email si se pidió eliminar
             if ($deleteFlag === '1' && $file === null) {
-                $existing = $producto->imagenes()
-                    ->where(function ($query) use ($slot) {
-                        if ($slot === 1) {
-                            $query->whereIn('tipo', ['email1', 'email']);
-                        } else {
-                            $query->where('tipo', "email{$slot}");
-                        }
-                    })
+                $existing = ProductoEmailPaso::where('producto_id', $producto->id)
+                    ->where('paso', $slot)
                     ->first();
 
                 if ($existing) {
-                    if (!empty($existing->url_imagen)) {
-                        $this->imageService->deleteImageFromStorage($existing->url_imagen);
+                    if (!empty($existing->imagen_url)) {
+                        $this->imageService->deleteImageFromStorage($existing->imagen_url);
                     }
-                    $existing->update(array_merge($extraData, [
-                        'url_imagen' => '',
+                    $existing->update([
+                        'imagen_url' => null,
                         'asunto' => $subject,
-                    ]));
+                        'mensaje' => $extraData['email_mensaje'] ?? $existing->mensaje,
+                        'btn_text' => $extraData['email_btn_text'] ?? $existing->btn_text,
+                        'btn_link' => $extraData['email_btn_link'] ?? $existing->btn_link,
+                        'btn_bg_color' => $extraData['email_btn_bg_color'] ?? $existing->btn_bg_color,
+                        'btn_text_color' => $extraData['email_btn_text_color'] ?? $existing->btn_text_color,
+                        'delay_minutos' => (int) ($extraData['delay_minutes'] ?? $existing->delay_minutos),
+                    ]);
                 }
 
                 continue;

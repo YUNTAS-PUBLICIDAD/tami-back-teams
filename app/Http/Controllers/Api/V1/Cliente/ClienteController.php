@@ -242,18 +242,18 @@ class ClienteController extends Controller
                     $enviadoProducto = false;
 
                     if (!empty($datosValidados['producto_id'])) {
-                        $producto = \App\Models\Producto::with(['imagenes'])->find($datosValidados['producto_id']);
+                        $producto = \App\Models\Producto::with(['emailPasos', 'imagenes'])->find($datosValidados['producto_id']);
                         if ($producto) {
-                            $imagenEmail = $producto->imagenes()->where('tipo', 'email')->first();
-                            if ($imagenEmail) {
-                                $asunto = $imagenEmail->asunto ?? 'Información sobre ' . $producto->nombre;
-                                $mensaje = $imagenEmail->email_mensaje ?? '';
+                            $emailPaso1 = $producto->emailPasos->firstWhere('paso', 1);
+                            if ($emailPaso1) {
+                                $asunto = $emailPaso1->asunto ?? 'Información sobre ' . $producto->nombre;
+                                $mensaje = $emailPaso1->mensaje ?? '';
                                 $mensaje = str_replace('{{nombre}}', $request->name, $mensaje);
 
                                 $productData = [
                                     'name' => $producto->nombre,
-                                    'main_image' => !empty($imagenEmail->url_imagen)
-                                        ? url($imagenEmail->url_imagen)
+                                    'main_image' => !empty($emailPaso1->imagen_url)
+                                        ? url($emailPaso1->imagen_url)
                                         : asset('email/default-product.webp'),
                                     'video_url' => $producto->video_url ?? null,
                                     'client_name' => $request->name,

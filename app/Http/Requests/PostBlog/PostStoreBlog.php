@@ -29,12 +29,23 @@ class PostStoreBlog extends FormRequest
             'meta_descripcion' => 'nullable|string|min:40|max:200',
 
             'miniatura' => 'file|image|max:3048',
+            'miniatura_nombre' => 'nullable|string|min:10|max:60',
+            'miniatura_alt' => 'nullable|string|min:10|max:160',
+            'miniatura_tittle' => 'nullable|string|min:10|max:60',
+            
             'hero_image' => 'nullable|file|image|max:3048',
+            'hero_image_nombre' => 'nullable|string|min:10|max:60',
+            'hero_image_alt' => 'nullable|string|min:10|max:160',
+            'hero_image_tittle' => 'nullable|string|min:10|max:60',
+            
             'imagenes' => 'nullable|array',
             'imagenes.*' => 'required|image|max:3048',
-
-            'text_alt' => 'required|array',
-            'text_alt.*' => 'required|string|max:255',
+            'img_alt' => 'nullable|array',
+            'img_alt.*' => 'nullable|string|max:255',
+            'img_nombre' => 'nullable|array',
+            'img_nombre.*' => 'nullable|string|max:60',
+            'img_tittle' => 'nullable|array',
+            'img_tittle.*' => 'nullable|string|max:60',
 
             'parrafos' => 'required|array',
             'parrafos.*' => 'required|string|max:2047',

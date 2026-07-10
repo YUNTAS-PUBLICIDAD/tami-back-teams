@@ -256,7 +256,13 @@ class BlogController extends Controller
                 "video_url" => $datosValidados["video_url"],
                 "video_titulo" => $datosValidados["video_titulo"],
                 "miniatura" => $rutaImagenPrincipal,
+                "miniatura_nombre" => $datosValidados["miniatura_nombre"] ?? null,
+                "miniatura_alt" => $datosValidados["miniatura_alt"] ?? null,
+                "miniatura_tittle" => $datosValidados["miniatura_tittle"] ?? null,
                 "hero_image" => $heroImagePath,
+                "hero_image_nombre" => $datosValidados["hero_image_nombre"] ?? null,
+                "hero_image_alt" => $datosValidados["hero_image_alt"] ?? null,
+                "hero_image_tittle" => $datosValidados["hero_image_tittle"] ?? null,
             ];
 
             if (isset($datosValidados['created_at'])) {
@@ -288,12 +294,16 @@ class BlogController extends Controller
             // Guardar imágenes solo si se envían
             if (isset($datosValidados['imagenes'])) {
                 $imagenes = $request->file("imagenes", []);
-                $altTexts = $datosValidados["text_alt"] ?? [];
+                $altTexts = $datosValidados["img_alt"] ?? [];
+                $nombres = $datosValidados["img_nombre"] ?? [];
+                $titles = $datosValidados["img_tittle"] ?? [];
                 foreach ($imagenes as $i => $imagen) {
                     $ruta = $this->guardarImagen($imagen);
                     $blog->imagenes()->create([
                         "ruta_imagen" => $ruta,
-                        "text_alt" => $altTexts[$i] ?? null
+                        "img_alt" => $altTexts[$i] ?? null,
+                        "img_nombre" => $nombres[$i] ?? null,
+                        "img_tittle" => $titles[$i] ?? null,
                     ]);
                 }
             }
@@ -567,6 +577,12 @@ class BlogController extends Controller
                 "subtitulo2",
                 "video_url",
                 "video_titulo",
+                "miniatura_nombre",
+                "miniatura_alt",
+                "miniatura_tittle",
+                "hero_image_nombre",
+                "hero_image_alt",
+                "hero_image_tittle",
                 "created_at"
             ] as $campo) {
                 if ($request->has($campo)) {
@@ -648,7 +664,9 @@ class BlogController extends Controller
                     $idsImagenesExistentes = [$idsImagenesExistentes];
                 }
 
-                $altTexts = $datosValidados['text_alt'] ?? [];
+                $altTexts = $datosValidados['img_alt'] ?? [];
+                $nombres = $datosValidados['img_nombre'] ?? [];
+                $titles = $datosValidados['img_tittle'] ?? [];
                 $parrafos = $datosValidados['parrafos'] ?? [];
                 $imagenesActuales = $blog->imagenes->keyBy('id');
                 $imagenesFinales = [];
@@ -669,7 +687,9 @@ class BlogController extends Controller
 
                         $imagenesFinales[] = [
                             'ruta_imagen' => $this->guardarImagen($archivo),
-                            'text_alt' => $altTexts[$indice] ?? null,
+                            'img_alt' => $altTexts[$indice] ?? null,
+                            'img_nombre' => $nombres[$indice] ?? null,
+                            'img_tittle' => $titles[$indice] ?? null,
                         ];
                         continue;
                     }
@@ -682,7 +702,9 @@ class BlogController extends Controller
                         $idsConservados[] = $imagenExistente->id;
                         $imagenesFinales[] = [
                             'ruta_imagen' => $imagenExistente->ruta_imagen,
-                            'text_alt' => $altTexts[$indice] ?? $imagenExistente->text_alt,
+                            'img_alt' => $altTexts[$indice] ?? $imagenExistente->img_alt,
+                            'img_nombre' => $nombres[$indice] ?? $imagenExistente->img_nombre,
+                            'img_tittle' => $titles[$indice] ?? $imagenExistente->img_tittle,
                         ];
                         continue;
                     }
