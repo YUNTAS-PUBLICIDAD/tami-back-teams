@@ -8,10 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
-use App\Services\ProductoImageService; // <-- Asegúrate de mapear la ruta real de tu servicio de imágenes
+use App\Services\ProductoImageService; 
 
-use App\Models\ChatbotConfig; // <-- *ASUNCIÓN*: Reemplaza esto por tu modelo real de configuraciones
-
+use App\Models\ChatbotConfig; 
 class ChatbotService
 {
     // Inyectamos ProductoImageService mediante propiedad de constructor (Igual que en tu ProductService)
