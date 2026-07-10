@@ -21,7 +21,13 @@ class BlogResource extends JsonResource
             'video_url'       => $this->video_url,
             'video_titulo'    => $this->video_titulo,
             'miniatura'       => $this->miniatura,
+            'miniatura_nombre' => $this->miniatura_nombre,
+            'miniatura_alt'    => $this->miniatura_alt,
+            'miniatura_tittle' => $this->miniatura_tittle,
             'hero_image'      => $this->hero_image ? url($this->hero_image) : null,
+            'hero_image_nombre' => $this->hero_image_nombre,
+            'hero_image_alt'    => $this->hero_image_alt,
+            'hero_image_tittle' => $this->hero_image_tittle,
             'imagenes'        => BlogImagenResource::collection($this->imagenes),
             'parrafos'        => BlogParrafoResource::collection($this->parrafos),
             'etiqueta'        => $this->etiqueta ? [
