@@ -164,11 +164,11 @@ class ProductoService
                         ->where('id', $imgData['id'])
                         ->update(['texto_alt_SEO' => $imgData['alt']]);
                 }
-                if (isset($imgData['id']) && isset($imgData['titulo'])) {
+                if (isset($imgData['id']) && isset($imgData['ttl'])) {
 
                     $producto->imagenes()
                         ->where('id', $imgData['id'])
-                        ->update(['titulo' => $imgData['titulo']]);
+                        ->update(['titulo' => $imgData['ttl']]);
                 }
             }
 
