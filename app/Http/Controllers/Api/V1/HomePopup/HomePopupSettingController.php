@@ -340,7 +340,7 @@ class HomePopupSettingController extends Controller
 
         $referer = strtolower((string) $request->headers->get('referer', ''));
         if (!empty($referer)) {
-            if (str_contains($referer, 'producto')) {
+            if (str_contains($referer, 'producto') || str_contains($referer, 'catalogo-maquinarias')) {
                 return 'producto';
             }
 
