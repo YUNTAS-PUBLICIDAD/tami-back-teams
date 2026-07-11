@@ -130,9 +130,23 @@ class HomePopupSettingController extends Controller
             $textMapping['whatsappTime3'] = 'whatsapp_time_3_producto';
         }
 
+        // Si el request no manda contenido real, se conserva lo que ya había en BD.
+        $emailContentFields = [
+            'email_subject', 'email_message', 'email_btn_text', 'email_btn_link',
+            'email_subject_2', 'email_message_2', 'email_btn_text_2', 'email_btn_link_2',
+            'email_subject_3', 'email_message_3', 'email_btn_text_3', 'email_btn_link_3',
+        ];
+
         foreach ($textMapping as $frontKey => $dbColumn) {
             if ($request->has($frontKey)) {
-                $data[$dbColumn] = $request->input($frontKey);
+                $value = $request->input($frontKey);
+
+                if (in_array($dbColumn, $emailContentFields, true) && trim((string) $value) === '') {
+                    // Ignorar: no sobrescribir contenido de correo con vacío.
+                    continue;
+                }
+
+                $data[$dbColumn] = $value;
             }
         }
 
