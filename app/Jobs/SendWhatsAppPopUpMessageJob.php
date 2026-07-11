@@ -19,6 +19,7 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
 
     public int $tries = 5;
     public array $backoff = [30, 60, 120, 300];
+    
 
     public $cliente;
     public $messageRaw;
@@ -34,6 +35,7 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
         $this->messageRaw = $messageRaw;
         $this->imageUrl = $imageUrl;
         $this->requestData = $requestData;
+        $this->onQueue('whatsapp');
     }
 
     /**

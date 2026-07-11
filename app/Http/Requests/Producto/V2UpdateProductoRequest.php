@@ -103,17 +103,21 @@ class V2UpdateProductoRequest extends FormRequest
         'imagenes_nuevas.*' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:3048',
         'imagenes_nuevas_alt' => 'nullable|array',
         'imagenes_nuevas_alt.*' => 'nullable|string|max:255',
+        'imagenes_nuevas_titulo' => 'nullable|array',
+        'imagenes_nuevas_titulo.*' => 'nullable|string|max:255',
 
         'imagenes_existentes' => 'nullable|array',
         'imagenes_existentes.*.id' => 'nullable|integer|exists:producto_imagenes,id',
         'imagenes_existentes.*.url' => 'nullable|string|max:500',
         'imagenes_existentes.*.alt' => 'nullable|string|max:255',
+        'imagenes_existentes.*.ttl' => 'nullable|string|max:255',
 
          // IMÁGENES EDITADAS
         'imagenes_editadas' => 'nullable|array',
         'imagenes_editadas.*.id' => 'nullable|integer|exists:producto_imagenes,id',
         'imagenes_editadas.*.file' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:3048',
         'imagenes_editadas.*.alt' => 'nullable|string|max:255',
+        'imagenes_editadas.*.ttl' => 'nullable|string|max:255',
 
         // Imagen popup
         'imagen_popup' => 'nullable|file|image|max:3048',
