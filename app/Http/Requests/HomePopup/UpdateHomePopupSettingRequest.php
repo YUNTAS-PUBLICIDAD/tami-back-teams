@@ -58,12 +58,6 @@ class UpdateHomePopupSettingRequest extends FormRequest
                 break;
             }
         }
-
-        if ($this->has('popupProductosDelay') && !$this->has('product_popup_delay_seconds')) {
-            $this->merge([
-                'product_popup_delay_seconds' => $this->input('popupProductosDelay'),
-            ]);
-        }
     }
 
     public function authorize(): bool
@@ -104,9 +98,7 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'email_btn_bg_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'email_btn_text_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'popup_start_delay_seconds' => ['sometimes', 'integer', 'min:1', 'max:3600'],
-            'product_popup_delay_seconds' => ['sometimes', 'integer', 'min:1', 'max:3600'],
             'popup_start_delay_minutes' => ['sometimes', 'integer'],
-            'product_popup_delay_minutes' => ['sometimes', 'integer'],
             'image1' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
             'imageMobile' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',

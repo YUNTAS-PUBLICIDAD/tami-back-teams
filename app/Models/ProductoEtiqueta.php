@@ -22,11 +22,14 @@ class ProductoEtiqueta extends Model
 
         'popup_button_color',
         'popup_text_color',
-        'popup_button_text'
+        'popup_button_text',
+
+        'product_popup_delay_seconds',
     ];
 
     protected $casts = [
         'popup3_sin_fondo' => 'boolean',
+        'product_popup_delay_seconds' => 'integer',
     ];
 
     public function producto()
