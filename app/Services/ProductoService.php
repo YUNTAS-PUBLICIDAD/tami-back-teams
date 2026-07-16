@@ -328,6 +328,7 @@ class ProductoService
             'popup_button_color' => $request->etiqueta['popup_button_color'] ?? null,
             'popup_text_color' => $request->etiqueta['popup_text_color'] ?? null,
             'popup_button_text' => $request->etiqueta['popup_button_text'] ?? null,
+            'product_popup_delay_seconds' => $request->etiqueta['product_popup_delay_seconds'] ?? 30,
         ]);
     }
 
@@ -350,6 +351,7 @@ class ProductoService
                 'popup_button_color' => $request->etiqueta['popup_button_color'] ?? null,
                 'popup_text_color' => $request->etiqueta['popup_text_color'] ?? null,
                 'popup_button_text' => $request->etiqueta['popup_button_text'] ?? null,
+                'product_popup_delay_seconds' => $request->etiqueta['product_popup_delay_seconds'] ?? 60,
             ]
         );
     }

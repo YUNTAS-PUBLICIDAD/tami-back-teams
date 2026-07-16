@@ -134,6 +134,7 @@ class ProductoResource extends JsonResource
                 'popup_button_color' => $this->etiqueta->popup_button_color,
                 'popup_text_color' => $this->etiqueta->popup_text_color,
                 'popup_button_text' => $this->etiqueta->popup_button_text,
+                'product_popup_delay_seconds' => $this->etiqueta->product_popup_delay_seconds ?? 30,
             ] : null,
 
             'email_templates' => (function() {

@@ -29,6 +29,7 @@ class HomePopupSettingController extends Controller
         $setting = $this->getOrCreateSettings();
 
         // Log para depuración
+        Log::debug('DATA RECIBIDA DEL FRONTEND:', $request->all());
         Log::info('Petición de actualización de popup recibida', $request->all());
 
         // Detectar tipo de popup: 'inicio' o 'producto' (por defecto 'inicio')
@@ -62,9 +63,6 @@ class HomePopupSettingController extends Controller
             'popup_start_delay_seconds' => 'popup_start_delay_seconds',
             'popupInicioDelay' => 'popup_start_delay_seconds',
             'popup_start_delay_minutes' => 'popup_start_delay_seconds',
-            'product_popup_delay_seconds' => 'product_popup_delay_seconds',
-            'popupProductosDelay' => 'product_popup_delay_seconds',
-            'product_popup_delay_minutes' => 'product_popup_delay_seconds',
             'email_subject' => 'email_subject',
             'emailTitle' => 'email_subject',
             'email_message' => 'email_message',
@@ -275,7 +273,6 @@ class HomePopupSettingController extends Controller
         return HomePopupSetting::firstOrCreate([], [
             'enabled' => true,
             'popup_start_delay_seconds' => 60,
-            'product_popup_delay_seconds' => 60,
             'button_text' => '!REGISTRARME!',
             'button_bg_color' => '#00AFA0',
             'button_text_color' => '#FFFFFF',
@@ -347,16 +344,6 @@ class HomePopupSettingController extends Controller
             if (str_contains($referer, 'inicio')) {
                 return 'inicio';
             }
-        }
-
-        // Heurística compatible con el frontend actual:
-        // si el request trae los campos de Producto, tratamos el guardado como Producto.
-        if (
-            $request->has('product_popup_delay_seconds')
-            || $request->has('popupProductosDelay')
-            || $request->has('product_popup_delay_minutes')
-        ) {
-            return 'producto';
         }
 
         return 'inicio';
@@ -444,7 +431,6 @@ class HomePopupSettingController extends Controller
         $data['buttonText'] = $setting->button_text;
 
         $data['popupInicioDelay'] = $setting->popup_start_delay_seconds;
-        $data['popupProductosDelay'] = $setting->product_popup_delay_seconds;
 
         // El frontend busca popup_start_delay_minutes en usePopupLogic.ts
         $data['popup_start_delay_minutes'] = $setting->popup_start_delay_seconds;
