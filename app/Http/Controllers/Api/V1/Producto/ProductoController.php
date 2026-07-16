@@ -508,6 +508,7 @@ class ProductoController extends Controller
      */
     public function update(V2UpdateProductoRequest $request, string $id)
     {
+        Log::debug('DATA RECIBIDA DEL FRONTEND:', $request->all());
         Log::info('UPDATE Producto Request received', [
             'method' => $request->method(),
             'request_all' => $request->all(),

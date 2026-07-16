@@ -29,6 +29,7 @@ class HomePopupSettingController extends Controller
         $setting = $this->getOrCreateSettings();
 
         // Log para depuración
+        Log::debug('DATA RECIBIDA DEL FRONTEND:', $request->all());
         Log::info('Petición de actualización de popup recibida', $request->all());
 
         // Detectar tipo de popup: 'inicio' o 'producto' (por defecto 'inicio')
