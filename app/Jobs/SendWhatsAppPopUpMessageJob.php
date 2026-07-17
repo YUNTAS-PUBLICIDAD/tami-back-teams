@@ -94,8 +94,11 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
         $payload = [
             'phone'   => $this->requestData['celular'],
             'message' => $message,
-            'image'   => $imageData,
         ];
+
+        if ($imageData) {
+            $payload['image'] = $imageData;
+        }
 
         Log::info('Enviando petición a WhatsApp:', [
             'url' => $url,
