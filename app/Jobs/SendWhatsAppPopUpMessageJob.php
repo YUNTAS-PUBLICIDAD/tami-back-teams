@@ -113,8 +113,13 @@ class SendWhatsAppPopUpMessageJob implements ShouldQueue
 
         $response = Http::timeout(10)->post($url, $payload);
 
-        if (!$response->successful()) {
-            throw new \RuntimeException('Error respuesta servicio WhatsApp: ' . $response->body());
+        if($response->failed()){
+            Log::error('Servicio rechazo la peticion', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new \RuntimeException("Servicio rechazo la peticion" . $response->status());
         }
 
         WhatsappMessageLog::create([
