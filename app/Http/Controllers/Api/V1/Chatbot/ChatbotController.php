@@ -108,22 +108,37 @@ class ChatbotController extends Controller
         ]);
     }
 
-       public function getIcon(): JsonResponse
-        {
-            return response()->json([
-                'success' => true,
-                'url_icono' => null,
-                'icon' => null,
-            ]);
-        }
+    public function getIcon(ChatbotService $service): JsonResponse
+    {
+        $urlIcono = $service->getIcon();
+    
+        return response()->json([
+            'success' => true,
+            'url_icono' => $urlIcono,
+        ]);
+    }
 
-        public function getHeaderColor(): JsonResponse
+    public function updateIcon(Request $request, ChatbotService $service): JsonResponse
+    {
+        $request->validate([
+            'chatbot_icon' => 'required|image|max:2048', // max 2MB
+        ]);
+
+        $urlIcono = $service->updateIconChatbot($request->file('chatbot_icon'));
+
+        return response()->json([
+            'success' => true,
+            'url_icono' => $urlIcono,
+        ]);
+    }
+        public function getHeaderColor(ChatbotService $service): JsonResponse
         {
+            $colors = $service->getHeaderColor();
+        
             return response()->json([
                 'success' => true,
-                'color_inicial' => '#2A938B',
-                'color_final' => '#0D2D2B',
-                'color' => '#2A938B',
+                'color_inicial' => $colors['color_inicial'],
+                'color_final' => $colors['color_final'],
             ]);
         }
     public function getSaludo(ChatbotService $service): JsonResponse
