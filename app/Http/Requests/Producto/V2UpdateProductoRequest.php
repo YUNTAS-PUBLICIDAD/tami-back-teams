@@ -114,6 +114,7 @@ class V2UpdateProductoRequest extends FormRequest
         'imagenes_editadas.*.id' => 'nullable|integer|exists:producto_imagenes,id',
         'imagenes_editadas.*.file' => 'nullable|file|image|mimes:jpeg,png,jpg,gif,webp|max:3048',
         'imagenes_editadas.*.alt' => 'nullable|string|max:255',
+        'imagenes_editadas.*.ttl' => 'nullable|string|max:255',
 
         // Imagen popup
         'imagen_popup' => 'nullable|file|image|max:3048',
