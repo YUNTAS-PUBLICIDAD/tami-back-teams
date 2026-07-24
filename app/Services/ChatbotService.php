@@ -25,7 +25,7 @@ class ChatbotService
      * @return string URL pública del nuevo ícono
      * @throws \Exception
      */
-    public function updateIconoChatbot(UploadedFile $archivo): string
+    public function updateIconChatbot(UploadedFile $archivo): string
     {
         DB::beginTransaction();
         try {
@@ -53,13 +53,22 @@ class ChatbotService
         }
     }
 
+    /**
+     * Obtener el ícono del chatbot
+     */
+    public function getIcon()
+    {
+        $config = ChatbotConfig::firstOrCreate([]);
+        return $config->url_icono;
+    }
+
     public function getSaludo()
     {
         $config = ChatbotConfig::firstOrCreate([], [
-            'salute' => '¡Hola! 👋 Soy Tami Bot. ¿En qué puedo ayudarte?'
+            'salute' => '¡Hola! 👋 Soy Tamara. ¿En qué puedo ayudarte?'
         ]);
     
-        return $config->salute ?? '¡Hola! 👋 Soy Tami Bot. ¿En qué puedo ayudarte?';
+        return $config->salute ?? '¡Hola! 👋 Soy Tamara. ¿En qué puedo ayudarte?';
     }
 
     /**
