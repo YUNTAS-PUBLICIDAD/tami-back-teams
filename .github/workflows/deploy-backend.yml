@@ -21,16 +21,19 @@ jobs:
           extensions: mbstring, xml, ctype, json, bcmath, gd, pdo_mysql
           coverage: none
 
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader
+
       - name: Determine environment
         id: env
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/pre-master" ]]; then
             echo " environment=staging" >> $GITHUB_OUTPUT
-            echo " dest_path=~/domains/staging.tamimaquinarias.com/public_html/back/" >> $GITHUB_OUTPUT
+            echo " dest_path=/home/${{ secrets.SERVER_USER }}/domains/staging.tamimaquinarias.com/public_html/back/" >> $GITHUB_OUTPUT
             echo " domain=staging.tamimaquinarias.com" >> $GITHUB_OUTPUT
           else
             echo " environment=production" >> $GITHUB_OUTPUT
-            echo " dest_path=~/domains/tamimaquinarias.com/public_html/back/" >> $GITHUB_OUTPUT
+            echo " dest_path=/home/${{ secrets.SERVER_USER }}/domains/tamimaquinarias.com/public_html/back/" >> $GITHUB_OUTPUT
             echo " domain=tamimaquinarias.com" >> $GITHUB_OUTPUT
           fi
 
@@ -46,6 +49,7 @@ jobs:
             if ssh -p ${{ secrets.SERVER_PORT }} \
                 -o ConnectTimeout=30 \
                 -o StrictHostKeyChecking=no \
+                -i ~/.ssh/id_rsa \
                 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'echo "SSH OK"'; then
               echo "✅ Conexión SSH exitosa en intento $i"
               exit 0
@@ -72,7 +76,6 @@ jobs:
               --exclude='.env.backup' \
               --exclude='.env.production' \
               --exclude='node_modules/' \
-              --exclude='vendor/' \
               --exclude='storage/app/public/' \
               --exclude='storage/logs/*' \
               --exclude='storage/framework/cache/*' \
@@ -83,32 +86,29 @@ jobs:
               --exclude='.github/' \
               --exclude='scratch/' \
               --exclude='.agents/' \
-              --exclude='composer.lock' \
-              -e "ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
+              -e "ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
               ./ \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ steps.env.outputs.dest_path }}
 
       - name: Post-deploy setup
         run: |
-          echo "🔧 Ejecutando comandos post-despliegue..."
-          DEPLOY_PATH="~/domains/${{ steps.env.outputs.domain }}/public_html/back"
-          
-          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${DEPLOY_PATH} && composer install --prefer-dist --no-interaction --no-dev && \
-            composer dump-autoload --optimize --no-dev && \
-            php artisan config:cache && \
-            php artisan route:cache && \
-            php artisan view:cache && \
-            php artisan storage:link --force && \
+          echo "🔧 Configurando permisos y storage link..."
+          DEPLOY_PATH="/home/${{ secrets.SERVER_USER }}/domains/${{ steps.env.outputs.domain }}/public_html/back"
+          SSH_CMD="ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"
+
+          $SSH_CMD "cd ${DEPLOY_PATH} && \
+            mkdir -p storage/app/public storage/framework/{cache,sessions,views} storage/logs bootstrap/cache && \
             chmod -R 775 storage/ bootstrap/cache/ && \
+            ln -sf ${DEPLOY_PATH}/storage/app/public ${DEPLOY_PATH}/public/storage && \
             echo '✅ Post-despliegue completado'"
 
       - name: Verify deployment
         run: |
-          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no \
+          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ~/domains/${{ steps.env.outputs.domain }}/public_html/back && php artisan --version && echo '✅ Laravel funcionando'"
+            "cd /home/${{ secrets.SERVER_USER }}/domains/${{ steps.env.outputs.domain }}/public_html/back && \
+            ls public/index.php && ls vendor/autoload.php && ls bootstrap/app.php && \
+            echo '✅ Archivos Laravel verificados'"
 
       - name: Notify completion
         run: echo "🚀 Deploy backend completado - ${{ steps.env.outputs.environment }}"
