@@ -90,25 +90,27 @@ jobs:
               ./ \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ steps.env.outputs.dest_path }}
 
-      - name: Post-deploy setup
-        run: |
-          echo "🔧 Configurando permisos y storage link..."
-          DEPLOY_PATH="/home/${{ secrets.SERVER_USER }}/domains/${{ steps.env.outputs.domain }}/public_html/back"
-          SSH_CMD="ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"
+      - name: Post-deploy setup and verify
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            SSH_CMD="ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"
+            DEPLOY_PATH="/home/${{ secrets.SERVER_USER }}/domains/${{ steps.env.outputs.domain }}/public_html/back"
 
-          $SSH_CMD "cd ${DEPLOY_PATH} && \
-            mkdir -p storage/app/public storage/framework/{cache,sessions,views} storage/logs bootstrap/cache && \
-            chmod -R 775 storage/ bootstrap/cache/ && \
-            ln -sf ${DEPLOY_PATH}/storage/app/public ${DEPLOY_PATH}/public/storage && \
-            echo '✅ Post-despliegue completado'"
+            echo "🔧 Configurando permisos y storage link..."
+            $SSH_CMD "cd ${DEPLOY_PATH} && \
+              mkdir -p storage/app/public storage/framework/{cache,sessions,views} storage/logs bootstrap/cache && \
+              chmod -R 775 storage/ bootstrap/cache/ && \
+              ln -sf ${DEPLOY_PATH}/storage/app/public ${DEPLOY_PATH}/public/storage && \
+              echo '✅ Post-despliegue completado'"
 
-      - name: Verify deployment
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd /home/${{ secrets.SERVER_USER }}/domains/${{ steps.env.outputs.domain }}/public_html/back && \
-            ls public/index.php && ls vendor/autoload.php && ls bootstrap/app.php && \
-            echo '✅ Archivos Laravel verificados'"
+            echo "🔍 Verificando archivos..."
+            $SSH_CMD "cd ${DEPLOY_PATH} && \
+              ls public/index.php && ls vendor/autoload.php && ls bootstrap/app.php && \
+              echo '✅ Archivos Laravel verificados'"
 
       - name: Notify completion
         run: echo "🚀 Deploy backend completado - ${{ steps.env.outputs.environment }}"
