@@ -46,6 +46,7 @@ jobs:
             if ssh -p ${{ secrets.SERVER_PORT }} \
                 -o ConnectTimeout=30 \
                 -o StrictHostKeyChecking=no \
+                -i ~/.ssh/id_rsa \
                 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'echo "SSH OK"'; then
               echo "✅ Conexión SSH exitosa en intento $i"
               exit 0
@@ -84,7 +85,7 @@ jobs:
               --exclude='scratch/' \
               --exclude='.agents/' \
               --exclude='composer.lock' \
-              -e "ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
+              -e "ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
               ./ \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ steps.env.outputs.dest_path }}
 
@@ -92,10 +93,10 @@ jobs:
         run: |
           echo "🔧 Ejecutando comandos post-despliegue..."
           DEPLOY_PATH="~/domains/${{ steps.env.outputs.domain }}/public_html/back"
+          SSH_CMD="ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"
           
-          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${DEPLOY_PATH} && composer install --prefer-dist --no-interaction --no-dev && \
+          $SSH_CMD "cd ${DEPLOY_PATH} && \
+            composer install --prefer-dist --no-interaction --no-dev && \
             composer dump-autoload --optimize --no-dev && \
             php artisan config:cache && \
             php artisan route:cache && \
@@ -106,7 +107,7 @@ jobs:
 
       - name: Verify deployment
         run: |
-          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no \
+          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "cd ~/domains/${{ steps.env.outputs.domain }}/public_html/back && php artisan --version && echo '✅ Laravel funcionando'"
 
