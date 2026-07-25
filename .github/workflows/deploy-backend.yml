@@ -91,38 +91,24 @@ jobs:
       - name: Post-deploy setup
         run: |
           echo "🔧 Ejecutando comandos post-despliegue..."
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
-            
-            cd ~/domains/${{ steps.env.outputs.domain }}/public_html/back
-            
-            # Instalar dependencias en el servidor
-            composer install --prefer-dist --no-interaction --no-dev
-            
-            # Generar autoload optimized
-            composer dump-autoload --optimize --no-dev
-            
-            # Limpiar y cachear configuración
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            
-            # Crear storage link si no existe
-            php artisan storage:link --force
-            
-            # Establecer permisos
-            chmod -R 775 storage/ bootstrap/cache/
-            
-            echo "✅ Post-despliegue completado"
-          ENDSSH
+          DEPLOY_PATH="~/domains/${{ steps.env.outputs.domain }}/public_html/back"
+          
+          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cd ${DEPLOY_PATH} && composer install --prefer-dist --no-interaction --no-dev && \
+            composer dump-autoload --optimize --no-dev && \
+            php artisan config:cache && \
+            php artisan route:cache && \
+            php artisan view:cache && \
+            php artisan storage:link --force && \
+            chmod -R 775 storage/ bootstrap/cache/ && \
+            echo '✅ Post-despliegue completado'"
 
       - name: Verify deployment
         run: |
-          ssh -p ${{ secrets.SERVER_PORT }} \
-            -o StrictHostKeyChecking=no \
+          ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            'cd ~/domains/${{ steps.env.outputs.domain }}/public_html/back && php artisan --version && echo "✅ Laravel funcionando"'
+            "cd ~/domains/${{ steps.env.outputs.domain }}/public_html/back && php artisan --version && echo '✅ Laravel funcionando'"
 
       - name: Notify completion
         run: echo "🚀 Deploy backend completado - ${{ steps.env.outputs.environment }}"
