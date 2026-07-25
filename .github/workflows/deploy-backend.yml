@@ -21,9 +21,6 @@ jobs:
           extensions: mbstring, xml, ctype, json, bcmath, gd, pdo_mysql
           coverage: none
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-dev
-
       - name: Determine environment
         id: env
         run: |
@@ -75,6 +72,7 @@ jobs:
               --exclude='.env.backup' \
               --exclude='.env.production' \
               --exclude='node_modules/' \
+              --exclude='vendor/' \
               --exclude='storage/app/public/' \
               --exclude='storage/logs/*' \
               --exclude='storage/framework/cache/*' \
@@ -85,6 +83,7 @@ jobs:
               --exclude='.github/' \
               --exclude='scratch/' \
               --exclude='.agents/' \
+              --exclude='composer.lock' \
               -e "ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
               ./ \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ steps.env.outputs.dest_path }}
@@ -97,6 +96,9 @@ jobs:
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
             
             cd ~/domains/${{ steps.env.outputs.domain }}/public_html/back
+            
+            # Instalar dependencias en el servidor
+            composer install --prefer-dist --no-interaction --no-dev
             
             # Generar autoload optimized
             composer dump-autoload --optimize --no-dev
