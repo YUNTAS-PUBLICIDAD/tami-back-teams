@@ -52,6 +52,7 @@ class PostStoreBlog extends FormRequest
             'popup_button_text' => 'nullable|string|',
             'popup_button_color' => 'nullable|string|',
             'popup_text_color' => 'nullable|string|',
+            /**cambios en caracteres */
         ];
     }
 
