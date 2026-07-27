@@ -16,12 +16,7 @@ return [
     'ascii'                  => 'The :attribute field must only contain single-byte alphanumeric characters and symbols.',
     'before'                 => 'The :attribute field must be a date before :date.',
     'before_or_equal'        => 'The :attribute field must be a date before or equal to :date.',
-    'between'                => [
-        'array'   => 'The :attribute field must have between :min and :max items.',
-        'file'    => 'The :attribute field must be between :min and :max kilobytes.',
-        'numeric' => 'The :attribute field must be between :min and :max.',
-        'string'  => 'The :attribute field must be between :min and :max characters.',
-    ],
+    
     'boolean'                => 'The :attribute field must be true or false.',
     'can'                    => 'The :attribute field contains an unauthorized value.',
     'confirmed'              => 'The :attribute field confirmation does not match.',
@@ -47,12 +42,7 @@ return [
     'extensions'             => 'The :attribute field must have one of the following extensions: :values.',
     'file'                   => 'The :attribute field must be a file.',
     'filled'                 => 'The :attribute field must have a value.',
-    'gt'                     => [
-        'array'   => 'The :attribute field must have more than :value items.',
-        'file'    => 'The :attribute field must be greater than :value kilobytes.',
-        'numeric' => 'The :attribute field must be greater than :value.',
-        'string'  => 'The :attribute field must be greater than :value characters.',
-    ],
+    
     'gte'                    => [
         'array'   => 'The :attribute field must have :value items or more.',
         'file'    => 'The :attribute field must be greater than or equal to :value kilobytes.',
