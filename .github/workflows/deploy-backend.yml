@@ -1,0 +1,46 @@
+name: Deploy Next.js to Hostinger (Backend)
+
+on:
+  push:
+    branches:
+      - master
+      - pre-master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: unnecessary
+
+      - name: Set Target Environment
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/pre-master" ]]; then
+            echo "DEST_PATH=~/domains/staging.tamimaquinarias.com/public_html/back" >> $GITHUB_ENV
+            echo "BRANCH=pre-master" >> $GITHUB_ENV
+          else
+            echo "DEST_PATH=~/domains/tamimaquinarias.com/public_html/back" >> $GITHUB_ENV
+            echo "BRANCH=master" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy and Migrate via SSH
+        run: |
+          ssh -p ${{ secrets.SERVER_PORT }} \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "cd ${{ env.DEST_PATH }} && \
+               git fetch origin && \
+               git reset --hard origin/${{ env.BRANCH }} && \
+               composer install --no-dev --optimize-autoloader && \
+               if [ \"${{ env.BRANCH }}\" = \"pre-master\" ]; then php artisan migrate --force; fi && \
+               php artisan storage:link || true && \
+               php artisan route:clear && \
+               php artisan config:clear && \
+               php artisan cache:clear && \
+               php artisan view:clear"
