@@ -24,6 +24,19 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader
 
+      - name: Validar build antes de desplegar
+        run: |
+          set -e
+          if [ ! -s "vendor/autoload.php" ]; then
+            echo "❌ vendor/autoload.php no existe o está vacío. Composer install falló."
+            exit 1
+          fi
+          if [ ! -s "public/index.php" ]; then
+            echo "❌ public/index.php no existe o está vacío."
+            exit 1
+          fi
+          echo "✅ Build local válido"
+
       - name: Determine environment
         id: env
         run: |
@@ -36,7 +49,6 @@ jobs:
             echo " dest_path=/home/${{ secrets.SERVER_USER }}/domains/tamimaquinarias.com/public_html/back/" >> $GITHUB_OUTPUT
             echo " domain=tamimaquinarias.com" >> $GITHUB_OUTPUT
           fi
-
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
@@ -60,7 +72,6 @@ jobs:
           done
           echo "❌ No se pudo establecer conexión SSH después de 3 intentos"
           exit 1
-
       - name: Deploy with Rsync
         uses: nick-fields/retry@v3
         with:
@@ -89,7 +100,6 @@ jobs:
               -e "ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
               ./ \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${{ steps.env.outputs.dest_path }}
-
       - name: Post-deploy setup and verify
         uses: nick-fields/retry@v3
         with:
@@ -99,7 +109,6 @@ jobs:
           command: |
             SSH_CMD="ssh -p ${{ secrets.SERVER_PORT }} -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"
             DEPLOY_PATH="/home/${{ secrets.SERVER_USER }}/domains/${{ steps.env.outputs.domain }}/public_html/back"
-
             echo "🔧 Configurando permisos y storage link..."
             $SSH_CMD "cd ${DEPLOY_PATH} && \
               mkdir -p storage/app/public storage/framework/{cache,sessions,views} storage/logs bootstrap/cache && \
@@ -107,11 +116,20 @@ jobs:
               ln -sf ${DEPLOY_PATH}/storage/app/public ${DEPLOY_PATH}/public/storage && \
               echo '✅ Post-despliegue completado'"
 
+            echo "🧹 Limpiando caché de Laravel..."
+            $SSH_CMD "cd ${DEPLOY_PATH} && \
+              php artisan config:clear && php artisan route:clear && php artisan cache:clear"
+
             echo "🔍 Verificando archivos..."
             $SSH_CMD "cd ${DEPLOY_PATH} && \
-              ls public/index.php && ls vendor/autoload.php && ls bootstrap/app.php && \
-              echo '✅ Archivos Laravel verificados'"
-
+              for f in public/index.php vendor/autoload.php bootstrap/app.php; do
+                SIZE=\$(stat -c%s \"\$f\" 2>/dev/null || echo 0)
+                if [ \"\$SIZE\" -lt 50 ]; then
+                  echo \"❌ \$f está vacío o no existe (\$SIZE bytes)\"
+                  exit 1
+                fi
+              done && \
+              echo '✅ Archivos Laravel verificados con contenido real'"
       - name: Notify completion
         run: echo "🚀 Deploy backend completado - ${{ steps.env.outputs.environment }}"
 
