@@ -189,10 +189,27 @@ public function sendProductDetails(Request $request)
         if ($producto) $productoResolution = "link={$request->link}";
     }
 
-    // 3) Por slug extraído del Referer
-    if (!$producto && $referer && preg_match('/\/productos?\/([^\/\?]+)/', $referer, $matches)) {
-        $slug = $matches[1];
-        if ($slug !== 'detalle') {
+    // 3) Por slug extraído del Referer (soporta tanto /producto/slug como detalle?link=slug)
+    if (!$producto && $referer) {
+        $parsedUrl = parse_url($referer);
+        $slug = null;
+        if (isset($parsedUrl['query'])) {
+            parse_str($parsedUrl['query'], $queryParams);
+            if (isset($queryParams['link'])) {
+                $slug = $queryParams['link'];
+            }
+        }
+        if (!$slug && isset($parsedUrl['path'])) {
+            if (preg_match('/\/productos?\/([^\/\?]+)/', $parsedUrl['path'], $matches)) {
+                $slug = $matches[1];
+            } elseif (preg_match('/\/catalogo-maquinarias\/([^\/\?]+)/', $parsedUrl['path'], $matches)) {
+                $lastPart = $matches[1];
+                if ($lastPart !== 'detalle') {
+                    $slug = $lastPart;
+                }
+            }
+        }
+        if ($slug && $slug !== 'detalle') {
             $producto = Producto::with($eagerLoad)->where('link', $slug)->first();
             if ($producto) $productoResolution = "referer_slug={$slug}";
         }

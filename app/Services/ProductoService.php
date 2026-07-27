@@ -45,7 +45,8 @@ class ProductoService
                 $this->imageService->saveGalleryImages(
                     $producto,
                     $datosValidados['imagenes'],
-                    $datosValidados['textos_alt'] ?? []
+                    $datosValidados['textos_alt'] ?? [],
+                    $datosValidados['titulos'] ?? []
                 );
             }
 
@@ -136,6 +137,7 @@ class ProductoService
 
                         $id = $data['id'];
                         $alt = $data['alt'] ?? '';
+                        $ttl = $data['ttl'] ?? '';
 
                         $imagenDb = $producto->imagenes()->find($id);
 
@@ -146,7 +148,8 @@ class ProductoService
 
                             $imagenDb->update([
                                 'url_imagen' => $nuevaRuta,
-                                'texto_alt_SEO' => $alt
+                                'texto_alt_SEO' => $alt,
+                                'titulo' => $ttl
                             ]);
                         }
                     }
@@ -161,20 +164,29 @@ class ProductoService
                         ->where('id', $imgData['id'])
                         ->update(['texto_alt_SEO' => $imgData['alt']]);
                 }
+                if (isset($imgData['id']) && isset($imgData['ttl'])) {
+
+                    $producto->imagenes()
+                        ->where('id', $imgData['id'])
+                        ->update(['titulo' => $imgData['ttl']]);
+                }
             }
 
             if (!empty($imagenesNuevas)) {
 
                 $altTextsNuevos = $request->input('imagenes_nuevas_alt', []);
+                $titulosNuevos = $request->input('imagenes_nuevas_titulo', []);
 
                 foreach ($imagenesNuevas as $index => $file) {
 
                     $ruta = $this->imageService->guardarImagen($file);
                     $altText = $altTextsNuevos[$index] ?? "";
+                    $titulo = $titulosNuevos[$index] ?? "";
 
                     $producto->imagenes()->create([
                         'url_imagen' => $ruta,
                         'texto_alt_SEO' => $altText,
+                        'titulo' => $titulo,
                         'tipo' => 'galeria'
                     ]);
                 }

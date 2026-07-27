@@ -178,15 +178,17 @@ class ProductoImageService
      * @param Producto $producto Producto al que se agregarán las imágenes
      * @param array $imagenes Array de UploadedFile
      * @param array $altTexts Array de textos alternativos (opcional)
+     * @param array $titulos Array de títulos para cada imagen (opcional)
      * @return void
      */
-    public function saveGalleryImages(Producto $producto, array $imagenes, array $altTexts = []): void
+    public function saveGalleryImages(Producto $producto, array $imagenes, array $altTexts = [], array $titulos = []): void
     {
         foreach ($imagenes as $i => $imagen) {
             $ruta = $this->guardarImagen($imagen);
             $producto->imagenes()->create([
                 'url_imagen' => $ruta,
                 'texto_alt_SEO' => $altTexts[$i] ?? null,
+                'titulo' => $titulos[$i] ?? null, // <--- Agregado
                 'tipo' => 'galeria'
             ]);
         }
@@ -250,8 +252,9 @@ class ProductoImageService
         $payload = array_merge($data, [
             'url_imagen' => $url,
             'tipo' => $tipo,
-            // Asegurar que `texto_alt_SEO` siempre esté presente para evitar errores SQL
+            // Asegurar que `texto_alt_SEO` y `titulo` tengan valores válidos
             'texto_alt_SEO' => $data['texto_alt_SEO'] ?? '',
+            'titulo' => $data['titulo'] ?? null, // <--- Agregado
         ]);
 
         return $producto->imagenes()->create($payload);

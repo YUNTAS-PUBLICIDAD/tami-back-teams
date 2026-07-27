@@ -103,6 +103,8 @@ class V2StoreProductoRequest extends FormRequest
             'imagenes.*' => "file|image|max:3048",
             'textos_alt' => "array|min:1|max:10",
             'textos_alt.*' => "string|max:255",
+            'titulos' => "nullable|array",
+            'titulos.*' => "nullable|string|max:255",
 
             // Imagen popup
             'imagen_popup' => "nullable|file|image|max:3048",
