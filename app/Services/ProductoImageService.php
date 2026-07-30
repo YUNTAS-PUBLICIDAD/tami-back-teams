@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 
 class ProductoImageService
 {
+    private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
     /**
      * Maneja la creación o actualización de una imagen especial (popup, email, whatsapp).
      * Elimina la imagen anterior del mismo tipo si existe.
@@ -145,7 +146,15 @@ class ProductoImageService
      */
     public function guardarImagen(UploadedFile $archivo): string
     {
-        $nombre = uniqid() . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+        $extension = strtolower($archivo->getClientOriginalExtension());
+
+        if (!in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            throw new \InvalidArgumentException(
+                "Extensión de archivo no permitida: {$extension}. Solo se permiten: " . implode(', ', self::ALLOWED_EXTENSIONS)
+            );
+        }
+
+        $nombre = uniqid() . '_' . time() . '.' . $extension;
         $archivo->storeAs("imagenes", $nombre, "public");
         return "/storage/imagenes/" . $nombre;
     }
