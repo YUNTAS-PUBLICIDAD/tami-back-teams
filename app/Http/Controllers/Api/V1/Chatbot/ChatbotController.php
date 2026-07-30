@@ -14,6 +14,7 @@ use App\Services\ChatbotService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Psy\Readline\Hoa\Console;
 
 class ChatbotController extends Controller
 {
@@ -79,6 +80,12 @@ class ChatbotController extends Controller
                         ?? $data['output']
                         ?? $data['respuesta']
                         ?? null;
+
+                    $showWhatsapp = $data['show_whatsapp'] ?? false;
+
+                    if ($showWhatsapp) {
+                        $enlaceWhatsapp = "https://wa.me/978883199";
+                    }
                     } else {
                         Log::error('n8n respondió error', [
                             'status' => $response->status(),
@@ -93,19 +100,15 @@ class ChatbotController extends Controller
         
         // 4. Fallback (Si N8N falla o no hay respuesta)
         if (!$responseText) {
-            $responseText = $settings?->fallback_message ?? 'Solicita una asesoría personalizada.<br><a href="https://wa.me/978883199" target="_blank"   
-  rel="noopener noreferrer" style="display: inline-block; background-color: #015f86; color:     
-  #ffffff; padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; text-    
-  decoration: none; margin-top: 8px; box-shadow: 0 4px 6px rgba(1, 95, 134, 0.15);">Escríbenos  
-  por WhatsApp 💬</a>';
+            $responseText = $settings?->fallback_message ?? 'Solicita una asesoría personalizada.';
+            $enlaceWhatsapp = "https://wa.me/978883199";
         }
 
-        // 5. INYECCIÓN DEL BOTÓN EN EL TERCER MENSAJE EXACTO
-
-        return response()->json([
+        return response()->json(array_filter([
             'success' => true,
-            'response' => $responseText
-        ]);
+            'response' => $responseText,
+            'link_whatsapp' => $enlaceWhatsapp ?? null,
+        ], fn($v) => $v !== null));
     }
 
     public function getIcon(ChatbotService $service): JsonResponse
@@ -257,4 +260,3 @@ class ChatbotController extends Controller
     }
 
 }
-
