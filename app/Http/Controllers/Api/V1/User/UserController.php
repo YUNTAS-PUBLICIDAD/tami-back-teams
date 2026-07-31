@@ -129,7 +129,9 @@ class UserController extends Controller
             DB::beginTransaction();
 
             $data = $request->validated();
-            $data['password'] = Hash::make($data['password']);
+
+            //Contraseña por defecto, hasta que el fronted la envie.
+            $data["password"] = Hash::make('password');
 
             $user = User::create($data);
             $user->assignRole($data['role'] ?? 'USER');
