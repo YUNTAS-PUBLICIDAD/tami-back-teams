@@ -26,7 +26,8 @@ class PostUser extends FormRequest
             'name' => 'required|string|unique:users,name|min:2|max:100',
             'email' => 'required|email|unique:users,email|min:15|max:100',
             'celular' => 'required|string|unique:users,celular|regex:/^[0-9]{9}$/',
-            'password' => 'required|string|min:8|max:255'
+            //No se pide en la pagina de administraciion, añadir usuario, por lo que se le agrega un valor por defecto / password
+            //'password' => 'string|min:8|max:255'
         ];
     }
 
