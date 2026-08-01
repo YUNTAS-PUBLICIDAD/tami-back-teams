@@ -73,8 +73,8 @@ class UpdateBlog extends FormRequest
             /*'text_alt' => ['required', 'array'],
             'text_alt.*' => ['required', 'string', 'max:255'],*/
 
-            'img_alt' => ['required', 'array'],
-            'img_alt.*' => ['required', 'string', 'max:255'],
+            'img_alt' => ['nullable', 'array'],
+            'img_alt.*' => ['nullable', 'string', 'max:255'],
             'img_nombre' => ['nullable', 'array'],
             'img_nombre.*' => ['nullable', 'string', 'max:120'],
             'img_tittle' => ['nullable', 'array'],
