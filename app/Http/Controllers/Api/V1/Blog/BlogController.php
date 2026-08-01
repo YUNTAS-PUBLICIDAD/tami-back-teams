@@ -702,9 +702,9 @@ class BlogController extends Controller
                         $idsConservados[] = $imagenExistente->id;
                         $imagenesFinales[] = [
                             'ruta_imagen' => $imagenExistente->ruta_imagen,
-                            'img_alt' => $altTexts[$indice] ?? $imagenExistente->img_alt,
-                            'img_nombre' => $nombres[$indice] ?? $imagenExistente->img_nombre,
-                            'img_tittle' => $titles[$indice] ?? $imagenExistente->img_tittle,
+                            'img_alt' => empty($altTexts[$indice]) ? null : $altTexts[$indice],
+                            'img_nombre' => empty($nombres[$indice]) ? null : $nombres[$indice],
+                            'img_tittle' => empty($titles[$indice]) ? null : $titles[$indice],
                         ];
                         continue;
                     }
