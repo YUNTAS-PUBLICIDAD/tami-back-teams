@@ -1,0 +1,3 @@
+<FilesMatch "\.env$">
+    Deny from all
+</FilesMatch>
