@@ -115,7 +115,13 @@ class BlogController extends Controller
 
     private function guardarImagen($archivo)
     {
-        $nombre = uniqid() . '_' . time() . '.' . $archivo->getClientOriginalExtension();
+        $extension = strtolower($archivo->getClientOriginalExtension());
+        $originalBase = pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME);
+        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($originalBase));
+        if ($base === '' || $base === '.') {
+            $base = 'imagen';
+        }
+        $nombre = $base . '_' . uniqid() . '.' . $extension;
         $path = $archivo->storeAs("imagenes", $nombre, "public");
         return Storage::disk('public')->url($path);
     }

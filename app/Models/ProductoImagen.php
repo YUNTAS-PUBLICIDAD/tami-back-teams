@@ -11,6 +11,7 @@ class ProductoImagen extends Model
     
     protected $fillable = [
         'url_imagen',
+        'original_name',
         'texto_alt_SEO',
         'titulo',
         'tipo',
