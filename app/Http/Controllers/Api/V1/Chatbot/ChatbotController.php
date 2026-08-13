@@ -100,7 +100,7 @@ class ChatbotController extends Controller
         
         // 4. Fallback (Si N8N falla o no hay respuesta)
         if (!$responseText) {
-            $responseText = $settings?->fallback_message ?? 'Solicita una asesoría personalizada.';
+            $responseText = $settings?->fallback_message ?? 'Comunicate por WhatsApp';
             $enlaceWhatsapp = "https://wa.me/978883199";
         }
 
