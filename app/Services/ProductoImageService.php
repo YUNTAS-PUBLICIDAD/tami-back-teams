@@ -98,7 +98,7 @@ class ProductoImageService
                 if ($existente && !empty($existente->imagen_url)) {
                     $this->deleteImageFromStorage($existente->imagen_url);
                 }
-                $pasoData['imagen_url'] = $this->guardarImagen($imageFile);
+                $pasoData['imagen_url'] = $this->guardarImagen($imageFile)['url'];
             }
 
             ProductoWhatsappPaso::updateOrCreate(
@@ -129,7 +129,7 @@ class ProductoImageService
             if ($existente && !empty($existente->imagen_url)) {
                 $this->deleteImageFromStorage($existente->imagen_url);
             }
-            $pasoData['imagen_url'] = $this->guardarImagen($file);
+            $pasoData['imagen_url'] = $this->guardarImagen($file)['url'];
         }
 
         ProductoEmailPaso::updateOrCreate(
@@ -142,9 +142,9 @@ class ProductoImageService
      * Guarda un archivo de imagen en storage/imagenes.
      *
      * @param UploadedFile $archivo Archivo a guardar
-     * @return string URL pública de la imagen (/storage/imagenes/nombre.ext)
+     * @return array{url: string, original_name: string} URL pública de la imagen (/storage/imagenes/nombre.ext) y nombre original
      */
-    public function guardarImagen(UploadedFile $archivo): string
+    public function guardarImagen(UploadedFile $archivo): array
     {
         $extension = strtolower($archivo->getClientOriginalExtension());
 
@@ -154,9 +154,17 @@ class ProductoImageService
             );
         }
 
-        $nombre = uniqid() . '_' . time() . '.' . $extension;
+        $originalBase = pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME);
+        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($originalBase));
+        if ($base === '' || $base === '.') {
+            $base = 'imagen';
+        }
+        $nombre = $base . '_' . uniqid() . '.' . $extension;
         $archivo->storeAs("imagenes", $nombre, "public");
-        return "/storage/imagenes/" . $nombre;
+        return [
+            'url' => "/storage/imagenes/" . $nombre,
+            'original_name' => $archivo->getClientOriginalName(),
+        ];
     }
 
     /**
@@ -193,9 +201,10 @@ class ProductoImageService
     public function saveGalleryImages(Producto $producto, array $imagenes, array $altTexts = [], array $titulos = []): void
     {
         foreach ($imagenes as $i => $imagen) {
-            $ruta = $this->guardarImagen($imagen);
+            $guardada = $this->guardarImagen($imagen);
             $producto->imagenes()->create([
-                'url_imagen' => $ruta,
+                'url_imagen' => $guardada['url'],
+                'original_name' => $guardada['original_name'],
                 'texto_alt_SEO' => $altTexts[$i] ?? null,
                 'titulo' => $titulos[$i] ?? null, // <--- Agregado
                 'tipo' => 'galeria'
@@ -256,10 +265,11 @@ class ProductoImageService
 
     private function saveImage(Producto $producto, UploadedFile $file, string $tipo, array $data): ProductoImagen
     {
-        $url = $this->guardarImagen($file);
+        $guardada = $this->guardarImagen($file);
 
         $payload = array_merge($data, [
-            'url_imagen' => $url,
+            'url_imagen' => $guardada['url'],
+            'original_name' => $guardada['original_name'],
             'tipo' => $tipo,
             // Asegurar que `texto_alt_SEO` y `titulo` tengan valores válidos
             'texto_alt_SEO' => $data['texto_alt_SEO'] ?? '',
