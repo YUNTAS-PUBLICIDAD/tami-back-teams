@@ -236,7 +236,8 @@ class ProductoController extends Controller
 
             $producto = $this->productoService->createProducto($datosValidados, $request);
 
-            return $this->successMessage(
+            return $this->successResponse(
+                new ProductoResource($producto->fresh(), true),
                 'Producto insertado exitosamente',
                 HttpStatusCode::CREATED->value
             );

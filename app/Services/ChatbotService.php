@@ -30,7 +30,8 @@ class ChatbotService
         DB::beginTransaction();
         try {
             // 1. Reutilizamos tu función del servicio de imágenes
-            $urlPublica = $this->imageService->guardarImagen($archivo);
+            $guardada = $this->imageService->guardarImagen($archivo);
+            $urlPublica = $guardada['url'];
 
             // 2. Buscamos el registro de configuración (o creamos uno si está vacío)
 

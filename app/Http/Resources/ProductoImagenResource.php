@@ -12,6 +12,7 @@ class ProductoImagenResource extends JsonResource
         $data = [
             'id' => $this->id,
             'url_imagen' => $this->url_imagen,
+            'original_name' => $this->original_name,
             'texto_alt_SEO' => $this->texto_alt_SEO,
             'titulo' => $this->titulo,
             'tipo' => $this->tipo ?? 'galeria',
