@@ -293,26 +293,27 @@ class ClienteController extends Controller
                     }
 
                     if (!$enviadoProducto) {
-                        $setting = HomePopupSetting::first();
+                        $setting = HomePopupSetting::with(['emailSteps'])->first();
                     }
 
                     if (!$enviadoProducto && $setting && $setting->email_enabled) {
-                        // Email 1
-                        $delay1 = $setting->email_send_delay_minutes !== null ? (int) $setting->email_send_delay_minutes : 0;
-                        if ($delay1 !== -1) {
-                            \App\Jobs\SendMarketingEmailJob::dispatch($cliente, 1)->delay(now()->addMinutes($delay1));
-                        }
+                        $emailSteps = $setting->emailSteps->keyBy('sequence');
+                        $defaultDelays = [0, 30, 1440];
 
-                        // Email 2
-                        $delay2 = $setting->email_send_delay_minutes_2 !== null ? (int) $setting->email_send_delay_minutes_2 : 30;
-                        if ($delay2 !== -1) {
-                            \App\Jobs\SendMarketingEmailJob::dispatch($cliente, 2)->delay(now()->addMinutes($delay2));
-                        }
+                        foreach ($emailSteps as $step) {
+                            $delay = $step->delay_minutes !== null ? (int) $step->delay_minutes : $defaultDelays[$step->sequence - 1];
 
-                        // Email 3
-                        $delay3 = $setting->email_send_delay_minutes_3 !== null ? (int) $setting->email_send_delay_minutes_3 : 1440;
-                        if ($delay3 !== -1) {
-                            \App\Jobs\SendMarketingEmailJob::dispatch($cliente, 3)->delay(now()->addMinutes($delay3));
+                            if ($delay !== -1) {
+                                \App\Jobs\SendMarketingEmailJob::dispatch($cliente, $step->sequence, [
+                                    'subject' => $step->subject,
+                                    'message' => $step->message,
+                                    'image_url' => $step->image_url,
+                                    'btn_text' => $step->btn_text,
+                                    'btn_link' => $step->btn_link,
+                                    'btn_bg_color' => $step->btn_bg_color,
+                                    'btn_text_color' => $step->btn_text_color,
+                                ])->delay(now()->addMinutes($delay));
+                            }
                         }
                     }
                 } catch (\Exception $e) {
