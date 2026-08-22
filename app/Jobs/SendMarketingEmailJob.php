@@ -19,16 +19,19 @@ class SendMarketingEmailJob implements ShouldQueue
 
     public $cliente;
     public $emailNumber;
-    public $customMailData;
+    public $emailData;
 
     /**
      * Create a new job instance.
+     *
+     * @param array $emailData Datos normalizados del paso de correo:
+     *                         ['subject', 'message', 'image_url', 'btn_text', 'btn_link', 'btn_bg_color', 'btn_text_color']
      */
-    public function __construct(Cliente $cliente, int $emailNumber, array $customMailData = [])
+    public function __construct(Cliente $cliente, int $emailNumber, array $emailData = [])
     {
         $this->cliente = $cliente;
         $this->emailNumber = $emailNumber;
-        $this->customMailData = $customMailData;
+        $this->emailData = $emailData;
     }
 
     /**
@@ -37,31 +40,32 @@ class SendMarketingEmailJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            $setting = HomePopupSetting::first();
-            if (!$setting && empty($this->customMailData)) {
-                return;
-            }
-            if (empty($this->customMailData) && !$setting->email_enabled) {
-                return;
+            $data = $this->emailData;
+
+            if (empty($data)) {
+                $setting = HomePopupSetting::with(['emailSteps'])->first();
+                if (!$setting || !$setting->email_enabled) {
+                    return;
+                }
+
+                $step = $setting->emailSteps->firstWhere('sequence', $this->emailNumber);
+                if (!$step) {
+                    return;
+                }
+
+                $data = [
+                    'subject' => $step->subject,
+                    'message' => $step->message,
+                    'image_url' => $step->image_url,
+                    'btn_text' => $step->btn_text,
+                    'btn_link' => $step->btn_link,
+                    'btn_bg_color' => $step->btn_bg_color,
+                    'btn_text_color' => $step->btn_text_color,
+                ];
             }
 
-            $suffix = $this->emailNumber === 1 ? '' : '_' . $this->emailNumber;
-            
-            $subjectField = 'email_subject' . $suffix;
-            $messageField = 'email_message' . $suffix;
-            $imageField = 'email_image_url' . $suffix;
-            $btnTextField = 'email_btn_text' . $suffix;
-            $btnLinkField = 'email_btn_link' . $suffix;
-            $btnBgColorField = 'email_btn_bg_color' . $suffix;
-            $btnTextColorField = 'email_btn_text_color' . $suffix;
-
-            $subject = $this->customMailData[$subjectField] ?? ($setting ? $setting->$subjectField : null);
-            $message = $this->customMailData[$messageField] ?? ($setting ? $setting->$messageField : null);
-            $imgUrl = $this->customMailData[$imageField] ?? ($setting ? $setting->$imageField : null);
-            $btnText = $this->customMailData[$btnTextField] ?? ($setting ? $setting->$btnTextField : null);
-            $btnLink = $this->customMailData[$btnLinkField] ?? ($setting ? $setting->$btnLinkField : null);
-            $btnBgColor = $this->customMailData[$btnBgColorField] ?? ($setting ? $setting->$btnBgColorField : null);
-            $btnTextColor = $this->customMailData[$btnTextColorField] ?? ($setting ? $setting->$btnTextColorField : null);
+            $subject = $data['subject'] ?? null;
+            $message = $data['message'] ?? null;
 
             if (empty($subject) || empty($message)) {
                 Log::info("SendMarketingEmailJob: No content for Email #{$this->emailNumber}. Skipping.");
@@ -71,6 +75,8 @@ class SendMarketingEmailJob implements ShouldQueue
             // Personalización
             $message = str_replace('{{nombre}}', $this->cliente->name, $message);
 
+            $imgUrl = $data['image_url'] ?? null;
+
             $mailData = [
                 'name'    => $this->cliente->name,
                 'email'   => $this->cliente->email,
@@ -78,10 +84,10 @@ class SendMarketingEmailJob implements ShouldQueue
                 'subject' => $subject,
                 'message' => $message,
                 'image_url' => $imgUrl ? url($imgUrl) : null,
-                'email_btn_text' => $btnText ?: '¡REGISTRARME!',
-                'email_btn_link' => $btnLink ?: url('/'),
-                'email_btn_bg_color' => $btnBgColor ?: '#00AFA0',
-                'email_btn_text_color' => $btnTextColor ?: '#FFFFFF',
+                'email_btn_text' => $data['btn_text'] ?: '¡REGISTRARME!',
+                'email_btn_link' => $data['btn_link'] ?: url('/'),
+                'email_btn_bg_color' => $data['btn_bg_color'] ?: '#00AFA0',
+                'email_btn_text_color' => $data['btn_text_color'] ?: '#FFFFFF',
             ];
 
             // Ruta absoluta para embeber la imagen
@@ -93,7 +99,7 @@ class SendMarketingEmailJob implements ShouldQueue
             }
 
             Mail::to($this->cliente->email)->send(new ClientRegistrationMail($mailData));
-            
+
             Log::info("SendMarketingEmailJob: Email #{$this->emailNumber} sent to {$this->cliente->email}");
 
         } catch (\Exception $e) {

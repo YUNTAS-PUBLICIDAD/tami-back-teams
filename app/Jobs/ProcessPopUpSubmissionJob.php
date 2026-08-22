@@ -5,6 +5,7 @@ namespace App\Jobs;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use App\Jobs\SendMarketingEmailJob;
+use App\Models\HomePopupSetting;
 
 class ProcessPopUpSubmissionJob implements ShouldQueue
 {
@@ -13,17 +14,21 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
     public $cliente;
     public $setting;
     public $requestData;
-    public $popupType;
 
     /**
      * Create a new job instance.
+     *
+     * $setting puede ser el modelo HomePopupSetting (popup global) o un stdClass
+     * construido por WhatsAppController con las propiedades:
+     *   whatsapp_steps: [{ message, image_url, delay_minutes }, ...]
+     *   email_steps:    [{ subject, message, image_url, btn_text, btn_link, btn_bg_color, btn_text_color, delay_minutes }, ...]
+     *   email_enabled:  bool
      */
-    public function __construct($cliente, $setting, $requestData, $popupType = 'inicio')
+    public function __construct($cliente, $setting, $requestData)
     {
         $this->cliente = $cliente;
         $this->setting = $setting;
         $this->requestData = $requestData;
-        $this->popupType = $popupType;
     }
 
     use \App\Traits\FormatsTextTrait;
@@ -36,71 +41,27 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
         $cliente = $this->cliente;
         $setting = $this->setting;
         $requestData = $this->requestData;
-        $popupType = $this->popupType ?? 'inicio';
 
         // --- LÓGICA DE WHATSAPP ---
         try {
             $whatsappServiceUrl = config('services.whatsapp.base_url');
             if ($whatsappServiceUrl) {
-                // El $setting ya contiene los valores correctos mapeados en campos genéricos.
-                // Si viene de un producto, sendPopUpDetails construyó un stdClass con
-                // whatsapp_message, whatsapp_message_2, whatsapp_message_3 del producto.
-                // Si viene del global, es el modelo HomePopupSetting con sufijos _inicio/_producto.
-                $isStdClass = ($setting instanceof \stdClass);
-
-                if ($isStdClass) {
-                    // Setting construido por sendPopUpDetails — campos genéricos directos
-                    $msg1  = $setting->whatsapp_message ?? null;
-                    $img1  = $setting->whatsapp_image_url ?? null;
-                    $time1 = $setting->whatsapp_time_1 ?? 0;
-                    $msg2  = $setting->whatsapp_message_2 ?? null;
-                    $img2  = $setting->whatsapp_image_url_2 ?? null;
-                    $time2 = $setting->whatsapp_time_2 ?? 0;
-                    $msg3  = $setting->whatsapp_message_3 ?? null;
-                    $img3  = $setting->whatsapp_image_url_3 ?? null;
-                    $time3 = $setting->whatsapp_time_3 ?? 0;
-                } elseif ($popupType === 'producto') {
-                    $msg1  = $setting->whatsapp_message_producto ?? $setting->whatsapp_message ?? null;
-                    $img1  = $setting->whatsapp_image_url_producto ?? $setting->whatsapp_image_url ?? null;
-                    $time1 = $setting->whatsapp_time_1_producto ?? $setting->whatsapp_time_1 ?? 0;
-                    $msg2  = $setting->whatsapp_message_2_producto ?? $setting->whatsapp_message_2 ?? null;
-                    $img2  = $setting->whatsapp_image_url_2_producto ?? $setting->whatsapp_image_url_2 ?? null;
-                    $time2 = $setting->whatsapp_time_2_producto ?? $setting->whatsapp_time_2 ?? 0;
-                    $msg3  = $setting->whatsapp_message_3_producto ?? $setting->whatsapp_message_3 ?? null;
-                    $img3  = $setting->whatsapp_image_url_3_producto ?? $setting->whatsapp_image_url_3 ?? null;
-                    $time3 = $setting->whatsapp_time_3_producto ?? $setting->whatsapp_time_3 ?? 0;
-                } else {
-                    // Por defecto 'inicio'
-                    $msg1  = $setting->whatsapp_message_inicio ?? $setting->whatsapp_message ?? null;
-                    $img1  = $setting->whatsapp_image_url_inicio ?? $setting->whatsapp_image_url ?? null;
-                    $time1 = $setting->whatsapp_time_1_inicio ?? $setting->whatsapp_time_1 ?? 0;
-                    $msg2  = $setting->whatsapp_message_2_inicio ?? $setting->whatsapp_message_2 ?? null;
-                    $img2  = $setting->whatsapp_image_url_2_inicio ?? $setting->whatsapp_image_url_2 ?? null;
-                    $time2 = $setting->whatsapp_time_2_inicio ?? $setting->whatsapp_time_2 ?? 0;
-                    $msg3  = $setting->whatsapp_message_3_inicio ?? $setting->whatsapp_message_3 ?? null;
-                    $img3  = $setting->whatsapp_image_url_3_inicio ?? $setting->whatsapp_image_url_3 ?? null;
-                    $time3 = $setting->whatsapp_time_3_inicio ?? $setting->whatsapp_time_3 ?? 0;
-                }
-
-                $messages = [
-                    ['text' => $msg1, 'image' => $img1, 'time' => $time1 ?? 0],
-                    ['text' => $msg2 ?? null, 'image' => $img2 ?? null, 'time' => $time2 ?? 0],
-                    ['text' => $msg3 ?? null, 'image' => $img3 ?? null, 'time' => $time3 ?? 0],
-                ];
+                $whatsappSteps = $this->resolveWhatsappSteps($setting);
 
                 $messageIndex = 0;
                 $minCooldownSeconds = 5; // Cooldown mínimo entre mensajes para que WhatsApp procese correctamente
 
-                foreach ($messages as $msgData) {
-                    $timeValue = (int)($msgData['time'] ?? 0);
-                    if (!empty($msgData['text']) && $timeValue !== -1) {
+                foreach ($whatsappSteps as $step) {
+                    $timeValue = (int) ($step['delay_minutes'] ?? 0);
+
+                    if (!empty($step['message']) && $timeValue !== -1) {
                         // Convertir a segundos y agregar cooldown mínimo entre cada mensaje
                         $totalDelaySeconds = ($timeValue * 60) + ($messageIndex * $minCooldownSeconds);
 
                         $job = new \App\Jobs\SendWhatsAppPopUpMessageJob(
                             $cliente,
-                            $msgData['text'],
-                            $msgData['image'],
+                            $step['message'],
+                            $step['image_url'] ?? null,
                             $requestData
                         );
 
@@ -118,38 +79,79 @@ class ProcessPopUpSubmissionJob implements ShouldQueue
         }
 
         // --- LÓGICA DE CORREO SECUENCIAL ---
-        if (!empty($requestData['email']) && $setting->email_enabled) {
+        if (!empty($requestData['email']) && $this->isEmailEnabled($setting)) {
             try {
-                // Email 1
-                $delay1 = $setting->email_send_delay_minutes !== null ? (int) $setting->email_send_delay_minutes : 0;
-                if ($delay1 !== -1) {
-                    $time1 = now()->addMinutes($delay1)->addSeconds($delay1 === 0 ? 5 : 0);
-                    SendMarketingEmailJob::dispatch($cliente, 1, is_array($setting) ? $setting : (is_object($setting) && method_exists($setting, 'toArray') ? $setting->toArray() : (array)$setting))
-                        ->onQueue('emails')
-                        ->delay($time1);
-                }
+                $emailSteps = $this->resolveEmailSteps($setting);
 
-                // Email 2
-                $delay2 = $setting->email_send_delay_minutes_2 !== null ? (int) $setting->email_send_delay_minutes_2 : 30;
-                if ($delay2 !== -1) {
-                    $time2 = now()->addMinutes($delay2)->addSeconds($delay2 === 0 ? 5 : 0);
-                    SendMarketingEmailJob::dispatch($cliente, 2, is_array($setting) ? $setting : (is_object($setting) && method_exists($setting, 'toArray') ? $setting->toArray() : (array)$setting))
-                        ->onQueue('emails')
-                        ->delay($time2);
-                }
+                foreach ($emailSteps as $index => $step) {
+                    $delay = (int) ($step['delay_minutes'] ?? 0);
 
-                // Email 3
-                $delay3 = $setting->email_send_delay_minutes_3 !== null ? (int) $setting->email_send_delay_minutes_3 : 1440;
-                if ($delay3 !== -1) {
-                    $time3 = now()->addMinutes($delay3)->addSeconds($delay3 === 0 ? 5 : 0);
-                    SendMarketingEmailJob::dispatch($cliente, 3, is_array($setting) ? $setting : (is_object($setting) && method_exists($setting, 'toArray') ? $setting->toArray() : (array)$setting))
+                    if ($delay === -1) {
+                        continue;
+                    }
+
+                    $time = now()->addMinutes($delay)->addSeconds($delay === 0 ? 5 : 0);
+
+                    SendMarketingEmailJob::dispatch($cliente, $index + 1, $step)
                         ->onQueue('emails')
-                        ->delay($time3);
+                        ->delay($time);
                 }
 
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Error al programar correos secuenciales: ' . $e->getMessage());
             }
         }
+    }
+
+    private function resolveWhatsappSteps($setting): array
+    {
+        if ($setting instanceof HomePopupSetting) {
+            return $setting->whatsappSteps
+                ->map(fn ($s) => [
+                    'message' => $s->message,
+                    'image_url' => $s->image_url,
+                    'delay_minutes' => $s->delay_minutes,
+                ])
+                ->values()
+                ->all();
+        }
+
+        return collect($setting->whatsapp_steps ?? [])
+            ->map(fn ($s) => (array) $s)
+            ->values()
+            ->all();
+    }
+
+    private function resolveEmailSteps($setting): array
+    {
+        if ($setting instanceof HomePopupSetting) {
+            return $setting->emailSteps
+                ->map(fn ($s) => [
+                    'subject' => $s->subject,
+                    'message' => $s->message,
+                    'image_url' => $s->image_url,
+                    'btn_text' => $s->btn_text,
+                    'btn_link' => $s->btn_link,
+                    'btn_bg_color' => $s->btn_bg_color,
+                    'btn_text_color' => $s->btn_text_color,
+                    'delay_minutes' => $s->delay_minutes,
+                ])
+                ->values()
+                ->all();
+        }
+
+        return collect($setting->email_steps ?? [])
+            ->map(fn ($s) => (array) $s)
+            ->values()
+            ->all();
+    }
+
+    private function isEmailEnabled($setting): bool
+    {
+        if ($setting instanceof HomePopupSetting) {
+            return (bool) $setting->email_enabled;
+        }
+
+        return !empty($setting->email_enabled);
     }
 }

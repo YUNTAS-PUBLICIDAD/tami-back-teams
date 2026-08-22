@@ -84,7 +84,7 @@ class ChatbotController extends Controller
                     $showWhatsapp = $data['show_whatsapp'] ?? false;
 
                     if ($showWhatsapp) {
-                        $enlaceWhatsapp = "https://wa.me/978883199";
+                        $enlaceWhatsapp = "https://wa.me/+51978883199";
                     }
                     } else {
                         Log::error('n8n respondió error', [
@@ -101,7 +101,7 @@ class ChatbotController extends Controller
         // 4. Fallback (Si N8N falla o no hay respuesta)
         if (!$responseText) {
             $responseText = $settings?->fallback_message ?? 'Comunicate por WhatsApp.';
-            $enlaceWhatsapp = "https://wa.me/978883199";
+            $enlaceWhatsapp = "https://wa.me/+51978883199";
         }
 
         return response()->json(array_filter([

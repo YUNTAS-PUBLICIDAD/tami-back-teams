@@ -24,11 +24,9 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'image2',
             'imageMobile',
             'imageMobile2',
-            'popup_mobile_image',
-            'popup_mobile_image2',
-            'imagen_popup_mobile',
-            'imagen_popup_mobile2',
             'whatsappImage',
+            'whatsappImage2',
+            'whatsappImage3',
             'emailImage',
             'emailImage_2',
             'emailImage_3',
@@ -69,8 +67,6 @@ class UpdateHomePopupSettingRequest extends FormRequest
     {
         return [
             'enabled' => ['sometimes', 'boolean'],
-            'title' => ['sometimes', 'nullable', 'string', 'max:150'],
-            'subtitle' => ['sometimes', 'nullable', 'string', 'max:255'],
             'button_text' => ['sometimes', 'nullable', 'string', 'max:50'],
             'buttonText' => ['sometimes', 'nullable', 'string', 'max:50'],
             'button_bg_color' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
@@ -130,15 +126,6 @@ class UpdateHomePopupSettingRequest extends FormRequest
             'email_btn_bg_color_3' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'email_btn_text_color_3' => ['sometimes', 'nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'email_send_delay_minutes_3' => ['sometimes', 'integer'],
-
-            'popup_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_image_2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_mobile_image' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_mobile_image2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imagen_popup_mobile' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'imagen_popup_mobile2' => 'sometimes|nullable|file|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'popup_mobile_image_count' => 'sometimes|nullable|integer|in:1,2',
         ];
     }
 }
