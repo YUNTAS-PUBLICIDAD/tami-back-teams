@@ -61,7 +61,7 @@ class ChatbotController extends Controller
                 if (!$n8n_url) {
                     Log::error("La variable N8N_WEBHOOK_URL no está definida en el archivo .env.");
                 } else {
-                    $http = Http::timeout(8); 
+                    $http = Http::timeout(20); 
                     if (app()->environment('local')) {
                         $http = $http->withoutVerifying();
                     }
