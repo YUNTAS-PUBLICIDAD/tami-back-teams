@@ -18,6 +18,7 @@ class ProductoActualizado
      * Create a new event instance.
      */
     public function __construct(
+        
         public Producto $producto
     ){}
 
