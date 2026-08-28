@@ -78,13 +78,15 @@ class UserControllerTest extends TestCase
 
         $data = [
             'name' => 'Juan Pérez',
-            'email' => 'juan@example.com',
+            'email' => 'juan_nuevo@example.com',
             'celular' => '987654321',
             'password' => bcrypt('password'),
         ];
 
         // ID inexistente
         $response = $this->putJson(route('users.update', ['id' => 999]), $data);
+    
+
 
         $response->assertStatus(500)
             ->assertJson([
