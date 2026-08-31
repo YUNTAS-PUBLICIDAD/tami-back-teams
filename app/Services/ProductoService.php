@@ -144,7 +144,8 @@ class ProductoService
                         if ($imagenDb) {
 
                             $this->imageService->deleteImageFromStorage($imagenDb->url_imagen);
-                            $guardada = $this->imageService->guardarImagen($file);
+
+                            $guardada = $this->imageService->guardarImagen($file, $producto->nombre);
 
                             $imagenDb->update([
                                 'url_imagen' => $guardada['url'],
@@ -180,7 +181,7 @@ class ProductoService
 
                 foreach ($imagenesNuevas as $index => $file) {
 
-                    $guardada = $this->imageService->guardarImagen($file);
+                    $guardada = $this->imageService->guardarImagen($file, $producto->nombre);
                     $ruta = $guardada['url'];
                     $altText = $altTextsNuevos[$index] ?? "";
                     $titulo = $titulosNuevos[$index] ?? "";
