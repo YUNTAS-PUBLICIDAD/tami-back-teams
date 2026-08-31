@@ -20,7 +20,7 @@ class ChatbotController extends Controller
 {
     use ApiResponseTrait; 
 
-     public function ask(Request $request)
+    public function ask(Request $request)
     {
         // Aceptamos 'chatbotTami' o 'mensaje' para evitar que Laravel rechace la petición de React
         $chatbotTami = $request->input('chatbotTami') ?? $request->input('mensaje');
@@ -46,71 +46,85 @@ class ChatbotController extends Controller
             return ChatbotConfig::first();
         });
 
-        $isBotActive =  true;
+        $isBotActive = true;
 
         if (!$isBotActive) {
             return response()->json(['success' => false, 'response' => 'El chat está temporalmente fuera de servicio.']);
         }
 
         $responseText = null; 
+        $linkWhatsapp = null;
+        $tipoMessage = 'texto';
 
-        // 3. N8N (Si no hay respuesta en FAQs)
-        if (!$responseText) {
-            try {
-                $n8n_url = config('services.n8n.webhook_url');
-                if (!$n8n_url) {
-                    Log::error("La variable N8N_WEBHOOK_URL no está definida en el archivo .env.");
-                } else {
-                    $http = Http::timeout(20); 
-                    if (app()->environment('local')) {
-                        $http = $http->withoutVerifying();
-                    }
-                    
-                    $response = $http->post($n8n_url, [
-                        'chatbotTami' => $chatbotTami,
-                        'sessionId' => $sessionId,
-                        'platform' => $platform,
-                    ]);
-                    
-                    if ($response->successful()) {
-                    $data = $response->json();
+    try {
+        $n8n_url = config('services.n8n.webhook_url');
+        if (!$n8n_url) {
+            Log::error("La variable N8N_WEBHOOK_URL no está definida en el archivo .env.");
+        } else {
+            $http = Http::timeout(90); 
+            if (app()->environment('local')) {
+                $http = $http->withoutVerifying();
+            }
+        
+            $response = $http->post($n8n_url, [
+                'chatbotTami' => $chatbotTami,
+                'sessionId'   => $sessionId,
+                'platform'    => $platform,
+            ]);
 
-                    $responseText =
-                        $data['response']
-                        ?? $data['output']
-                        ?? $data['respuesta']
-                        ?? null;
+            Log::info('Respuesta HTTP de n8n', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+        
+            if ($response->successful()) {
+                $data = $response->json();
 
-                    $showWhatsapp = $data['show_whatsapp'] ?? false;
-
-                    if ($showWhatsapp) {
-                        $enlaceWhatsapp = "https://wa.me/+51978883199";
-                    }
-                    } else {
-                        Log::error('n8n respondió error', [
-                            'status' => $response->status(),
-                            'body' => $response->body(),
-                        ]);
-                    }
+                if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+                    $data = $data[0];
                 }
-            } catch (\Exception $e) {
-                Log::error('Error n8n: ' . $e->getMessage());
+
+                $responseText = $data['respuesta'] 
+                    ?? $data['response'] 
+                    ?? $data['output'] 
+                    ?? null;
+
+                $tipoMessage = $data['tipo'] ?? 'texto';
+
+                if (!empty($data['link_whatsapp'])) {
+                    $linkWhatsapp = $data['link_whatsapp'];
+                } elseif (!empty($data['showCta']) && !empty($data['whatsappMessage'])) {
+                    $phone        = "51978883199";
+                    $linkWhatsapp = "https://wa.me/{$phone}?text=" . urlencode($data['whatsappMessage']);
+                }
+        } else {
+            Log::error('n8n respondió con código de error HTTP', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+                ]);
             }
         }
         
+    } catch (\Exception $e) {
+        Log::error('Excepción al conectar con n8n: ' . $e->getMessage());
+    }
         // 4. Fallback (Si N8N falla o no hay respuesta)
         if (!$responseText) {
-            $responseText = $settings?->fallback_message ?? 'Comunicate por WhatsApp.';
-            $enlaceWhatsapp = "https://wa.me/+51978883199";
+            $responseText = $settings?->fallback_message 
+                ?? 'Lo siento, en este momento el servicio está demorando en responder. Por favor reintenta tu pregunta.';
+            $linkWhatsapp = null; 
+            $tipoMessage  = 'texto';
         }
 
-        return response()->json(array_filter([
+        return response()->json([
             'success' => true,
+            'tipo' => $tipoMessage,
+            'respuesta' => $responseText,
             'response' => $responseText,
-            'link_whatsapp' => $enlaceWhatsapp ?? null,
-        ], fn($v) => $v !== null));
+            'link_whatsapp' => $linkWhatsapp,
+        ], 200, [], JSON_UNESCAPED_UNICODE);
     }
-
+    
     public function getIcon(ChatbotService $service): JsonResponse
     {
         $urlIcono = $service->getIcon();
