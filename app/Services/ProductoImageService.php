@@ -98,7 +98,7 @@ class ProductoImageService
                 if ($existente && !empty($existente->imagen_url)) {
                     $this->deleteImageFromStorage($existente->imagen_url);
                 }
-                $pasoData['imagen_url'] = $this->guardarImagen($imageFile)['url'];
+                $pasoData['imagen_url'] = $this->guardarImagen($imageFile, $producto->nombre)['url'];
             }
 
             ProductoWhatsappPaso::updateOrCreate(
@@ -129,7 +129,7 @@ class ProductoImageService
             if ($existente && !empty($existente->imagen_url)) {
                 $this->deleteImageFromStorage($existente->imagen_url);
             }
-            $pasoData['imagen_url'] = $this->guardarImagen($file)['url'];
+            $pasoData['imagen_url'] = $this->guardarImagen($file, $producto->nombre)['url'];
         }
 
         ProductoEmailPaso::updateOrCreate(
@@ -144,7 +144,7 @@ class ProductoImageService
      * @param UploadedFile $archivo Archivo a guardar
      * @return array{url: string, original_name: string} URL pública de la imagen (/storage/imagenes/nombre.ext) y nombre original
      */
-    public function guardarImagen(UploadedFile $archivo): array
+    public function guardarImagen(UploadedFile $archivo, string $productoNombre = ''): array
     {
         $extension = strtolower($archivo->getClientOriginalExtension());
 
@@ -154,8 +154,7 @@ class ProductoImageService
             );
         }
 
-        $originalBase = pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME);
-        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($originalBase));
+        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($productoNombre));
         if ($base === '' || $base === '.') {
             $base = 'imagen';
         }
@@ -201,7 +200,7 @@ class ProductoImageService
     public function saveGalleryImages(Producto $producto, array $imagenes, array $altTexts = [], array $titulos = []): void
     {
         foreach ($imagenes as $i => $imagen) {
-            $guardada = $this->guardarImagen($imagen);
+            $guardada = $this->guardarImagen($imagen, $producto->nombre);
             $producto->imagenes()->create([
                 'url_imagen' => $guardada['url'],
                 'original_name' => $guardada['original_name'],
@@ -265,7 +264,7 @@ class ProductoImageService
 
     private function saveImage(Producto $producto, UploadedFile $file, string $tipo, array $data): ProductoImagen
     {
-        $guardada = $this->guardarImagen($file);
+        $guardada = $this->guardarImagen($file, $producto->nombre);
 
         $payload = array_merge($data, [
             'url_imagen' => $guardada['url'],
