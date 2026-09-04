@@ -7,6 +7,7 @@ use App\Models\ProductoImagen;
 use App\Models\ProductoWhatsappPaso;
 use App\Models\ProductoEmailPaso;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Http\UploadedFile;
 
 class ProductoImageService
@@ -144,7 +145,7 @@ class ProductoImageService
      * @param UploadedFile $archivo Archivo a guardar
      * @return array{url: string, original_name: string} URL pública de la imagen (/storage/imagenes/nombre.ext) y nombre original
      */
-    public function guardarImagen(UploadedFile $archivo, string $productoNombre = ''): array
+    public function guardarImagen(UploadedFile $archivo, string $textoAlt = ''): array
     {
         $extension = strtolower($archivo->getClientOriginalExtension());
 
@@ -154,11 +155,11 @@ class ProductoImageService
             );
         }
 
-        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($productoNombre));
+        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($textoAlt));
         if ($base === '' || $base === '.') {
             $base = 'imagen';
         }
-        $nombre = $base . '_' . uniqid() . '.' . $extension;
+        $nombre = $base . '_' . Str::random(8) . '.' . $extension;
         $archivo->storeAs("imagenes", $nombre, "public");
         return [
             'url' => "/storage/imagenes/" . $nombre,
@@ -200,7 +201,7 @@ class ProductoImageService
     public function saveGalleryImages(Producto $producto, array $imagenes, array $altTexts = [], array $titulos = []): void
     {
         foreach ($imagenes as $i => $imagen) {
-            $guardada = $this->guardarImagen($imagen, $producto->nombre);
+            $guardada = $this->guardarImagen($imagen, $altTexts[$i] ?? '');
             $producto->imagenes()->create([
                 'url_imagen' => $guardada['url'],
                 'original_name' => $guardada['original_name'],
@@ -264,7 +265,7 @@ class ProductoImageService
 
     private function saveImage(Producto $producto, UploadedFile $file, string $tipo, array $data): ProductoImagen
     {
-        $guardada = $this->guardarImagen($file, $producto->nombre);
+        $guardada = $this->guardarImagen($file, $data['texto_alt_SEO'] ?? '');
 
         $payload = array_merge($data, [
             'url_imagen' => $guardada['url'],
@@ -285,6 +286,49 @@ class ProductoImageService
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
+    }
+
+    /**
+     * Renombra el archivo de una imagen en disco y actualiza la ruta en BD
+     * basándose en el campo texto_alt_SEO del modelo.
+     *
+     * @return string|null Nueva URL de la imagen o null si no se pudo renombrar
+     */
+    public function renameImage(ProductoImagen $imagen): ?string
+    {
+        $currentPath = $imagen->url_imagen;
+        $currentRelativePath = str_replace('/storage/', '', $currentPath);
+
+        $extension = strtolower(pathinfo($currentRelativePath, PATHINFO_EXTENSION));
+
+        // Si no hay texto_alt_SEO, usar el nombre original del archivo como base
+        $textoAlt = $imagen->texto_alt_SEO;
+        if (empty($textoAlt)) {
+            $textoAlt = pathinfo($currentRelativePath, PATHINFO_FILENAME);
+        }
+
+        $base = preg_replace('/[^A-Za-z0-9._\-]+/', '_', trim($textoAlt));
+        if ($base === '' || $base === '.') {
+            return null;
+        }
+
+        $newNombre = $base . '_' . Str::random(6) . '.' . $extension;
+        $newRelativePath = 'imagenes/' . $newNombre;
+
+        if (!Storage::disk('public')->exists($currentRelativePath)) {
+            return null;
+        }
+
+        if ($currentRelativePath === $newRelativePath) {
+            return $currentPath;
+        }
+
+        Storage::disk('public')->move($currentRelativePath, $newRelativePath);
+
+        $newUrl = '/storage/' . $newRelativePath;
+        $imagen->update(['url_imagen' => $newUrl]);
+
+        return $newUrl;
     }
 
     private function typeAliases(string $tipo): array

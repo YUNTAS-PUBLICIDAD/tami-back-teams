@@ -145,7 +145,7 @@ class ProductoService
 
                             $this->imageService->deleteImageFromStorage($imagenDb->url_imagen);
 
-                            $guardada = $this->imageService->guardarImagen($file, $producto->nombre);
+                            $guardada = $this->imageService->guardarImagen($file, $alt);
 
                             $imagenDb->update([
                                 'url_imagen' => $guardada['url'],
@@ -162,9 +162,11 @@ class ProductoService
 
                 if (isset($imgData['id']) && isset($imgData['alt'])) {
 
-                    $producto->imagenes()
-                        ->where('id', $imgData['id'])
-                        ->update(['texto_alt_SEO' => $imgData['alt']]);
+                    $imagenExistente = $producto->imagenes()->find($imgData['id']);
+                    if ($imagenExistente && $imagenExistente->texto_alt_SEO !== $imgData['alt']) {
+                        $imagenExistente->update(['texto_alt_SEO' => $imgData['alt']]);
+                        $this->imageService->renameImage($imagenExistente);
+                    }
                 }
                 if (isset($imgData['id']) && isset($imgData['ttl'])) {
 
@@ -181,10 +183,10 @@ class ProductoService
 
                 foreach ($imagenesNuevas as $index => $file) {
 
-                    $guardada = $this->imageService->guardarImagen($file, $producto->nombre);
-                    $ruta = $guardada['url'];
                     $altText = $altTextsNuevos[$index] ?? "";
                     $titulo = $titulosNuevos[$index] ?? "";
+                    $guardada = $this->imageService->guardarImagen($file, $altText);
+                    $ruta = $guardada['url'];
 
                     $producto->imagenes()->create([
                         'url_imagen' => $ruta,
