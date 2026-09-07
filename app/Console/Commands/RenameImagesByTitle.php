@@ -3,9 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\ProductoImagen;
-use App\Models\ProductoWhatsappPaso;
-use App\Models\ProductoEmailPaso;
-use App\Services\ProductoImageService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,26 +11,17 @@ class RenameImagesByTitle extends Command
 {
     protected $signature = 'images:rename-by-title {--dry-run : Solo muestra cambios sin ejecutarlos}';
 
-    protected $description = 'Renombra archivos de imagen en disco según el texto_alt_SEO de cada registro en BD';
-
-    private ProductoImageService $imageService;
-
-    public function __construct(ProductoImageService $imageService)
-    {
-        parent::__construct();
-        $this->imageService = $imageService;
-    }
+    protected $description = 'Renombra archivos de imagen en disco según el texto_alt_SEO de cada registro en producto_imagenes';
 
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
 
-        $this->info($dryRun ? 'Modo DRY-RUN: no se renombrará nada.' : 'Renombrando imágenes...');
+        $this->info($dryRun ? 'Modo DRY-RUN: no se renombrará nada.' : 'Renombrando imágenes de producto_imagenes...');
 
         $renamed = 0;
         $skipped = 0;
 
-        // 1. producto_imagenes (galería, popup, etc.)
         $imagenes = ProductoImagen::all();
 
         foreach ($imagenes as $imagen) {
@@ -42,46 +30,6 @@ class RenameImagesByTitle extends Command
             if ($newUrl) {
                 if (!$dryRun) {
                     $imagen->update(['url_imagen' => $newUrl]);
-                }
-                $renamed++;
-            } else {
-                $skipped++;
-            }
-        }
-
-        // 2. producto_whatsapp_pasos (usa nombre del producto como base)
-        $whatsappPasos = ProductoWhatsappPaso::whereNotNull('imagen_url')
-            ->where('imagen_url', '!=', '')
-            ->with('producto')
-            ->get();
-
-        foreach ($whatsappPasos as $paso) {
-            $textoAlt = $paso->producto->nombre ?? 'whatsapp_' . $paso->paso;
-            $newUrl = $this->renameOne($paso->imagen_url, $textoAlt, $dryRun);
-
-            if ($newUrl) {
-                if (!$dryRun) {
-                    $paso->update(['imagen_url' => $newUrl]);
-                }
-                $renamed++;
-            } else {
-                $skipped++;
-            }
-        }
-
-        // 3. producto_email_pasos (usa nombre del producto como base)
-        $emailPasos = ProductoEmailPaso::whereNotNull('imagen_url')
-            ->where('imagen_url', '!=', '')
-            ->with('producto')
-            ->get();
-
-        foreach ($emailPasos as $paso) {
-            $textoAlt = $paso->producto->nombre ?? 'email_' . $paso->paso;
-            $newUrl = $this->renameOne($paso->imagen_url, $textoAlt, $dryRun);
-
-            if ($newUrl) {
-                if (!$dryRun) {
-                    $paso->update(['imagen_url' => $newUrl]);
                 }
                 $renamed++;
             } else {
@@ -112,7 +60,6 @@ class RenameImagesByTitle extends Command
         $currentRelativePath = str_replace('/storage/', '', $currentUrl);
         $extension = strtolower(pathinfo($currentRelativePath, PATHINFO_EXTENSION));
 
-        // Si no hay texto_alt_SEO, usar el nombre original del archivo como base
         if (empty($textoAlt)) {
             $textoAlt = pathinfo($currentRelativePath, PATHINFO_FILENAME);
         }
