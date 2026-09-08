@@ -90,6 +90,7 @@ class ChatbotController extends Controller
                     ?? null;
 
                 $tipoMessage = $data['tipo'] ?? 'texto';
+                $preguntasFrecuentes = $data['preguntasFrecuentes'] ?? []; //
 
                 if (!empty($data['link_whatsapp'])) {
                     $linkWhatsapp = $data['link_whatsapp'];
@@ -122,6 +123,7 @@ class ChatbotController extends Controller
             'respuesta' => $responseText,
             'response' => $responseText,
             'link_whatsapp' => $linkWhatsapp,
+            'preguntasFrecuentes' => $preguntasFrecuentes ?? [],
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
     
