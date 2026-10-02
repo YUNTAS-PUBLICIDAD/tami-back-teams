@@ -16,8 +16,6 @@ class ConfiguracionContacto extends Model
         'telefono',
         'telefono_opcional',
         'direccion',
-        'latitud',
-        'longitud',
     ];
 
     public function redesSociales()
